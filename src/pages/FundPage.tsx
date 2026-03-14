@@ -63,7 +63,11 @@ export default function FundPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Fund</h1>
           <p className="text-sm text-muted-foreground mt-1">Community fund transactions</p>
         </div>
-        {role === 'admin' && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => generateFundSummaryPDF(transactions, balance)} className="gap-2">
+            <Download className="w-4 h-4" /> PDF Report
+          </Button>
+          {role === 'admin' && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Add Transaction</Button>
