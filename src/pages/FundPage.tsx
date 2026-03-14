@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ArrowDownLeft, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Download } from 'lucide-react';
+import { generateFundSummaryPDF } from '@/lib/pdfGenerator';
 
 export default function FundPage() {
   const { role, user } = useAuth();
@@ -62,7 +63,11 @@ export default function FundPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Fund</h1>
           <p className="text-sm text-muted-foreground mt-1">Community fund transactions</p>
         </div>
-        {role === 'admin' && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => generateFundSummaryPDF(transactions, balance)} className="gap-2">
+            <Download className="w-4 h-4" /> PDF Report
+          </Button>
+          {role === 'admin' && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Add Transaction</Button>
@@ -95,6 +100,7 @@ export default function FundPage() {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
