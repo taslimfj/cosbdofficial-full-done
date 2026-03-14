@@ -100,7 +100,7 @@ export default function FundPage() {
             </DialogContent>
           </Dialog>
         )}
-      </div>
+        </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-5 shadow-subtle">
