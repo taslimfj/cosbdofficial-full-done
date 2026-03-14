@@ -14,16 +14,454 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deposits: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          member_id: string
+          month_year: string | null
+          payment_method: string | null
+          status: string | null
+          transaction_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          member_id: string
+          month_year?: string | null
+          payment_method?: string | null
+          status?: string | null
+          transaction_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          month_year?: string | null
+          payment_method?: string | null
+          status?: string | null
+          transaction_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposits_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fund_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          reason: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          reason?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          reason?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      islamic_loan_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          loan_id: string
+          payment_type: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          loan_id: string
+          payment_type?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          loan_id?: string
+          payment_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "islamic_loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      islamic_loans: {
+        Row: {
+          code: string
+          comments: string | null
+          created_at: string | null
+          fund_profit_pct: number | null
+          id: string
+          media_person_id: string | null
+          media_person_profit_pct: number | null
+          monthly_installment: number | null
+          profit_percentage: number | null
+          purchase_price: number
+          remaining_amount: number | null
+          sell_price: number
+          status: string | null
+          tenure_months: number
+        }
+        Insert: {
+          code: string
+          comments?: string | null
+          created_at?: string | null
+          fund_profit_pct?: number | null
+          id?: string
+          media_person_id?: string | null
+          media_person_profit_pct?: number | null
+          monthly_installment?: number | null
+          profit_percentage?: number | null
+          purchase_price: number
+          remaining_amount?: number | null
+          sell_price: number
+          status?: string | null
+          tenure_months: number
+        }
+        Update: {
+          code?: string
+          comments?: string | null
+          created_at?: string | null
+          fund_profit_pct?: number | null
+          id?: string
+          media_person_id?: string | null
+          media_person_profit_pct?: number | null
+          monthly_installment?: number | null
+          profit_percentage?: number | null
+          purchase_price?: number
+          remaining_amount?: number | null
+          sell_price?: number
+          status?: string | null
+          tenure_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "islamic_loans_media_person_id_fkey"
+            columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_loan_repayments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          loan_id: string
+          payment_method: string | null
+          transaction_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          loan_id: string
+          payment_method?: string | null
+          transaction_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          loan_id?: string
+          payment_method?: string | null
+          transaction_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_loan_repayments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "member_loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_loans: {
+        Row: {
+          approved_amount: number | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          member_id: string
+          repaid_amount: number | null
+          requested_amount: number
+          status: string | null
+        }
+        Insert: {
+          approved_amount?: number | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          member_id: string
+          repaid_amount?: number | null
+          requested_amount: number
+          status?: string | null
+        }
+        Update: {
+          approved_amount?: number | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          member_id?: string
+          repaid_amount?: number | null
+          requested_amount?: number
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_loans_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          total_deposited: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          total_deposited?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          total_deposited?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profit_distributions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          distribution_type: string | null
+          id: string
+          member_id: string | null
+          share_percentage: number | null
+          source_id: string
+          source_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          distribution_type?: string | null
+          id?: string
+          member_id?: string | null
+          share_percentage?: number | null
+          source_id: string
+          source_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          distribution_type?: string | null
+          id?: string
+          member_id?: string | null
+          share_percentage?: number | null
+          source_id?: string
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profit_distributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_transactions: {
+        Row: {
+          amount: number
+          comments: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          project_id: string
+          reason: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          comments?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          comments?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          code: string
+          created_at: string | null
+          fund_profit_pct: number | null
+          id: string
+          manager_id: string | null
+          manager_profit_pct: number | null
+          name: string
+          status: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          fund_profit_pct?: number | null
+          id?: string
+          manager_id?: string | null
+          manager_profit_pct?: number | null
+          name: string
+          status?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          fund_profit_pct?: number | null
+          id?: string
+          manager_id?: string | null
+          manager_profit_pct?: number | null
+          name?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +588,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "member"],
+    },
   },
 } as const
