@@ -24,7 +24,7 @@ export default function MembersPage() {
   useEffect(() => { fetchMembers(); }, []);
 
   const fetchMembers = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('full_name');
+    const { data } = await supabase.from('profiles').select('*').eq('is_deleted', false).order('full_name');
     const profiles = data || [];
     const total = profiles.reduce((s, p) => s + Number(p.total_deposited || 0), 0);
     setTotalInvestment(total);
