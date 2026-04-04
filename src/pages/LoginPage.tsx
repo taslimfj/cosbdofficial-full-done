@@ -42,13 +42,16 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: signupName, role: 'admin' } },
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { full_name: signupName, role: 'admin' },
+        },
       });
       setLoading(false);
       if (error) {
         toast.error(error.message || 'Signup failed');
       } else {
-        toast.success('Admin account created! You can now sign in.');
+        toast.success('এডমিন একাউন্ট তৈরি হয়েছে। আগে ইমেইল ভেরিফাই করুন, তারপর লগ ইন করুন।');
         setMode('login');
       }
       return;
@@ -58,7 +61,14 @@ export default function LoginPage() {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast.error(error.message || 'Login failed');
+      const message = error.message || 'Login failed';
+      if (message.toLowerCase().includes('email not confirmed')) {
+        toast.error('আপনার ইমেইল এখনো ভেরিফাই করা হয়নি। ইমেইলের ভেরিফিকেশন লিংকে ক্লিক করে তারপর লগ ইন করুন।');
+      } else if (message.toLowerCase().includes('invalid login credentials')) {
+        toast.error('ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। আবার চেষ্টা করুন।');
+      } else {
+        toast.error(message);
+      }
     } else {
       toast.success('Welcome back!');
     }
