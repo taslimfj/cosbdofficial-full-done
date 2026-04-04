@@ -29,18 +29,18 @@ export default function PhoneBookPage() {
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['phone_book'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('phone_book')
         .select('*')
         .order('name');
       if (error) throw error;
-      return data as PhoneEntry[];
+      return (data || []) as PhoneEntry[];
     },
   });
 
   const addMutation = useMutation({
     mutationFn: async (entry: typeof form) => {
-      const { error } = await supabase.from('phone_book').insert({
+      const { error } = await (supabase as any).from('phone_book').insert({
         name: entry.name.trim(),
         phone_number: entry.phone_number.trim(),
         description: entry.description.trim() || null,
@@ -58,7 +58,7 @@ export default function PhoneBookPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('phone_book').delete().eq('id', id);
+      const { error } = await (supabase as any).from('phone_book').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
