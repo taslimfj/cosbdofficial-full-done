@@ -14,6 +14,7 @@ import {
   X,
   Shield,
   Bell,
+  BookUser,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/islamic-loans', icon: Landmark, label: 'Islamic Loans', roles: ['admin', 'member'] },
   { to: '/projects', icon: FolderKanban, label: 'Projects', roles: ['admin', 'member'] },
   { to: '/member-loans', icon: HandCoins, label: 'Member Loans', roles: ['admin', 'member'] },
+  { to: '/phone-book', icon: BookUser, label: 'ফোন বুক', roles: ['admin', 'member'] },
 ];
 
 export default function DashboardLayout() {
