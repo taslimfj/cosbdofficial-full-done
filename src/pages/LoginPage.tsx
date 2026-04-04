@@ -58,7 +58,14 @@ export default function LoginPage() {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast.error(error.message || 'Login failed');
+      const message = error.message || 'Login failed';
+      if (message.toLowerCase().includes('email not confirmed')) {
+        toast.error('আপনার ইমেইল এখনো ভেরিফাই করা হয়নি। ইমেইলের ভেরিফিকেশন লিংকে ক্লিক করে তারপর লগ ইন করুন।');
+      } else if (message.toLowerCase().includes('invalid login credentials')) {
+        toast.error('ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। আবার চেষ্টা করুন।');
+      } else {
+        toast.error(message);
+      }
     } else {
       toast.success('Welcome back!');
     }
