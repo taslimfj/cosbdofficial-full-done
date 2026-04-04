@@ -42,13 +42,16 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: signupName, role: 'admin' } },
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { full_name: signupName, role: 'admin' },
+        },
       });
       setLoading(false);
       if (error) {
         toast.error(error.message || 'Signup failed');
       } else {
-        toast.success('Admin account created! You can now sign in.');
+        toast.success('এডমিন একাউন্ট তৈরি হয়েছে। আগে ইমেইল ভেরিফাই করুন, তারপর লগ ইন করুন।');
         setMode('login');
       }
       return;
