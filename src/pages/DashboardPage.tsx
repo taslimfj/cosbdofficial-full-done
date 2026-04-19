@@ -5,6 +5,7 @@ import { formatBDT } from '@/lib/finance';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { MembersOverview } from '@/components/dashboard/MembersOverview';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -71,7 +72,8 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <MembersOverview members={members} totalInvestment={stats.totalInvestment} />
         </div>
-        <div>
+        <div className="space-y-6">
+          <PendingApprovals />
           <RecentActivity />
         </div>
       </div>
