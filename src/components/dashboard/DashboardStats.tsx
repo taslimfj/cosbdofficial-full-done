@@ -1,5 +1,6 @@
 import { formatBDT } from '@/lib/finance';
 import { TrendingUp, Wallet, Users, Landmark } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface StatsProps {
   stats: {
@@ -11,6 +12,7 @@ interface StatsProps {
 }
 
 export function DashboardStats({ stats }: StatsProps) {
+  const navigate = useNavigate();
   const items = [
     {
       label: 'Total Investment',
@@ -40,14 +42,15 @@ export function DashboardStats({ stats }: StatsProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {items.map(item => (
+      {items.map((item, index) => (
         <div
           key={item.label}
+          onClick={index === 0 ? () => navigate('/members') : undefined}
           className={`p-5 rounded-xl border shadow-subtle transition-shadow hover:shadow-card ${
             item.accent
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-card text-card-foreground border-border'
-          }`}
+          } ${index === 0 ? 'cursor-pointer' : ''}`}
         >
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-medium uppercase tracking-wider ${
