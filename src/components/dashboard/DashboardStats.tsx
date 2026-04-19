@@ -45,12 +45,12 @@ export function DashboardStats({ stats }: StatsProps) {
       {items.map((item, index) => (
         <div
           key={item.label}
-          onClick={index === 0 ? () => navigate('/members') : undefined}
+          onClick={index === 0 ? () => navigate('/members') : index === 3 ? () => navigate('/islamic-loans') : undefined}
           className={`p-5 rounded-xl border shadow-subtle transition-shadow hover:shadow-card ${
             item.accent
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-card text-card-foreground border-border'
-          } ${index === 0 ? 'cursor-pointer' : ''}`}
+          } ${index === 0 || index === 3 ? 'cursor-pointer' : ''}`}
         >
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-medium uppercase tracking-wider ${
