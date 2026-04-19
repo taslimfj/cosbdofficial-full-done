@@ -51,9 +51,9 @@ export default function PhoneBookPage() {
       queryClient.invalidateQueries({ queryKey: ['phone_book'] });
       setForm({ name: '', phone_number: '', description: '' });
       setOpen(false);
-      toast.success('ফোন নাম্বার যোগ হয়েছে');
+      toast.success('Phone number added');
     },
-    onError: () => toast.error('সেভ করতে সমস্যা হয়েছে'),
+    onError: () => toast.error('Failed to save'),
   });
 
   const deleteMutation = useMutation({
@@ -63,9 +63,9 @@ export default function PhoneBookPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['phone_book'] });
-      toast.success('ডিলিট হয়েছে');
+      toast.success('Deleted');
     },
-    onError: () => toast.error('ডিলিট করতে সমস্যা হয়েছে'),
+    onError: () => toast.error('Failed to delete'),
   });
 
   const filtered = entries.filter(e =>
@@ -87,17 +87,17 @@ export default function PhoneBookPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">ফোন বুক</h1>
-          <p className="text-sm text-muted-foreground">জরুরী ফোন নাম্বার সমূহ</p>
+          <h1 className="text-2xl font-bold text-foreground">Phone Book</h1>
+          <p className="text-sm text-muted-foreground">Emergency Contact Numbers</p>
         </div>
         {isAdmin && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" /> নতুন যোগ করুন</Button>
+              <Button><Plus className="w-4 h-4 mr-2" /> Add New</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>নতুন ফোন নাম্বার যোগ করুন</DialogTitle>
+                <DialogTitle>Add New Phone Number</DialogTitle>
               </DialogHeader>
               <form
                 className="space-y-4"
@@ -108,25 +108,25 @@ export default function PhoneBookPage() {
                 }}
               >
                 <Input
-                  placeholder="নাম"
+                  placeholder="Name"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   required
                 />
                 <Input
-                  placeholder="ফোন নাম্বার (যেমন: +8801XXXXXXXXX)"
+                  placeholder="Phone Number (e.g., +8801XXXXXXXXX)"
                   value={form.phone_number}
                   onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
                   required
                 />
                 <Textarea
-                  placeholder="বিবরণ (ঐচ্ছিক)"
+                  placeholder="Description (Optional)"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   rows={2}
                 />
                 <Button type="submit" className="w-full" disabled={addMutation.isPending}>
-                  সেভ করুন
+                  Save
                 </Button>
               </form>
             </DialogContent>
@@ -138,7 +138,7 @@ export default function PhoneBookPage() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="নাম বা নাম্বার দিয়ে খুঁজুন..."
+          placeholder="Search by name or number..."
           className="pl-10"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -146,9 +146,9 @@ export default function PhoneBookPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-center text-muted-foreground py-8">লোড হচ্ছে...</p>
+        <p className="text-center text-muted-foreground py-8">Loading...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">কোনো নাম্বার পাওয়া যায়নি</p>
+        <p className="text-center text-muted-foreground py-8">No numbers found</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(entry => (
@@ -162,7 +162,7 @@ export default function PhoneBookPage() {
                       size="icon"
                       className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
                       onClick={() => {
-                        if (confirm('ডিলিট করতে চান?')) deleteMutation.mutate(entry.id);
+                        if (confirm('Are you sure you want to delete?')) deleteMutation.mutate(entry.id);
                       }}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -182,7 +182,7 @@ export default function PhoneBookPage() {
                     className="flex-1"
                     onClick={() => handleCall(entry.phone_number)}
                   >
-                    <Phone className="w-3.5 h-3.5 mr-1.5" /> কল
+                    <Phone className="w-3.5 h-3.5 mr-1.5" /> Call
                   </Button>
                   <Button
                     size="sm"
