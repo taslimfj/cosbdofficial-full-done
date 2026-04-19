@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Download } from 'lucide-react';
+import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
 import { generateFundSummaryPDF } from '@/lib/pdfGenerator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function FundPage() {
   const { role, user } = useAuth();
@@ -19,6 +20,7 @@ export default function FundPage() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({ type: 'in', amount: '', reason: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [balance, setBalance] = useState({ totalIn: 0, totalOut: 0 });
 
@@ -35,22 +37,40 @@ export default function FundPage() {
     setLoading(false);
   };
 
-  const handleAdd = async () => {
+  const handleSubmit = async () => {
     const amount = parseFloat(form.amount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
     if (!form.reason.trim()) { toast.error('Enter a reason'); return; }
     setSubmitting(true);
-    const { error } = await supabase.from('fund_transactions').insert({
-      type: form.type,
-      amount,
-      reason: form.reason.trim(),
-      created_by: user?.id,
-    });
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('fund_transactions').update({
+        type: form.type, amount, reason: form.reason.trim(),
+      }).eq('id', editingId));
+    } else {
+      ({ error } = await supabase.from('fund_transactions').insert({
+        type: form.type, amount, reason: form.reason.trim(), created_by: user?.id,
+      }));
+    }
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success('Transaction added');
+    toast.success(editingId ? 'Transaction updated' : 'Transaction added');
     setShowDialog(false);
+    setEditingId(null);
     setForm({ type: 'in', amount: '', reason: '' });
+    fetchTransactions();
+  };
+
+  const openEdit = (tx: any) => {
+    setEditingId(tx.id);
+    setForm({ type: tx.type, amount: String(tx.amount), reason: tx.reason || '' });
+    setShowDialog(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('fund_transactions').delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Transaction deleted');
     fetchTransactions();
   };
 
@@ -68,12 +88,12 @@ export default function FundPage() {
             <Download className="w-4 h-4" /> PDF Report
           </Button>
           {role === 'admin' && (
-          <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (!o) { setEditingId(null); setForm({ type: 'in', amount: '', reason: '' }); } }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Add Transaction</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Add Fund Transaction</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? 'Edit' : 'Add'} Fund Transaction</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
@@ -93,8 +113,8 @@ export default function FundPage() {
                   <Label>Reason</Label>
                   <Textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} placeholder="Reason for transaction" />
                 </div>
-                <Button className="w-full" onClick={handleAdd} disabled={submitting}>
-                  {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Add Transaction
+                <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
+                  {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {editingId ? 'Save Changes' : 'Add Transaction'}
                 </Button>
               </div>
             </DialogContent>
@@ -137,6 +157,30 @@ export default function FundPage() {
                 <p className={`text-sm font-semibold tabular-nums ${tx.type === 'in' ? 'text-emerald-600' : 'text-destructive'}`}>
                   {tx.type === 'in' ? '+' : '-'}{formatBDT(Number(tx.amount))}
                 </p>
+                {role === 'admin' && (
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(tx)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
+                          <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(tx.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
             ))}
           </div>
