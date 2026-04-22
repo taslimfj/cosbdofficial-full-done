@@ -4,8 +4,11 @@ import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Shield, UserPlus } from 'lucide-react';
+import { Loader2, Shield, UserPlus, Users, ShoppingBag } from 'lucide-react';
+
+type LoginType = 'admin' | 'member' | 'customer';
 
 export default function LoginPage() {
   const { user, signIn, loading: authLoading } = useAuth();
@@ -14,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [signupName, setSignupName] = useState('');
+  const [loginType, setLoginType] = useState<LoginType>('admin');
 
   if (authLoading) {
     return (
@@ -23,7 +27,14 @@ export default function LoginPage() {
     );
   }
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const redirect = sessionStorage.getItem('postLoginRedirect');
+    if (redirect) {
+      sessionStorage.removeItem('postLoginRedirect');
+      return <Navigate to={redirect} replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,27 +62,41 @@ export default function LoginPage() {
       if (error) {
         toast.error(error.message || 'Signup failed');
       } else {
-        toast.success('এডমিন একাউন্ট তৈরি হয়েছে। আগে ইমেইল ভেরিফাই করুন, তারপর লগ ইন করুন।');
+        toast.success('এডমিন একাউন্ট তৈরি হয়েছে। আগে ইমেইল ভেরিফাই করুন, তারপর লগ ইন করুন।');
         setMode('login');
       }
       return;
+    }
+
+    // Set redirect target based on selected login type BEFORE signing in
+    if (loginType === 'customer') {
+      sessionStorage.setItem('postLoginRedirect', '/islamic-loans');
+    } else {
+      sessionStorage.removeItem('postLoginRedirect');
     }
 
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
+      sessionStorage.removeItem('postLoginRedirect');
       const message = error.message || 'Login failed';
       if (message.toLowerCase().includes('email not confirmed')) {
-        toast.error('আপনার ইমেইল এখনো ভেরিফাই করা হয়নি। ইমেইলের ভেরিফিকেশন লিংকে ক্লিক করে তারপর লগ ইন করুন।');
+        toast.error('আপনার ইমেইল এখনো ভেরিফাই করা হয়নি। ইমেইলের ভেরিফিকেশন লিংকে ক্লিক করে তারপর লগ ইন করুন।');
       } else if (message.toLowerCase().includes('invalid login credentials')) {
-        toast.error('ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। আবার চেষ্টা করুন।');
+        toast.error('ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। আবার চেষ্টা করুন।');
       } else {
         toast.error(message);
       }
     } else {
       toast.success('Welcome back!');
     }
+  };
+
+  const typeMeta: Record<LoginType, { label: string; desc: string }> = {
+    admin: { label: 'Admin', desc: 'Sign in to manage the fund' },
+    member: { label: 'Member', desc: 'Sign in to view your account' },
+    customer: { label: 'Customer', desc: 'Sign in to view Islamic Loans' },
   };
 
   return (
@@ -102,12 +127,28 @@ export default function LoginPage() {
             <p className="text-muted-foreground text-sm mt-1">Ethical Growth. Community Trust.</p>
           </div>
 
-          <div className="mb-8">
+          {mode === 'login' && (
+            <Tabs value={loginType} onValueChange={(v) => setLoginType(v as LoginType)} className="mb-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="admin" className="text-xs gap-1">
+                  <Shield className="w-3.5 h-3.5" /> Admin
+                </TabsTrigger>
+                <TabsTrigger value="member" className="text-xs gap-1">
+                  <Users className="w-3.5 h-3.5" /> Member
+                </TabsTrigger>
+                <TabsTrigger value="customer" className="text-xs gap-1">
+                  <ShoppingBag className="w-3.5 h-3.5" /> Customer
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          <div className="mb-6">
             <h2 className="text-xl font-semibold text-foreground">
-              {mode === 'login' ? 'Sign in' : 'Create Admin Account'}
+              {mode === 'login' ? `${typeMeta[loginType].label} Sign in` : 'Create Admin Account'}
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {mode === 'login' ? 'Enter your credentials to continue' : 'Set up a new admin account'}
+              {mode === 'login' ? typeMeta[loginType].desc : 'Set up a new admin account'}
             </p>
           </div>
 
@@ -151,7 +192,7 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full h-10" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {mode === 'login' ? 'Sign in' : 'Create Admin Account'}
+              {mode === 'login' ? `Sign in as ${typeMeta[loginType].label}` : 'Create Admin Account'}
             </Button>
           </form>
 
