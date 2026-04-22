@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
-import { MembersOverview } from '@/components/dashboard/MembersOverview';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
+import { DeletedMembers } from '@/components/dashboard/DeletedMembers';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {
