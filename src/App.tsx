@@ -12,6 +12,7 @@ import MembersPage from "@/pages/MembersPage";
 import MemberDetailPage from "@/pages/MemberDetailPage";
 import FundPage from "@/pages/FundPage";
 import IslamicLoansPage from "@/pages/IslamicLoansPage";
+import IslamicLoanDetailPage from "@/pages/IslamicLoanDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import MemberLoansPage from "@/pages/MemberLoansPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="members/:id" element={<MemberDetailPage />} />
               <Route path="fund" element={<FundPage />} />
               <Route path="islamic-loans" element={<IslamicLoansPage />} />
+              <Route path="islamic-loans/:id" element={<IslamicLoanDetailPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="member-loans" element={<MemberLoansPage />} />
               <Route path="phone-book" element={<PhoneBookPage />} />
