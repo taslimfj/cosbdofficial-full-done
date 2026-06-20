@@ -226,6 +226,48 @@ export default function PhoneBookPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>In-App Call</DialogTitle>
+          </DialogHeader>
+          {inAppCall && (
+            <div className="flex flex-col items-center text-center py-4 space-y-4">
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold">{inAppCall.name}</p>
+                <p className="text-sm text-muted-foreground">{inAppCall.phone_number}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Connecting via app · {fmtDuration(callSeconds)}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-12 w-12"
+                  onClick={() => setCallMuted(m => !m)}
+                  title={callMuted ? 'Unmute' : 'Mute'}
+                >
+                  {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="rounded-full h-12 w-12"
+                  onClick={() => setInAppCall(null)}
+                  title="End"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
