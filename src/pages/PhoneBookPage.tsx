@@ -25,6 +25,9 @@ export default function PhoneBookPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({ name: '', phone_number: '', description: '' });
+  const [inAppCall, setInAppCall] = useState<PhoneEntry | null>(null);
+  const [callMuted, setCallMuted] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['phone_book'],
