@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Phone, MessageCircle, Plus, Trash2, Search } from 'lucide-react';
+import { Phone, MessageCircle, Plus, Trash2, Search, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PhoneEntry {
