@@ -193,22 +193,32 @@ export default function PhoneBookPage() {
                 {entry.description && (
                   <p className="text-xs text-muted-foreground">{entry.description}</p>
                 )}
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
-                    onClick={() => handleCall(entry.phone_number)}
+                    className="text-primary border-primary/30 hover:bg-primary/10"
+                    onClick={() => handleInAppCall(entry)}
+                    title="In-App Call"
                   >
-                    <Phone className="w-3.5 h-3.5 mr-1.5" /> Call
+                    <PhoneCall className="w-3.5 h-3.5" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
-                    onClick={() => handleWhatsApp(entry.phone_number)}
+                    onClick={() => handleCall(entry.phone_number)}
+                    title="Phone Call"
                   >
-                    <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> WhatsApp
+                    <Phone className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => handleWhatsApp(entry.phone_number)}
+                    title="WhatsApp"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </CardContent>
