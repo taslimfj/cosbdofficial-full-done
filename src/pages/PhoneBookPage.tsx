@@ -86,6 +86,21 @@ export default function PhoneBookPage() {
     window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
   };
 
+  const handleInAppCall = (entry: PhoneEntry) => {
+    setCallSeconds(0);
+    setCallMuted(false);
+    setInAppCall(entry);
+  };
+
+  useEffect(() => {
+    if (!inAppCall) return;
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [inAppCall]);
+
+  const fmtDuration = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
