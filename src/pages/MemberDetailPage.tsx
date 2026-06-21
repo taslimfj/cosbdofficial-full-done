@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle } from 'lucide-react';
+import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { generateMemberPDF } from '@/lib/pdfGenerator';
 
 export default function MemberDetailPage() {
@@ -28,6 +28,18 @@ export default function MemberDetailPage() {
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [inAppCall, setInAppCall] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
+  const [callMuted, setCallMuted] = useState(false);
+
+  useEffect(() => {
+    if (!inAppCall) return;
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [inAppCall]);
+
+  const startInAppCall = () => { setCallSeconds(0); setCallMuted(false); setInAppCall(true); };
+  const fmtTime = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
   useEffect(() => {
     if (!id) return;
@@ -290,13 +302,46 @@ export default function MemberDetailPage() {
             <p className="text-xs text-muted-foreground">Total Balance</p>
           </div>
           {member.phone && (
-            <div className="flex gap-2">
-              <a href={`tel:${member.phone}`} className="p-2 rounded-full bg-secondary hover:bg-secondary/80 text-foreground"><Phone className="w-4 h-4" /></a>
-              <a href={`https://wa.me/${member.phone?.replace(/[^0-9]/g, '')}`} target="_blank" className="p-2 rounded-full bg-secondary hover:bg-secondary/80 text-foreground"><MessageCircle className="w-4 h-4" /></a>
+            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+              <Button size="sm" variant="outline" onClick={startInAppCall} className="gap-1 border-green-500/50 text-green-600 hover:bg-green-500/10">
+                <PhoneCall className="w-3.5 h-3.5" /> In-App
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => window.open(`tel:${member.phone}`, '_self')} className="gap-1">
+                <Phone className="w-3.5 h-3.5" /> Call
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => window.open(`https://wa.me/${member.phone.replace(/[^0-9]/g, '')}`, '_blank')} className="gap-1 border-green-500/50 text-green-600 hover:bg-green-500/10">
+                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+              </Button>
             </div>
           )}
         </div>
       </div>
+
+      <Dialog open={inAppCall} onOpenChange={(o) => !o && setInAppCall(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">In-App Call</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold">{member.full_name}</p>
+              <p className="text-sm text-muted-foreground">{member.phone}</p>
+              <p className="text-xs text-muted-foreground mt-2">Connected · {fmtTime(callSeconds)}</p>
+            </div>
+            <div className="flex gap-3">
+              <Button size="lg" variant="outline" onClick={() => setCallMuted(m => !m)} className="rounded-full w-12 h-12 p-0">
+                {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </Button>
+              <Button size="lg" variant="destructive" onClick={() => setInAppCall(false)} className="rounded-full w-12 h-12 p-0">
+                <PhoneOff className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transaction History */}
