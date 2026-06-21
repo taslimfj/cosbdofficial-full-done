@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string
+          name: string
+          purchase_price: number
+          purchase_txn_id: string | null
+          scrap_txn_id: string | null
+          scrap_value: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          purchase_price: number
+          purchase_txn_id?: string | null
+          scrap_txn_id?: string | null
+          scrap_value?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          purchase_price?: number
+          purchase_txn_id?: string | null
+          scrap_txn_id?: string | null
+          scrap_value?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_purchase_txn_id_fkey"
+            columns: ["purchase_txn_id"]
+            isOneToOne: false
+            referencedRelation: "fund_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_scrap_txn_id_fkey"
+            columns: ["scrap_txn_id"]
+            isOneToOne: false
+            referencedRelation: "fund_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposits: {
         Row: {
           amount: number

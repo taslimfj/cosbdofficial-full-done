@@ -16,6 +16,7 @@ import IslamicLoanDetailPage from "@/pages/IslamicLoanDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import MemberLoansPage from "@/pages/MemberLoansPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
+import AssetsPage from "@/pages/AssetsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="member-loans" element={<MemberLoansPage />} />
               <Route path="phone-book" element={<PhoneBookPage />} />
+              <Route path="assets" element={<AssetsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
