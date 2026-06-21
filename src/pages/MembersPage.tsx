@@ -8,7 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Phone, MessageCircle, Search, Loader2 } from 'lucide-react';
+import { Plus, Phone, MessageCircle, Search, Loader2, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+
+interface MemberContact {
+  id: string;
+  full_name: string;
+  phone: string | null;
+}
 
 export default function MembersPage() {
   const { role } = useAuth();
@@ -21,7 +27,17 @@ export default function MembersPage() {
   const [newMember, setNewMember] = useState({ email: '', password: '', fullName: '', phone: '' });
   const [adding, setAdding] = useState(false);
 
+  const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
+  const [callMuted, setCallMuted] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
+
   useEffect(() => { fetchMembers(); }, []);
+
+  useEffect(() => {
+    if (!inAppCall) return;
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [inAppCall]);
 
   const fetchMembers = async () => {
     const { data } = await supabase.from('profiles').select('*').eq('is_deleted', false).order('full_name');
@@ -53,6 +69,24 @@ export default function MembersPage() {
       setTimeout(fetchMembers, 1000);
     }
   };
+
+  const handlePhoneCall = (number: string) => {
+    window.open(`tel:${number}`, '_self');
+  };
+
+  const handleWhatsApp = (number: string) => {
+    const cleaned = number.replace(/[^0-9+]/g, '');
+    window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
+  };
+
+  const handleInAppCall = (member: MemberContact) => {
+    setCallSeconds(0);
+    setCallMuted(false);
+    setInAppCall(member);
+  };
+
+  const fmtDuration = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const filtered = members.filter(m =>
     m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -147,17 +181,38 @@ export default function MembersPage() {
                       <td className="px-5 py-3 text-right">
                         <span className="font-semibold tabular-nums">{share.toFixed(1)}%</span>
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3">
                         <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                           {member.phone && (
-                            <>
-                              <a href={`tel:${member.phone}`} className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground">
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 rounded-full text-primary hover:bg-primary/10"
+                                onClick={() => handleInAppCall({ id: member.id, full_name: member.full_name, phone: member.phone })}
+                                title="In-App Call"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 rounded-full hover:bg-secondary"
+                                onClick={() => handlePhoneCall(member.phone)}
+                                title="Phone Call"
+                              >
                                 <Phone className="w-3.5 h-3.5" />
-                              </a>
-                              <a href={`https://wa.me/${member.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener" className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground">
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 rounded-full text-green-600 hover:bg-green-50"
+                                onClick={() => handleWhatsApp(member.phone)}
+                                title="WhatsApp"
+                              >
                                 <MessageCircle className="w-3.5 h-3.5" />
-                              </a>
-                            </>
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -169,6 +224,49 @@ export default function MembersPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>In-App Call</DialogTitle>
+          </DialogHeader>
+          {inAppCall && (
+            <div className="flex flex-col items-center text-center py-4 space-y-4">
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold">{inAppCall.full_name}</p>
+                <p className="text-sm text-muted-foreground">{inAppCall.phone}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Connecting via app · {fmtDuration(callSeconds)}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-12 w-12"
+                  onClick={() => setCallMuted(m => !m)}
+                  title={callMuted ? 'Unmute' : 'Mute'}
+                >
+                  {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="rounded-full h-12 w-12"
+                  onClick={() => setInAppCall(null)}
+                  title="End"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
