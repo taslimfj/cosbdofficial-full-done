@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle } from 'lucide-react';
+import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { generateMemberPDF } from '@/lib/pdfGenerator';
 
 export default function MemberDetailPage() {
