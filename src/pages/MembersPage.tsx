@@ -54,21 +54,53 @@ export default function MembersPage() {
       return;
     }
     setAdding(true);
-    const { error } = await supabase.auth.signUp({
+
+    // Preserve the current admin session — signUp would otherwise replace it
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentSession = sessionData.session;
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: newMember.email,
       password: newMember.password,
-      options: { data: { full_name: newMember.fullName } },
+      options: {
+        data: {
+          full_name: newMember.fullName,
+          phone: newMember.phone || null,
+        },
+        emailRedirectTo: `${window.location.origin}/`,
+      },
     });
-    setAdding(false);
+
     if (error) {
+      setAdding(false);
       toast.error(error.message);
-    } else {
-      toast.success('Member account created');
-      setShowAddDialog(false);
-      setNewMember({ email: '', password: '', fullName: '', phone: '' });
-      setTimeout(fetchMembers, 1000);
+      return;
     }
+
+    // Restore the admin session so the page does not log us out
+    if (currentSession) {
+      await supabase.auth.setSession({
+        access_token: currentSession.access_token,
+        refresh_token: currentSession.refresh_token,
+      });
+    }
+
+    // Fallback: if the trigger didn't set the phone (e.g. metadata key mismatch),
+    // update the profile directly.
+    if (signUpData?.user?.id && newMember.phone) {
+      await supabase
+        .from('profiles')
+        .update({ phone: newMember.phone })
+        .eq('id', signUpData.user.id);
+    }
+
+    setAdding(false);
+    toast.success('Member account created');
+    setShowAddDialog(false);
+    setNewMember({ email: '', password: '', fullName: '', phone: '' });
+    setTimeout(fetchMembers, 800);
   };
+
 
   const handlePhoneCall = (number: string) => {
     window.open(`tel:${number}`, '_self');
