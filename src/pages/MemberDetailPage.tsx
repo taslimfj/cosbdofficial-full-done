@@ -298,25 +298,44 @@ export default function MemberDetailPage() {
               </Dialog>
 
               {/* Delete Member */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setRepaymentInput(''); }}>
+                <DialogTrigger asChild>
                   <Button size="sm" variant="destructive" className="gap-2"><Trash2 className="w-4 h-4" /> Delete Member</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>মেম্বার মুছে ফেলবেন?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {member.full_name} কে মুছে ফেললে তার মোট জমা ৳{Number(member.total_deposited || 0).toLocaleString()} উত্তোলন হিসেবে গণ্য হবে। পরবর্তী লাভের অংশ ফান্ডে জমা হবে তার নামে।
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>বাতিল</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteMember} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} হ্যাঁ, মুছে ফেলুন
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>মেম্বার মুছে ফেলবেন?</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-2 text-sm">
+                    <p className="text-muted-foreground">
+                      {member.full_name} কে মুছে ফেললে তার মোট জমা ৳{Number(member.total_deposited || 0).toLocaleString()} উত্তোলন হিসেবে গণ্য হবে।
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      নোট: ইসলামিক লোন সম্পূর্ণ আলাদা প্রজেক্ট — মেম্বার মুছে ফেললেও তা প্রভাবিত হবে না।
+                    </p>
+                    {outstandingTotal > 0 && (
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                        <div>
+                          <p className="font-medium text-destructive">পার্সোনাল লোন বকেয়া আছে</p>
+                          <p className="text-xs text-muted-foreground mt-1">মোট বকেয়া: ৳{outstandingTotal.toLocaleString()} ({outstandingLoans.length}টি লোন)</p>
+                          <p className="text-xs text-muted-foreground mt-1">মুছে ফেলার আগে পরিশোধিত পরিমাণ লিখুন।</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">পরিশোধিত পরিমাণ (৳)</Label>
+                          <Input type="number" value={repaymentInput} onChange={e => setRepaymentInput(e.target.value)} placeholder={String(outstandingTotal)} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)}>বাতিল</Button>
+                      <Button variant="destructive" className="flex-1" onClick={handleDeleteMember}
+                        disabled={deleting || (outstandingTotal > 0 && (parseFloat(repaymentInput) || 0) < outstandingTotal)}>
+                        {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} হ্যাঁ, মুছে ফেলুন
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </div>
