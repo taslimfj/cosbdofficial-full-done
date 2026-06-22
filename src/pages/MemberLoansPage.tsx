@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Loader2, HandCoins } from 'lucide-react';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
+import { generateMemberLoansPDF } from '@/lib/pdfGenerator';
 
 export default function MemberLoansPage() {
   const { role, user } = useAuth();
@@ -63,6 +65,8 @@ export default function MemberLoansPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Member Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">Interest-free loans from community fund</p>
         </div>
+        <div className="flex gap-2">
+          <PdfPeriodButton onDownload={(p) => generateMemberLoansPDF(loans, p)} />
         {role === 'member' && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
@@ -83,6 +87,7 @@ export default function MemberLoansPage() {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">

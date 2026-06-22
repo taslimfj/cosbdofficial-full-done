@@ -7,6 +7,8 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
 import { DeletedMembers } from '@/components/dashboard/DeletedMembers';
 import { Loader2 } from 'lucide-react';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
+import { generateDashboardPDF } from '@/lib/pdfGenerator';
 
 export default function DashboardPage() {
   const { role } = useAuth();
@@ -63,9 +65,33 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Overview of your community fund</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Overview of your community fund</p>
+        </div>
+        <PdfPeriodButton
+          label="Overall Summary PDF"
+          onDownload={async (p) => {
+            const [fund, deps, il, ml, assetsRes, dist] = await Promise.all([
+              supabase.from('fund_transactions').select('*'),
+              supabase.from('deposits').select('*'),
+              supabase.from('islamic_loans').select('*'),
+              supabase.from('member_loans').select('*'),
+              supabase.from('assets' as any).select('*'),
+              supabase.from('profit_distributions').select('*'),
+            ]);
+            generateDashboardPDF({
+              members,
+              fundTxns: fund.data || [],
+              deposits: deps.data || [],
+              islamicLoans: il.data || [],
+              memberLoans: ml.data || [],
+              assets: (assetsRes.data as any) || [],
+              distributions: dist.data || [],
+            }, p);
+          }}
+        />
       </div>
       <DashboardStats stats={stats} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
+import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
@@ -84,6 +86,8 @@ export default function IslamicLoansPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Islamic Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">{loans.length} loans · Profit-based financing</p>
         </div>
+        <div className="flex gap-2">
+          <PdfPeriodButton onDownload={(p) => generateIslamicLoansPDF(loans, payments, p)} />
         {role === 'admin' && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
@@ -144,6 +148,7 @@ export default function IslamicLoansPage() {
             </SheetContent>
           </Sheet>
         )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

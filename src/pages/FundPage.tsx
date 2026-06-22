@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { generateFundSummaryPDF } from '@/lib/pdfGenerator';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function FundPage() {
@@ -84,9 +85,7 @@ export default function FundPage() {
           <p className="text-sm text-muted-foreground mt-1">Community fund transactions</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => generateFundSummaryPDF(transactions, balance)} className="gap-2">
-            <Download className="w-4 h-4" /> PDF Report
-          </Button>
+          <PdfPeriodButton onDownload={(p) => generateFundSummaryPDF(transactions, balance, p)} />
           {role === 'admin' && (
           <Dialog open={showDialog} onOpenChange={(o) => { setShowDialog(o); if (!o) { setEditingId(null); setForm({ type: 'in', amount: '', reason: '' }); } }}>
             <DialogTrigger asChild>

@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Package, Loader2, Trash2 } from 'lucide-react';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
+import { generateAssetsPDF } from '@/lib/pdfGenerator';
 
 interface Asset {
   id: string;
@@ -127,6 +129,8 @@ export default function AssetsPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Assets</h1>
           <p className="text-sm text-muted-foreground mt-1">Purchased assets — auto-deducted from fund</p>
         </div>
+        <div className="flex gap-2">
+          <PdfPeriodButton onDownload={(p) => generateAssetsPDF(assets, p)} />
         {role === 'admin' && (
           <Dialog open={showAdd} onOpenChange={setShowAdd}>
             <DialogTrigger asChild>
@@ -155,6 +159,7 @@ export default function AssetsPage() {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       {/* Active Assets */}

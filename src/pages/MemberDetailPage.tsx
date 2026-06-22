@@ -31,6 +31,9 @@ export default function MemberDetailPage() {
   const [inAppCall, setInAppCall] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
   const [callMuted, setCallMuted] = useState(false);
+  const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [repaymentInput, setRepaymentInput] = useState('');
 
   useEffect(() => {
     if (!inAppCall) return;
@@ -47,16 +50,28 @@ export default function MemberDetailPage() {
   }, [id]);
 
   const fetchData = async () => {
-    const [profileRes, depositsRes, distRes] = await Promise.all([
+    const [profileRes, depositsRes, distRes, loansRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id!).single(),
       supabase.from('deposits').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('profit_distributions').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
+      supabase.from('member_loans').select('*').eq('member_id', id!).in('status', ['approved', 'pending']),
     ]);
     setMember(profileRes.data);
     setDeposits(depositsRes.data || []);
     setDistributions(distRes.data || []);
+    // Outstanding = approved - repaid, ignore pending zero
+    const outstanding = (loansRes.data || []).filter(l => {
+      const owed = Number(l.approved_amount || l.requested_amount || 0) - Number(l.repaid_amount || 0);
+      return owed > 0;
+    });
+    setOutstandingLoans(outstanding);
     setLoading(false);
   };
+
+  const outstandingTotal = outstandingLoans.reduce(
+    (s, l) => s + (Number(l.approved_amount || l.requested_amount || 0) - Number(l.repaid_amount || 0)),
+    0,
+  );
 
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
@@ -142,10 +157,28 @@ export default function MemberDetailPage() {
 
   const handleDeleteMember = async () => {
     if (!member) return;
+
+    // Validate: any outstanding personal loans must be settled (Islamic loans NOT considered)
+    if (outstandingTotal > 0) {
+      const repaid = parseFloat(repaymentInput);
+      if (!repaid || repaid < outstandingTotal) {
+        toast.error(`পরিশোধের পরিমাণ কমপক্ষে ৳${outstandingTotal.toLocaleString()} হতে হবে`);
+        return;
+      }
+    }
+
     setDeleting(true);
-    
     const totalDeposited = Number(member.total_deposited || 0);
-    
+
+    // Mark all outstanding personal loans as fully repaid
+    for (const loan of outstandingLoans) {
+      const fullAmount = Number(loan.approved_amount || loan.requested_amount || 0);
+      await supabase.from('member_loans').update({
+        status: 'repaid',
+        repaid_amount: fullAmount,
+      }).eq('id', loan.id);
+    }
+
     // Record withdrawal for the full deposited amount
     if (totalDeposited > 0) {
       await supabase.from('deposits').insert({
@@ -157,7 +190,7 @@ export default function MemberDetailPage() {
       });
     }
 
-    // Soft delete: mark as deleted, store name, zero out balance
+    // Soft delete profile
     await supabase.from('profiles').update({
       is_deleted: true,
       deleted_name: member.full_name,
@@ -165,7 +198,8 @@ export default function MemberDetailPage() {
       full_name: `[${member.full_name}] (মুছে ফেলা হয়েছে)`,
     }).eq('id', id!);
 
-    toast.success(`${member.full_name} মুছে ফেলা হয়েছে। জমা টাকা উত্তোলন হিসেবে গণ্য হয়েছে।`);
+    toast.success(`${member.full_name} মুছে ফেলা হয়েছে।`);
+    setShowDeleteDialog(false);
     navigate('/members');
     setDeleting(false);
   };
@@ -264,25 +298,44 @@ export default function MemberDetailPage() {
               </Dialog>
 
               {/* Delete Member */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
+              <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setRepaymentInput(''); }}>
+                <DialogTrigger asChild>
                   <Button size="sm" variant="destructive" className="gap-2"><Trash2 className="w-4 h-4" /> Delete Member</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>মেম্বার মুছে ফেলবেন?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {member.full_name} কে মুছে ফেললে তার মোট জমা ৳{Number(member.total_deposited || 0).toLocaleString()} উত্তোলন হিসেবে গণ্য হবে। পরবর্তী লাভের অংশ ফান্ডে জমা হবে তার নামে।
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>বাতিল</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteMember} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} হ্যাঁ, মুছে ফেলুন
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>মেম্বার মুছে ফেলবেন?</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-2 text-sm">
+                    <p className="text-muted-foreground">
+                      {member.full_name} কে মুছে ফেললে তার মোট জমা ৳{Number(member.total_deposited || 0).toLocaleString()} উত্তোলন হিসেবে গণ্য হবে।
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      নোট: ইসলামিক লোন সম্পূর্ণ আলাদা প্রজেক্ট — মেম্বার মুছে ফেললেও তা প্রভাবিত হবে না।
+                    </p>
+                    {outstandingTotal > 0 && (
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                        <div>
+                          <p className="font-medium text-destructive">পার্সোনাল লোন বকেয়া আছে</p>
+                          <p className="text-xs text-muted-foreground mt-1">মোট বকেয়া: ৳{outstandingTotal.toLocaleString()} ({outstandingLoans.length}টি লোন)</p>
+                          <p className="text-xs text-muted-foreground mt-1">মুছে ফেলার আগে পরিশোধিত পরিমাণ লিখুন।</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">পরিশোধিত পরিমাণ (৳)</Label>
+                          <Input type="number" value={repaymentInput} onChange={e => setRepaymentInput(e.target.value)} placeholder={String(outstandingTotal)} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)}>বাতিল</Button>
+                      <Button variant="destructive" className="flex-1" onClick={handleDeleteMember}
+                        disabled={deleting || (outstandingTotal > 0 && (parseFloat(repaymentInput) || 0) < outstandingTotal)}>
+                        {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} হ্যাঁ, মুছে ফেলুন
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </div>

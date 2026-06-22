@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { Plus, Loader2, FolderKanban } from 'lucide-react';
+import { PdfPeriodButton } from '@/components/PdfPeriodButton';
+import { generateProjectsPDF } from '@/lib/pdfGenerator';
 
 export default function ProjectsPage() {
   const { role, user } = useAuth();
@@ -59,6 +61,11 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Projects</h1>
           <p className="text-sm text-muted-foreground mt-1">{projects.length} projects</p>
         </div>
+        <div className="flex gap-2">
+          <PdfPeriodButton onDownload={async (p) => {
+            const { data } = await supabase.from('project_transactions').select('*');
+            generateProjectsPDF(projects, data || [], p);
+          }} />
         {role === 'admin' && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
@@ -86,6 +93,7 @@ export default function ProjectsPage() {
             </SheetContent>
           </Sheet>
         )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
