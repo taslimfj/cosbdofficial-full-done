@@ -31,6 +31,9 @@ export default function MemberDetailPage() {
   const [inAppCall, setInAppCall] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
   const [callMuted, setCallMuted] = useState(false);
+  const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [repaymentInput, setRepaymentInput] = useState('');
 
   useEffect(() => {
     if (!inAppCall) return;
@@ -47,16 +50,28 @@ export default function MemberDetailPage() {
   }, [id]);
 
   const fetchData = async () => {
-    const [profileRes, depositsRes, distRes] = await Promise.all([
+    const [profileRes, depositsRes, distRes, loansRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id!).single(),
       supabase.from('deposits').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('profit_distributions').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
+      supabase.from('member_loans').select('*').eq('member_id', id!).in('status', ['approved', 'pending']),
     ]);
     setMember(profileRes.data);
     setDeposits(depositsRes.data || []);
     setDistributions(distRes.data || []);
+    // Outstanding = approved - repaid, ignore pending zero
+    const outstanding = (loansRes.data || []).filter(l => {
+      const owed = Number(l.approved_amount || l.requested_amount || 0) - Number(l.repaid_amount || 0);
+      return owed > 0;
+    });
+    setOutstandingLoans(outstanding);
     setLoading(false);
   };
+
+  const outstandingTotal = outstandingLoans.reduce(
+    (s, l) => s + (Number(l.approved_amount || l.requested_amount || 0) - Number(l.repaid_amount || 0)),
+    0,
+  );
 
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
@@ -142,10 +157,28 @@ export default function MemberDetailPage() {
 
   const handleDeleteMember = async () => {
     if (!member) return;
+
+    // Validate: any outstanding personal loans must be settled (Islamic loans NOT considered)
+    if (outstandingTotal > 0) {
+      const repaid = parseFloat(repaymentInput);
+      if (!repaid || repaid < outstandingTotal) {
+        toast.error(`পরিশোধের পরিমাণ কমপক্ষে ৳${outstandingTotal.toLocaleString()} হতে হবে`);
+        return;
+      }
+    }
+
     setDeleting(true);
-    
     const totalDeposited = Number(member.total_deposited || 0);
-    
+
+    // Mark all outstanding personal loans as fully repaid
+    for (const loan of outstandingLoans) {
+      const fullAmount = Number(loan.approved_amount || loan.requested_amount || 0);
+      await supabase.from('member_loans').update({
+        status: 'repaid',
+        repaid_amount: fullAmount,
+      }).eq('id', loan.id);
+    }
+
     // Record withdrawal for the full deposited amount
     if (totalDeposited > 0) {
       await supabase.from('deposits').insert({
@@ -157,7 +190,7 @@ export default function MemberDetailPage() {
       });
     }
 
-    // Soft delete: mark as deleted, store name, zero out balance
+    // Soft delete profile
     await supabase.from('profiles').update({
       is_deleted: true,
       deleted_name: member.full_name,
@@ -165,7 +198,8 @@ export default function MemberDetailPage() {
       full_name: `[${member.full_name}] (মুছে ফেলা হয়েছে)`,
     }).eq('id', id!);
 
-    toast.success(`${member.full_name} মুছে ফেলা হয়েছে। জমা টাকা উত্তোলন হিসেবে গণ্য হয়েছে।`);
+    toast.success(`${member.full_name} মুছে ফেলা হয়েছে।`);
+    setShowDeleteDialog(false);
     navigate('/members');
     setDeleting(false);
   };
