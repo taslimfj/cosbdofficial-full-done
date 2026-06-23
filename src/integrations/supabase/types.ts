@@ -176,9 +176,12 @@ export type Database = {
       }
       islamic_loans: {
         Row: {
+          borrower_name: string | null
+          borrower_phone: string | null
           code: string
           comments: string | null
           created_at: string | null
+          discount_pct: number | null
           fund_profit_pct: number | null
           id: string
           media_person_id: string | null
@@ -186,15 +189,19 @@ export type Database = {
           monthly_installment: number | null
           profit_percentage: number | null
           purchase_price: number
+          relative_phone: string | null
           remaining_amount: number | null
           sell_price: number
           status: string | null
           tenure_months: number
         }
         Insert: {
+          borrower_name?: string | null
+          borrower_phone?: string | null
           code: string
           comments?: string | null
           created_at?: string | null
+          discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
@@ -202,15 +209,19 @@ export type Database = {
           monthly_installment?: number | null
           profit_percentage?: number | null
           purchase_price: number
+          relative_phone?: string | null
           remaining_amount?: number | null
           sell_price: number
           status?: string | null
           tenure_months: number
         }
         Update: {
+          borrower_name?: string | null
+          borrower_phone?: string | null
           code?: string
           comments?: string | null
           created_at?: string | null
+          discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
@@ -218,6 +229,7 @@ export type Database = {
           monthly_installment?: number | null
           profit_percentage?: number | null
           purchase_price?: number
+          relative_phone?: string | null
           remaining_amount?: number | null
           sell_price?: number
           status?: string | null
