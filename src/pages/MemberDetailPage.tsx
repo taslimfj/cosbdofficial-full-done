@@ -17,7 +17,7 @@ import { generateMemberPDF } from '@/lib/pdfGenerator';
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, loading: authLoading } = useAuth();
   const [member, setMember] = useState<any>(null);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
@@ -210,7 +210,7 @@ export default function MemberDetailPage() {
     toast.success('PDF downloaded');
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading || authLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!member) return <div className="text-center py-12"><p className="text-muted-foreground">Member not found</p></div>;
 
   return (
