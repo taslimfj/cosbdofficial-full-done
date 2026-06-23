@@ -109,6 +109,20 @@ export default function IslamicLoansPage() {
               <SheetHeader><SheetTitle>Create Islamic Loan</SheetTitle></SheetHeader>
               <div className="space-y-4 mt-6">
                 <div className="space-y-2">
+                  <Label>Borrower Name</Label>
+                  <Input value={form.borrowerName} onChange={e => setForm(p => ({ ...p, borrowerName: e.target.value }))} placeholder="Full name" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Borrower Phone</Label>
+                    <Input value={form.borrowerPhone} onChange={e => setForm(p => ({ ...p, borrowerPhone: e.target.value }))} placeholder="01XXXXXXXXX" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Relative Phone</Label>
+                    <Input value={form.relativePhone} onChange={e => setForm(p => ({ ...p, relativePhone: e.target.value }))} placeholder="01XXXXXXXXX" />
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label>Purchase Price (৳)</Label>
                   <Input type="number" value={form.purchasePrice} onChange={e => setForm(p => ({ ...p, purchasePrice: e.target.value }))} placeholder="0" />
                 </div>
@@ -123,9 +137,19 @@ export default function IslamicLoansPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Discount (%)</Label>
+                  <Input type="number" min="0" max="100" step="0.01" value={form.discountPct} onChange={e => setForm(p => ({ ...p, discountPct: e.target.value }))} placeholder="0" />
+                </div>
                 {purchasePrice > 0 && (
                   <div className="bg-secondary rounded-lg p-4 space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Profit %</span><span className="font-semibold">{profitPct}%</span></div>
+                    {discountPct > 0 && (
+                      <>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Before Discount</span><span className="font-semibold tabular-nums">{formatBDT(baseSellPrice)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
+                      </>
+                    )}
                     <div className="flex justify-between"><span className="text-muted-foreground">Sell Price</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Monthly</span><span className="font-semibold tabular-nums">{formatBDT(monthlyInstallment)}</span></div>
                   </div>
