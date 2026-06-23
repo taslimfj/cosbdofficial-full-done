@@ -23,12 +23,16 @@ export default function IslamicLoansPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
+    borrowerName: '',
+    borrowerPhone: '',
+    relativePhone: '',
     purchasePrice: '',
     tenure: '3',
     mediaPersonId: '',
     comments: '',
     mediaPersonProfitPct: '5',
     fundProfitPct: '15',
+    discountPct: '0',
   });
 
   useEffect(() => {
@@ -46,33 +50,41 @@ export default function IslamicLoansPage() {
 
   const tenure = parseInt(form.tenure);
   const purchasePrice = parseFloat(form.purchasePrice) || 0;
+  const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
   const profitPct = calculateProfitPercentage(tenure);
-  const sellPrice = calculateSellPrice(purchasePrice, profitPct);
+  const baseSellPrice = calculateSellPrice(purchasePrice, profitPct);
+  const sellPrice = Math.round(baseSellPrice * (1 - discountPct / 100) * 100) / 100;
   const monthlyInstallment = calculateMonthlyInstallment(sellPrice, tenure);
 
   const handleCreate = async () => {
+    if (!form.borrowerName.trim()) { toast.error('Enter borrower name'); return; }
+    if (!form.borrowerPhone.trim()) { toast.error('Enter borrower phone'); return; }
     if (!purchasePrice) { toast.error('Enter purchase price'); return; }
     if (!form.mediaPersonId) { toast.error('Select media person'); return; }
     setSubmitting(true);
     const code = generateCode('IL');
     const { error } = await supabase.from('islamic_loans').insert({
       code,
+      borrower_name: form.borrowerName.trim(),
+      borrower_phone: form.borrowerPhone.trim(),
+      relative_phone: form.relativePhone.trim() || null,
       purchase_price: purchasePrice,
       sell_price: sellPrice,
       tenure_months: tenure,
       profit_percentage: profitPct,
+      discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
       media_person_profit_pct: parseFloat(form.mediaPersonProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
-    });
+    } as any);
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15' });
+    setForm({ borrowerName: '', borrowerPhone: '', relativePhone: '', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15', discountPct: '0' });
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
   };
