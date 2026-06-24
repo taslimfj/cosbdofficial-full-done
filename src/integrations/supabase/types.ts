@@ -567,6 +567,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_islamic_loan_payment: {
+        Args: { _amount: number; _loan_id: string; _payment_type?: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "member"
