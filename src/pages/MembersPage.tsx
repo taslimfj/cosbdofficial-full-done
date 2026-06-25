@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, Search, Loader2, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { PhoneInput, phoneToDigits, phoneToEmail, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
 
 interface MemberContact {
   id: string;
@@ -24,7 +25,7 @@ export default function MembersPage() {
   const [search, setSearch] = useState('');
   const [totalInvestment, setTotalInvestment] = useState(0);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newMember, setNewMember] = useState({ email: '', password: '', fullName: '', phone: '' });
+  const [newMember, setNewMember] = useState({ fullName: '', phone: '+880' });
   const [adding, setAdding] = useState(false);
 
   const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
@@ -49,19 +50,22 @@ export default function MembersPage() {
   };
 
   const handleAddMember = async () => {
-    if (!newMember.email || !newMember.password || !newMember.fullName) {
-      toast.error('Please fill required fields');
+    if (!newMember.fullName.trim() || !phoneToDigits(newMember.phone)) {
+      toast.error('Full name and phone number are required');
       return;
     }
     setAdding(true);
+
+    const syntheticEmail = phoneToEmail(newMember.phone);
+    const defaultPassword = DEFAULT_PHONE_PASSWORD;
 
     // Preserve the current admin session — signUp would otherwise replace it
     const { data: sessionData } = await supabase.auth.getSession();
     const currentSession = sessionData.session;
 
     const { data: signUpData, error } = await supabase.auth.signUp({
-      email: newMember.email,
-      password: newMember.password,
+      email: syntheticEmail,
+      password: defaultPassword,
       options: {
         data: {
           full_name: newMember.fullName,
@@ -95,9 +99,9 @@ export default function MembersPage() {
     }
 
     setAdding(false);
-    toast.success('Member account created');
+    toast.success(`Member created. Login: ${newMember.phone} · Password: ${defaultPassword}`);
     setShowAddDialog(false);
-    setNewMember({ email: '', password: '', fullName: '', phone: '' });
+    setNewMember({ fullName: '', phone: '+880' });
     setTimeout(fetchMembers, 800);
   };
 
@@ -151,16 +155,11 @@ export default function MembersPage() {
                   <Input value={newMember.fullName} onChange={e => setNewMember(p => ({ ...p, fullName: e.target.value }))} placeholder="Member name" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input type="email" value={newMember.email} onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))} placeholder="member@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Password *</Label>
-                  <Input type="password" value={newMember.password} onChange={e => setNewMember(p => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input value={newMember.phone} onChange={e => setNewMember(p => ({ ...p, phone: e.target.value }))} placeholder="+880..." />
+                  <Label>Phone Number *</Label>
+                  <PhoneInput value={newMember.phone} onChange={(v) => setNewMember(p => ({ ...p, phone: v }))} />
+                  <p className="text-xs text-muted-foreground">
+                    Phone number works as the login ID. Default password: <span className="font-mono font-semibold">{DEFAULT_PHONE_PASSWORD}</span>
+                  </p>
                 </div>
                 <Button className="w-full" onClick={handleAddMember} disabled={adding}>
                   {adding && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
