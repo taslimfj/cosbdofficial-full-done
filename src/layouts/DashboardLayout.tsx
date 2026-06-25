@@ -95,13 +95,19 @@ export default function DashboardLayout() {
           {/* User info */}
           <div className="p-3 border-t border-border">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-                {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>
-                <p className="text-xs text-muted-foreground capitalize">{role || 'member'}</p>
-              </div>
+              <button
+                onClick={() => { setSidebarOpen(false); navigate('/profile'); }}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-lg hover:bg-secondary px-1 -mx-1 py-1 transition-colors"
+                title="Open profile"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{role || 'member'}</p>
+                </div>
+              </button>
               <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
               </Button>

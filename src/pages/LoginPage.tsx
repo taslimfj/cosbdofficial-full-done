@@ -43,15 +43,27 @@ export default function LoginPage() {
       return;
     }
 
+    // Accept either an email or a phone number. Phone numbers are converted
+    // to the synthetic email used at signup time.
+    const raw = email.trim();
+    const isEmail = raw.includes('@');
+    const loginIdentifier = isEmail
+      ? raw
+      : `${raw.replace(/[^0-9]/g, '')}@sharee.local`;
+
     if (mode === 'signup') {
       if (!signupName.trim()) {
         toast.error('Please enter your name');
         return;
       }
+      if (!isEmail) {
+        toast.error('Admin signup requires an email address');
+        return;
+      }
       setLoading(true);
       const { supabase } = await import('@/integrations/supabase/client');
       const { error } = await supabase.auth.signUp({
-        email,
+        email: loginIdentifier,
         password,
         options: {
           emailRedirectTo: window.location.origin,
@@ -76,7 +88,7 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(loginIdentifier, password);
     setLoading(false);
     if (error) {
       sessionStorage.removeItem('postLoginRedirect');
@@ -167,15 +179,17 @@ export default function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">
+                {mode === 'login' ? 'Email or Phone Number' : 'Email'}
+              </Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="you@example.com"
+                type="text"
+                placeholder={mode === 'login' ? 'you@example.com or +8801XXXXXXXXX' : 'you@example.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-10"
-                autoComplete="email"
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">

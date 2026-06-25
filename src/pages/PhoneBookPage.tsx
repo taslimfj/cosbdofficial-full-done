@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Phone, MessageCircle, Plus, Trash2, Search, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { PhoneInput } from '@/components/PhoneInput';
 import { toast } from 'sonner';
 
 interface PhoneEntry {
@@ -131,11 +132,9 @@ export default function PhoneBookPage() {
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   required
                 />
-                <Input
-                  placeholder="Phone Number (e.g., +8801XXXXXXXXX)"
+                <PhoneInput
                   value={form.phone_number}
-                  onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
-                  required
+                  onChange={v => setForm(f => ({ ...f, phone_number: v }))}
                 />
                 <Textarea
                   placeholder="Description (Optional)"
