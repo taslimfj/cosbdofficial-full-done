@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
+import { PhoneInput } from '@/components/PhoneInput';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
@@ -24,8 +25,8 @@ export default function IslamicLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     borrowerName: '',
-    borrowerPhone: '',
-    relativePhone: '',
+    borrowerPhone: '+880',
+    relativePhone: '+880',
     purchasePrice: '',
     tenure: '3',
     mediaPersonId: '',
@@ -84,7 +85,7 @@ export default function IslamicLoansPage() {
     if (error) { toast.error(error.message); return; }
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '', relativePhone: '', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15', discountPct: '0' });
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15', discountPct: '0' });
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
   };
@@ -115,11 +116,11 @@ export default function IslamicLoansPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Borrower Phone</Label>
-                    <Input value={form.borrowerPhone} onChange={e => setForm(p => ({ ...p, borrowerPhone: e.target.value }))} placeholder="01XXXXXXXXX" />
+                    <PhoneInput value={form.borrowerPhone} onChange={v => setForm(p => ({ ...p, borrowerPhone: v }))} />
                   </div>
                   <div className="space-y-2">
                     <Label>Relative Phone</Label>
-                    <Input value={form.relativePhone} onChange={e => setForm(p => ({ ...p, relativePhone: e.target.value }))} placeholder="01XXXXXXXXX" />
+                    <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
                   </div>
                 </div>
                 <div className="space-y-2">
