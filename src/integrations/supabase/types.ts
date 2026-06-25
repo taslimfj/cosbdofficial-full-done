@@ -386,6 +386,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_deleted: boolean
+          nid_card: string | null
           phone: string | null
           total_deposited: number | null
           updated_at: string | null
@@ -397,6 +398,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_deleted?: boolean
+          nid_card?: string | null
           phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
@@ -408,6 +410,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_deleted?: boolean
+          nid_card?: string | null
           phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
