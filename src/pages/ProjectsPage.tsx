@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Plus, Loader2, FolderKanban } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
@@ -103,7 +104,7 @@ export default function ProjectsPage() {
             <p className="text-sm text-muted-foreground">No projects yet.</p>
           </div>
         ) : projects.map(proj => (
-          <div key={proj.id} className="bg-card border border-border p-5 rounded-xl hover:border-primary/30 transition-colors shadow-subtle">
+          <Link key={proj.id} to={`/projects/${proj.id}`} className="block bg-card border border-border p-5 rounded-xl hover:border-primary/30 transition-colors shadow-subtle">
             <div className="flex items-start justify-between mb-3">
               <span className="text-xs font-mono bg-secondary px-2 py-1 rounded text-foreground">{proj.code}</span>
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${proj.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-secondary text-muted-foreground'}`}>{proj.status}</span>
@@ -114,7 +115,7 @@ export default function ProjectsPage() {
               <span>Manager: {proj.manager_profit_pct}%</span>
               <span>Fund: {proj.fund_profit_pct}%</span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
