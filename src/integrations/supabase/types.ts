@@ -501,39 +501,55 @@ export type Database = {
       }
       projects: {
         Row: {
+          closed_at: string | null
           code: string
+          comments: string | null
           created_at: string | null
           fund_profit_pct: number | null
           id: string
           manager_id: string | null
           manager_profit_pct: number | null
           name: string
+          secondary_manager_id: string | null
           status: string | null
         }
         Insert: {
+          closed_at?: string | null
           code: string
+          comments?: string | null
           created_at?: string | null
           fund_profit_pct?: number | null
           id?: string
           manager_id?: string | null
           manager_profit_pct?: number | null
           name: string
+          secondary_manager_id?: string | null
           status?: string | null
         }
         Update: {
+          closed_at?: string | null
           code?: string
+          comments?: string | null
           created_at?: string | null
           fund_profit_pct?: number | null
           id?: string
           manager_id?: string | null
           manager_profit_pct?: number | null
           name?: string
+          secondary_manager_id?: string | null
           status?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "projects_manager_id_fkey"
             columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_secondary_manager_id_fkey"
+            columns: ["secondary_manager_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
