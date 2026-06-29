@@ -424,7 +424,9 @@ export default function MemberDetailPage() {
             <div className="p-8 text-center"><p className="text-sm text-muted-foreground">No transactions yet</p></div>
           ) : (
             <div className="divide-y divide-border max-h-96 overflow-y-auto">
-              {deposits.map(d => (
+            <>
+            <div className="divide-y divide-border">
+              {deposits.slice(0, depositLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className={`text-sm font-medium ${Number(d.amount) < 0 ? 'text-destructive' : 'text-foreground'}`}>
@@ -464,6 +466,12 @@ export default function MemberDetailPage() {
                 </div>
               ))}
             </div>
+            {deposits.length > depositLimit && (
+              <button onClick={() => setDepositLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+                See more ({deposits.length - depositLimit} বাকি)
+              </button>
+            )}
+            </>
           )}
         </div>
 
