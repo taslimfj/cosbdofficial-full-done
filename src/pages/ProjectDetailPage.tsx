@@ -170,9 +170,27 @@ export default function ProjectDetailPage() {
     });
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
     const { error } = await supabase.from('profit_distributions').insert(rows);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+
+    // Add each member's profit share to their main balance (total_deposited)
+    const perMember = new Map<string, number>();
+    rows.forEach(r => {
+      if (r.member_id && r.amount > 0) {
+        perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
+      }
+    });
+    if (perMember.size > 0) {
+      const ids = Array.from(perMember.keys());
+      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
+      await Promise.all((profs || []).map((p: any) =>
+        supabase.from('profiles').update({
+          total_deposited: Number(p.total_deposited || 0) + (perMember.get(p.id) || 0),
+        }).eq('id', p.id)
+      ));
+    }
+
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Profit distributed');
+    toast.success('Profit distributed & added to balances');
     load();
   };
 
