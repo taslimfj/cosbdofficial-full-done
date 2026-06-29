@@ -74,6 +74,57 @@ export type Database = {
           },
         ]
       }
+      customer_payment_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_user_id: string
+          id: string
+          loan_id: string
+          note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_user_id: string
+          id?: string
+          loan_id: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_user_id?: string
+          id?: string
+          loan_id?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payment_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payment_requests_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposits: {
         Row: {
           amount: number
@@ -149,6 +200,68 @@ export type Database = {
         }
         Relationships: []
       }
+      islamic_loan_member_shares: {
+        Row: {
+          created_at: string
+          deposit_snapshot: number
+          id: string
+          is_member_deleted: boolean
+          loan_id: string
+          member_id: string | null
+          member_name: string
+          share_percentage: number
+        }
+        Insert: {
+          created_at?: string
+          deposit_snapshot?: number
+          id?: string
+          is_member_deleted?: boolean
+          loan_id: string
+          member_id?: string | null
+          member_name: string
+          share_percentage?: number
+        }
+        Update: {
+          created_at?: string
+          deposit_snapshot?: number
+          id?: string
+          is_member_deleted?: boolean
+          loan_id?: string
+          member_id?: string | null
+          member_name?: string
+          share_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "islamic_loan_member_shares_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loan_member_shares_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loan_member_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loan_member_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       islamic_loan_payments: {
         Row: {
           amount: number
@@ -195,6 +308,7 @@ export type Database = {
           code: string
           comments: string | null
           created_at: string | null
+          customer_user_id: string | null
           discount_pct: number | null
           fund_profit_pct: number | null
           id: string
@@ -215,6 +329,7 @@ export type Database = {
           code: string
           comments?: string | null
           created_at?: string | null
+          customer_user_id?: string | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
@@ -235,6 +350,7 @@ export type Database = {
           code?: string
           comments?: string | null
           created_at?: string | null
+          customer_user_id?: string | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
@@ -413,6 +529,7 @@ export type Database = {
           deleted_name: string | null
           full_name: string | null
           id: string
+          is_customer: boolean
           is_deleted: boolean
           nid_card: string | null
           phone: string | null
@@ -425,6 +542,7 @@ export type Database = {
           deleted_name?: string | null
           full_name?: string | null
           id: string
+          is_customer?: boolean
           is_deleted?: boolean
           nid_card?: string | null
           phone?: string | null
@@ -437,6 +555,7 @@ export type Database = {
           deleted_name?: string | null
           full_name?: string | null
           id?: string
+          is_customer?: boolean
           is_deleted?: boolean
           nid_card?: string | null
           phone?: string | null
@@ -489,6 +608,61 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_member_shares: {
+        Row: {
+          created_at: string
+          deposit_snapshot: number
+          id: string
+          is_member_deleted: boolean
+          member_id: string | null
+          member_name: string
+          project_id: string
+          share_percentage: number
+        }
+        Insert: {
+          created_at?: string
+          deposit_snapshot?: number
+          id?: string
+          is_member_deleted?: boolean
+          member_id?: string | null
+          member_name: string
+          project_id: string
+          share_percentage?: number
+        }
+        Update: {
+          created_at?: string
+          deposit_snapshot?: number
+          id?: string
+          is_member_deleted?: boolean
+          member_id?: string | null
+          member_name?: string
+          project_id?: string
+          share_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_member_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_member_shares_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_member_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
