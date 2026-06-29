@@ -19,7 +19,7 @@ import { calculateSharePercentage } from '@/lib/finance';
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { role, loading: authLoading } = useAuth();
+  const { role, user, loading: authLoading } = useAuth();
   const [member, setMember] = useState<any>(null);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
