@@ -517,16 +517,45 @@ export default function IslamicLoanDetailPage() {
               <div className="col-span-2 text-right">Profit</div>
             </div>
             {shareRows.map(r => (
-              <div key={r.memberId} className="grid grid-cols-12 gap-2 text-sm bg-secondary/30 rounded px-2 py-2">
-                <div className="col-span-5 truncate">{r.name}</div>
+              <div key={r.id} className={`grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
+                <div className="col-span-5 truncate">
+                  {r.name}
+                  {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Fund)</span>}
+                </div>
                 <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
-                <div className="col-span-2 text-right font-mono tabular-nums text-emerald-600 text-xs">{formatBDT(r.expected)}</div>
+                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground line-through' : 'text-emerald-600'}`}>{formatBDT(r.expected)}</div>
               </div>
             ))}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-এ যোগ হবে।</p>
           </div>
         )}
       </div>
+
+      {/* Pending payment requests (admin only) */}
+      {isAdmin && pendingRequests.length > 0 && (
+        <div className="bg-card border border-amber-500/40 rounded-xl p-5">
+          <h2 className="font-semibold mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-500" /> Pending Customer Requests ({pendingRequests.length})
+          </h2>
+          <div className="space-y-2">
+            {pendingRequests.map(r => (
+              <div key={r.id} className="flex justify-between items-center p-3 bg-amber-500/5 rounded-lg gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                  {r.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.note}</p>}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="sm" variant="default" onClick={() => approveRequest(r)} disabled={busy}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => rejectRequest(r)} disabled={busy}>Reject</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Transactions */}
       <div className="bg-card border border-border rounded-xl p-6">
