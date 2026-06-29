@@ -27,6 +27,8 @@ export default function MembersPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMember, setNewMember] = useState({ fullName: '', phone: '+880' });
   const [adding, setAdding] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
 
   const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
   const [callMuted, setCallMuted] = useState(false);
