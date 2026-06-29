@@ -31,9 +31,9 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     const [profilesRes, fundRes, loansRes] = await Promise.all([
-      supabase.from('profiles').select('*'),
+      (supabase as any).from('member_directory').select('*'),
       supabase.from('fund_transactions').select('*'),
-      supabase.from('islamic_loans').select('*').eq('status', 'active'),
+      (supabase as any).from('islamic_loans_public').select('*').eq('status', 'active'),
     ]);
 
     const profiles = profilesRes.data || [];
