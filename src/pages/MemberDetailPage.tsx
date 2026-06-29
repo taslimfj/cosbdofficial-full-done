@@ -69,8 +69,8 @@ export default function MemberDetailPage() {
       (projs || []).forEach((p: any) => sourceMap.set(p.id, { kind: 'project', name: p.name, code: p.code }));
     }
     if (loanIds.length > 0) {
-      const { data: loans } = await (supabase as any).from('islamic_loans_public').select('id, code, borrower_label').in('id', loanIds);
-      (loans || []).forEach((l: any) => sourceMap.set(l.id, { kind: 'loan', name: l.borrower_label || 'Islamic Loan', code: l.code }));
+      const { data: loans } = await (supabase as any).from('islamic_loans_public').select('id, code').in('id', loanIds);
+      (loans || []).forEach((l: any) => sourceMap.set(l.id, { kind: 'loan', name: 'Islamic Loan', code: l.code }));
     }
     setDistributions(dists.map((d: any) => ({ ...d, source: sourceMap.get(d.source_id) || null })));
 
