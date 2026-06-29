@@ -199,37 +199,37 @@ export default function MemberDetailPage() {
     }
 
     setDeleting(true);
-    const totalDeposited = Number(member.total_deposited || 0);
 
-    // Mark all outstanding personal loans as fully repaid
-    for (const loan of outstandingLoans) {
-      const fullAmount = Number(loan.approved_amount || loan.requested_amount || 0);
-      await supabase.from('member_loans').update({
-        status: 'repaid',
-        repaid_amount: fullAmount,
-      }).eq('id', loan.id);
+    // Hard-delete: wipe every record belonging to this member.
+    // Order matters because of FKs — child rows first, profile last.
+    const memberLoanIds = (outstandingLoans || []).map(l => l.id);
+    const { data: allLoans } = await supabase.from('member_loans').select('id').eq('member_id', id!);
+    const allLoanIds = (allLoans || []).map((l: any) => l.id);
+
+    if (allLoanIds.length > 0) {
+      await supabase.from('member_loan_repayments').delete().in('loan_id', allLoanIds);
+    }
+    await Promise.all([
+      supabase.from('deposits').delete().eq('member_id', id!),
+      supabase.from('profit_distributions').delete().eq('member_id', id!),
+      supabase.from('member_loans').delete().eq('member_id', id!),
+      supabase.from('notifications').delete().eq('user_id', id!),
+      supabase.from('user_roles').delete().eq('user_id', id!),
+    ]);
+
+    // Finally remove the profile itself
+    const { error: profileErr } = await supabase.from('profiles').delete().eq('id', id!);
+    if (profileErr) {
+      // Fallback: if FK constraint blocks deletion, soft-delete with cleared state
+      await supabase.from('profiles').update({
+        is_deleted: true,
+        deleted_name: member.full_name,
+        total_deposited: 0,
+        full_name: `[${member.full_name}] (মুছে ফেলা হয়েছে)`,
+      }).eq('id', id!);
     }
 
-    // Record withdrawal for the full deposited amount
-    if (totalDeposited > 0) {
-      await supabase.from('deposits').insert({
-        member_id: id!,
-        amount: -totalDeposited,
-        payment_method: 'system',
-        transaction_number: `DELETE-${Date.now()}`,
-        status: 'approved',
-      });
-    }
-
-    // Soft delete profile
-    await supabase.from('profiles').update({
-      is_deleted: true,
-      deleted_name: member.full_name,
-      total_deposited: 0,
-      full_name: `[${member.full_name}] (মুছে ফেলা হয়েছে)`,
-    }).eq('id', id!);
-
-    toast.success(`${member.full_name} মুছে ফেলা হয়েছে।`);
+    toast.success(`${member.full_name}-এর সকল রেকর্ড মুছে ফেলা হয়েছে।`);
     setShowDeleteDialog(false);
     navigate('/members');
     setDeleting(false);
