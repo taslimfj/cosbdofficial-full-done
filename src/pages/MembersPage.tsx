@@ -27,6 +27,8 @@ export default function MembersPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMember, setNewMember] = useState({ fullName: '', phone: '+880' });
   const [adding, setAdding] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
 
   const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
   const [callMuted, setCallMuted] = useState(false);
@@ -41,11 +43,23 @@ export default function MembersPage() {
   }, [inAppCall]);
 
   const fetchMembers = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('is_deleted', false).order('full_name');
-    const profiles = data || [];
+    const [profRes, rolesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('is_deleted', false),
+      supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
+    ]);
+    const profiles = profRes.data || [];
+    const admins = new Set<string>((rolesRes.data || []).map((r: any) => r.user_id));
+    setAdminIds(admins);
     const total = profiles.reduce((s, p) => s + Number(p.total_deposited || 0), 0);
     setTotalInvestment(total);
-    setMembers(profiles);
+    // Admins first, then by share % (= deposit) desc
+    const sorted = [...profiles].sort((a, b) => {
+      const aAdmin = admins.has(a.id) ? 1 : 0;
+      const bAdmin = admins.has(b.id) ? 1 : 0;
+      if (aAdmin !== bAdmin) return bAdmin - aAdmin;
+      return Number(b.total_deposited || 0) - Number(a.total_deposited || 0);
+    });
+    setMembers(sorted);
     setLoading(false);
   };
 
@@ -193,8 +207,9 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(member => {
+                {filtered.slice(0, visibleCount).map(member => {
                   const share = calculateSharePercentage(Number(member.total_deposited || 0), totalInvestment);
+                  const isAdmin = adminIds.has(member.id);
                   return (
                     <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
                       <td className="px-5 py-3">
@@ -203,7 +218,10 @@ export default function MembersPage() {
                             {member.full_name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
+                              {isAdmin && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">ADMIN</span>}
+                            </div>
                             <p className="text-xs text-muted-foreground">{member.phone || 'No phone'}</p>
                           </div>
                         </div>
@@ -252,9 +270,18 @@ export default function MembersPage() {
                 })}
               </tbody>
             </table>
+            {filtered.length > visibleCount && (
+              <button
+                onClick={() => setVisibleCount(c => c + 10)}
+                className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border"
+              >
+                See more ({filtered.length - visibleCount} বাকি)
+              </button>
+            )}
           </div>
         )}
       </div>
+
 
       <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
         <DialogContent className="max-w-sm">

@@ -29,6 +29,7 @@ export default function ProjectDetailPage() {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [txLimit, setTxLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showTx, setShowTx] = useState(false);
@@ -304,7 +305,7 @@ export default function ProjectDetailPage() {
           <p className="text-xs text-muted-foreground text-center py-6">No transactions yet.</p>
         ) : (
           <div className="space-y-2">
-            {txs.map(t => (
+            {txs.slice(0, txLimit).map(t => (
               <div key={t.id} className="flex justify-between items-start px-3 py-2.5 rounded-lg bg-secondary/30">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -319,9 +320,18 @@ export default function ProjectDetailPage() {
                 </span>
               </div>
             ))}
+            {txs.length > txLimit && (
+              <button
+                onClick={() => setTxLimit(l => l + 10)}
+                className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg"
+              >
+                See more ({txs.length - txLimit} বাকি)
+              </button>
+            )}
           </div>
         )}
       </div>
+
 
       {/* Edit Sheet */}
       <Sheet open={showEdit} onOpenChange={setShowEdit}>
