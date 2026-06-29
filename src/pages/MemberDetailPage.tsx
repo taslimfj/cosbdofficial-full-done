@@ -273,6 +273,18 @@ export default function MemberDetailPage() {
           <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
             <Download className="w-4 h-4" /> PDF
           </Button>
+          {role === 'admin' && user?.id !== id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleAdmin}
+              disabled={togglingAdmin}
+              className={isTargetAdmin ? 'gap-2 text-destructive border-destructive/30' : 'gap-2 text-primary border-primary/30'}
+            >
+              {togglingAdmin && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
+            </Button>
+          )}
           {role === 'admin' && (
             <>
               {/* Withdraw Dialog */}
