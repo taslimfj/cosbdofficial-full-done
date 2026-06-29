@@ -183,24 +183,116 @@ export default function IslamicLoanDetailPage() {
     if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
+    const fundExtras: { amount: number; reason: string }[] = [];
+
     if (profitTotals.fund > 0) {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
     }
     if (profitTotals.media > 0 && loan.media_person_id) {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
     }
+
     shareRows.forEach(r => {
-      if (r.expected > 0) {
-        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      if (r.expected <= 0) return;
+      if (r.isDeleted || !r.memberId) {
+        // Deleted member's share goes to Fund
+        rows.push({
+          source_type: 'islamic_loan', source_id: id, member_id: null,
+          amount: r.expected, share_percentage: r.sharePct,
+          distribution_type: 'deleted_member_to_fund',
+        });
+        fundExtras.push({
+          amount: r.expected,
+          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
+        });
+      } else {
+        rows.push({
+          source_type: 'islamic_loan', source_id: id, member_id: r.memberId,
+          amount: r.expected, share_percentage: r.sharePct,
+          distribution_type: 'share',
+        });
       }
     });
+
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
+
     const { error } = await supabase.from('profit_distributions').insert(rows);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+
+    // Add fund_transactions for fund (15%) + each deleted-member redirect
+    const fundTxRows: any[] = [];
+    if (profitTotals.fund > 0) {
+      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
+    }
+    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
+    if (fundTxRows.length) {
+      await supabase.from('fund_transactions').insert(fundTxRows);
+    }
+
+    // Credit each (non-deleted) member's profile balance
+    const perMember = new Map<string, number>();
+    rows.forEach(r => {
+      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
+        perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
+      }
+    });
+    if (perMember.size > 0) {
+      const ids = Array.from(perMember.keys());
+      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
+      await Promise.all((profs || []).map((p: any) =>
+        supabase.from('profiles').update({
+          total_deposited: Number(p.total_deposited || 0) + (perMember.get(p.id) || 0),
+        }).eq('id', p.id)
+      ));
+    }
+
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success('Profit distributed');
     load();
   };
+
+  // Customer submits a payment / installment request
+  const handleSubmitRequest = async () => {
+    const amt = parseFloat(depositAmt);
+    if (!amt || amt <= 0) { toast.error('সঠিক amount দিন'); return; }
+    if (!user) return;
+    setBusy(true);
+    const { error } = await (supabase as any).from('customer_payment_requests').insert({
+      loan_id: id, customer_user_id: user.id, amount: amt, note: requestNote || null,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
+    setShowRequest(false);
+    setDepositAmt(''); setRequestNote('');
+    load();
+  };
+
+  // Admin approves a pending request → records payment + marks request approved
+  const approveRequest = async (req: any) => {
+    setBusy(true);
+    const { error: rpcErr } = await supabase.rpc('record_islamic_loan_payment', {
+      _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
+    } as any);
+    if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
+    await (supabase as any).from('customer_payment_requests').update({
+      status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+    }).eq('id', req.id);
+    setBusy(false);
+    toast.success('Approved & recorded');
+    load();
+  };
+
+  const rejectRequest = async (req: any) => {
+    setBusy(true);
+    await (supabase as any).from('customer_payment_requests').update({
+      status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+    }).eq('id', req.id);
+    setBusy(false);
+    toast('Request rejected');
+    load();
+  };
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!loan) return <div className="text-center text-muted-foreground py-12">Loan not found</div>;
