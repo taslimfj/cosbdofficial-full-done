@@ -104,12 +104,7 @@ export default function ProjectDetailPage() {
     })).sort((a, b) => b.sharePct - a.sharePct);
   }, [project, snapshot, profitTotalsPre]);
 
-  const profitTotals = useMemo(() => {
-    if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
-    const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
-    const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    return { total: totals.profit, manager: mgr, fund, memberPool: Math.max(0, totals.profit - mgr - fund) };
-  }, [project, totals]);
+  const profitTotals = profitTotalsPre;
 
   const alreadyDistributed = distributions.length > 0;
 
@@ -163,6 +158,8 @@ export default function ProjectDetailPage() {
     if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
+    const fundExtras: { amount: number; reason: string }[] = [];
+
     const managerId = project.manager_id || project.secondary_manager_id;
     if (profitTotals.manager > 0 && managerId) {
       rows.push({ source_type: 'project', source_id: id, member_id: managerId, amount: profitTotals.manager, share_percentage: Number(project.manager_profit_pct), distribution_type: 'manager' });
@@ -171,16 +168,30 @@ export default function ProjectDetailPage() {
       rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
     }
     shareRows.forEach(r => {
-      if (r.expected > 0) rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      if (r.expected <= 0) return;
+      if (r.isDeleted || !r.memberId) {
+        rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
+        fundExtras.push({ amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ` });
+      } else {
+        rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      }
     });
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Add each member's profit share to their main balance (total_deposited)
+    // Add fund_transactions: Fund cut + each deleted-member redirect
+    const fundTxRows: any[] = [];
+    if (profitTotals.fund > 0) {
+      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
+    }
+    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
+    if (fundTxRows.length) await supabase.from('fund_transactions').insert(fundTxRows);
+
+    // Add each (non-deleted) member's share to their balance
     const perMember = new Map<string, number>();
     rows.forEach(r => {
-      if (r.member_id && r.amount > 0) {
+      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
         perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
       }
     });
@@ -198,6 +209,7 @@ export default function ProjectDetailPage() {
     toast.success('Profit distributed & added to balances');
     load();
   };
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!project) return <div className="text-center text-muted-foreground py-12">Project not found</div>;
