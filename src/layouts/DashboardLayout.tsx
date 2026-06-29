@@ -33,16 +33,32 @@ const navItems = [
 ];
 
 export default function DashboardLayout() {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, isCustomer, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Customer redirect: send to their loan page
+  useEffect(() => {
+    if (!isCustomer || !user) return;
+    if (location.pathname.startsWith('/islamic-loans/')) return;
+    (async () => {
+      const { data } = await supabase
+        .from('islamic_loans')
+        .select('id')
+        .eq('customer_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      if (data?.id) navigate(`/islamic-loans/${data.id}`, { replace: true });
+    })();
+  }, [isCustomer, user, location.pathname, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
 
-  const filteredNav = navItems.filter(item => role && item.roles.includes(role));
+  const filteredNav = isCustomer ? [] : navItems.filter(item => role && item.roles.includes(role));
 
   return (
     <div className="flex min-h-screen bg-background">
