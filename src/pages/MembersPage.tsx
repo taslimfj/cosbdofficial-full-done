@@ -43,11 +43,23 @@ export default function MembersPage() {
   }, [inAppCall]);
 
   const fetchMembers = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('is_deleted', false).order('full_name');
-    const profiles = data || [];
+    const [profRes, rolesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('is_deleted', false),
+      supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
+    ]);
+    const profiles = profRes.data || [];
+    const admins = new Set<string>((rolesRes.data || []).map((r: any) => r.user_id));
+    setAdminIds(admins);
     const total = profiles.reduce((s, p) => s + Number(p.total_deposited || 0), 0);
     setTotalInvestment(total);
-    setMembers(profiles);
+    // Admins first, then by share % (= deposit) desc
+    const sorted = [...profiles].sort((a, b) => {
+      const aAdmin = admins.has(a.id) ? 1 : 0;
+      const bAdmin = admins.has(b.id) ? 1 : 0;
+      if (aAdmin !== bAdmin) return bAdmin - aAdmin;
+      return Number(b.total_deposited || 0) - Number(a.total_deposited || 0);
+    });
+    setMembers(sorted);
     setLoading(false);
   };
 
