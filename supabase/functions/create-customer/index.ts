@@ -23,8 +23,8 @@ Deno.serve(async (req) => {
       });
     }
     const digits = phone.replace(/[^0-9]/g, "");
-    if (digits.length < 6) {
-      return new Response(JSON.stringify({ error: "invalid phone" }), {
+    if (digits.length < 4) {
+      return new Response(JSON.stringify({ error: `invalid phone: "${phone}" (${digits.length} digits)` }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
