@@ -39,6 +39,9 @@ export default function MemberDetailPage() {
   const [depositLimit, setDepositLimit] = useState(3);
   const [distLimit, setDistLimit] = useState(3);
   const [totalAllBalances, setTotalAllBalances] = useState(0);
+  const [isTargetAdmin, setIsTargetAdmin] = useState(false);
+  const [togglingAdmin, setTogglingAdmin] = useState(false);
+  const { user } = useAuth();
 
 
   useEffect(() => {
