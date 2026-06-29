@@ -43,13 +43,18 @@ export default function ProjectsPage() {
     if (!form.managerId) { toast.error('Select manager'); return; }
     setSubmitting(true);
     const code = generateCode('PRJ');
-    const { error } = await supabase.from('projects').insert({
+    const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
-    });
+    }).select('id').single();
+    if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
+
+    // Snapshot member shares — locked at creation
+    try { await snapshotMemberShares({ type: 'project', sourceId: inserted.id }); }
+    catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
+
     setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(`Project ${code} created`);
     setShowSheet(false);
     setForm({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15' });
