@@ -235,6 +235,25 @@ export default function MemberDetailPage() {
     setDeleting(false);
   };
 
+  const handleToggleAdmin = async () => {
+    if (!id) return;
+    setTogglingAdmin(true);
+    if (isTargetAdmin) {
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', id).eq('role', 'admin');
+      if (error) { toast.error(error.message); setTogglingAdmin(false); return; }
+      // ensure they still have member role
+      await supabase.from('user_roles').upsert({ user_id: id, role: 'member' as any }, { onConflict: 'user_id,role' });
+      toast.success('Admin অধিকার সরানো হয়েছে');
+      setIsTargetAdmin(false);
+    } else {
+      const { error } = await supabase.from('user_roles').insert({ user_id: id, role: 'admin' as any });
+      if (error) { toast.error(error.message); setTogglingAdmin(false); return; }
+      toast.success('Admin বানানো হয়েছে');
+      setIsTargetAdmin(true);
+    }
+    setTogglingAdmin(false);
+  };
+
   const handleDownloadPDF = () => {
     if (!member) return;
     generateMemberPDF(member, deposits, distributions);
