@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
 import { generateMemberPDF } from '@/lib/pdfGenerator';
 
+import { calculateSharePercentage } from '@/lib/finance';
+
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
