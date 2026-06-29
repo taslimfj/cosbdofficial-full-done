@@ -20,42 +20,44 @@ import {
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, user, isCustomer } = useAuth();
   const isAdmin = role === 'admin';
 
   const [loan, setLoan] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
+  const [payRequests, setPayRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [payLimit, setPayLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
+  const [requestNote, setRequestNote] = useState('');
 
   const [edit, setEdit] = useState<any>(null);
 
-  const [allDistributions, setAllDistributions] = useState<any[]>([]);
 
   const load = async () => {
     if (!id) return;
-    const isAdmin = role === 'admin';
-    const loanQuery = isAdmin
-      ? supabase.from('islamic_loans').select('*').eq('id', id).single()
-      : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).single();
-    const [loanRes, payRes, memRes, depRes, distRes, allDistRes] = await Promise.all([
+    const isAdminLocal = role === 'admin';
+    const loanQuery = (isAdminLocal || isCustomer)
+      ? supabase.from('islamic_loans').select('*').eq('id', id).maybeSingle()
+      : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).maybeSingle();
+    const [loanRes, payRes, memRes, snapRes, distRes, reqRes] = await Promise.all([
       loanQuery,
       supabase.from('islamic_loan_payments').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
-      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
-      supabase.from('deposits').select('*').eq('status', 'approved'),
+      (supabase as any).from('member_directory').select('*'),
+      (supabase as any).from('islamic_loan_member_shares').select('*').eq('loan_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'islamic_loan'),
-      supabase.from('profit_distributions').select('member_id, amount'),
+      (supabase as any).from('customer_payment_requests').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
     ]);
     const members = memRes.data || [];
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
@@ -64,9 +66,9 @@ export default function IslamicLoanDetailPage() {
     setLoan(loan);
     setPayments(payRes.data || []);
     setMembers(members);
-    setDeposits(depRes.data || []);
+    setSnapshot(snapRes.data || []);
     setDistributions(distributions);
-    setAllDistributions(allDistRes.data || []);
+    setPayRequests(reqRes.data || []);
     setLoading(false);
   };
 
@@ -94,41 +96,7 @@ export default function IslamicLoanDetailPage() {
     }
   }, [loan]);
 
-  // Share calc: use the SAME live balance formula as Members page
-  // balance = (approved deposits, signed) + (profit distributions received)
-  const shareRows = useMemo(() => {
-    if (!loan) return [] as any[];
-    const byMember = new Map<string, number>();
-    deposits.forEach(d => {
-      byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount));
-    });
-    allDistributions.forEach((d: any) => {
-      if (!d.member_id) return;
-      byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount || 0));
-    });
-    const total = Array.from(byMember.values()).reduce((a, b) => a + b, 0);
-    const sellP = Number(loan.sell_price);
-    const purchaseP = Number(loan.purchase_price);
-    const totalProfit = Math.max(0, sellP - purchaseP);
-    const mediaCut = totalProfit * (Number(loan.media_person_profit_pct) || 0) / 100;
-    const fundCut = totalProfit * (Number(loan.fund_profit_pct) || 0) / 100;
-    const memberPool = Math.max(0, totalProfit - mediaCut - fundCut);
-    const rows = Array.from(byMember.entries())
-      .filter(([, bal]) => bal > 0)
-      .map(([memberId, bal]) => {
-        const m = members.find(x => x.id === memberId);
-        const pct = total > 0 ? (bal / total) * 100 : 0;
-        return {
-          memberId,
-          name: m?.full_name || 'Unknown',
-          deposit: bal,
-          sharePct: pct,
-          expected: memberPool * pct / 100,
-        };
-      }).sort((a, b) => b.sharePct - a.sharePct);
-    return rows;
-  }, [loan, deposits, allDistributions, members]);
-
+  // Profit totals computed from loan (purchase/sell)
   const profitTotals = useMemo(() => {
     if (!loan) return { total: 0, fund: 0, media: 0, memberPool: 0 };
     const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
@@ -136,6 +104,24 @@ export default function IslamicLoanDetailPage() {
     const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
     return { total, fund, media, memberPool: Math.max(0, total - fund - media) };
   }, [loan]);
+
+  // Snapshot share rows — frozen at loan creation
+  const shareRows = useMemo(() => {
+    if (!loan || !snapshot.length) return [] as any[];
+    const pool = profitTotals.memberPool;
+    return snapshot
+      .map((s: any) => ({
+        id: s.id,
+        memberId: s.member_id,
+        name: s.member_name,
+        deposit: Number(s.deposit_snapshot),
+        sharePct: Number(s.share_percentage),
+        expected: pool * Number(s.share_percentage) / 100,
+        isDeleted: !!s.is_member_deleted || !s.member_id,
+      }))
+      .sort((a, b) => b.sharePct - a.sharePct);
+  }, [loan, snapshot, profitTotals]);
+
 
   const alreadyDistributed = distributions.length > 0;
 
@@ -197,24 +183,116 @@ export default function IslamicLoanDetailPage() {
     if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
+    const fundExtras: { amount: number; reason: string }[] = [];
+
     if (profitTotals.fund > 0) {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
     }
     if (profitTotals.media > 0 && loan.media_person_id) {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
     }
+
     shareRows.forEach(r => {
-      if (r.expected > 0) {
-        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      if (r.expected <= 0) return;
+      if (r.isDeleted || !r.memberId) {
+        // Deleted member's share goes to Fund
+        rows.push({
+          source_type: 'islamic_loan', source_id: id, member_id: null,
+          amount: r.expected, share_percentage: r.sharePct,
+          distribution_type: 'deleted_member_to_fund',
+        });
+        fundExtras.push({
+          amount: r.expected,
+          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
+        });
+      } else {
+        rows.push({
+          source_type: 'islamic_loan', source_id: id, member_id: r.memberId,
+          amount: r.expected, share_percentage: r.sharePct,
+          distribution_type: 'share',
+        });
       }
     });
+
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
+
     const { error } = await supabase.from('profit_distributions').insert(rows);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+
+    // Add fund_transactions for fund (15%) + each deleted-member redirect
+    const fundTxRows: any[] = [];
+    if (profitTotals.fund > 0) {
+      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
+    }
+    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
+    if (fundTxRows.length) {
+      await supabase.from('fund_transactions').insert(fundTxRows);
+    }
+
+    // Credit each (non-deleted) member's profile balance
+    const perMember = new Map<string, number>();
+    rows.forEach(r => {
+      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
+        perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
+      }
+    });
+    if (perMember.size > 0) {
+      const ids = Array.from(perMember.keys());
+      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
+      await Promise.all((profs || []).map((p: any) =>
+        supabase.from('profiles').update({
+          total_deposited: Number(p.total_deposited || 0) + (perMember.get(p.id) || 0),
+        }).eq('id', p.id)
+      ));
+    }
+
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success('Profit distributed');
     load();
   };
+
+  // Customer submits a payment / installment request
+  const handleSubmitRequest = async () => {
+    const amt = parseFloat(depositAmt);
+    if (!amt || amt <= 0) { toast.error('সঠিক amount দিন'); return; }
+    if (!user) return;
+    setBusy(true);
+    const { error } = await (supabase as any).from('customer_payment_requests').insert({
+      loan_id: id, customer_user_id: user.id, amount: amt, note: requestNote || null,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
+    setShowRequest(false);
+    setDepositAmt(''); setRequestNote('');
+    load();
+  };
+
+  // Admin approves a pending request → records payment + marks request approved
+  const approveRequest = async (req: any) => {
+    setBusy(true);
+    const { error: rpcErr } = await supabase.rpc('record_islamic_loan_payment', {
+      _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
+    } as any);
+    if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
+    await (supabase as any).from('customer_payment_requests').update({
+      status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+    }).eq('id', req.id);
+    setBusy(false);
+    toast.success('Approved & recorded');
+    load();
+  };
+
+  const rejectRequest = async (req: any) => {
+    setBusy(true);
+    await (supabase as any).from('customer_payment_requests').update({
+      status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
+    }).eq('id', req.id);
+    setBusy(false);
+    toast('Request rejected');
+    load();
+  };
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!loan) return <div className="text-center text-muted-foreground py-12">Loan not found</div>;
@@ -236,51 +314,100 @@ export default function IslamicLoanDetailPage() {
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
 
-  // ───────── Member view (non-admin): only deposit + call ─────────
-  if (!isAdmin) {
+  // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
+  if (isCustomer) {
+    const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
     return (
       <div className="space-y-6 animate-fade-in max-w-xl">
-        <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
-            {borrowerPhone && <p className="text-sm text-muted-foreground font-mono mt-1">{borrowerPhone}</p>}
           </div>
-          {phoneDigits && (
-            <div className="flex gap-2">
-              <a href={`tel:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-primary/10 text-sm"><Phone className="w-4 h-4" /> Call</a>
-              <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-primary/10 text-sm"><MessageCircle className="w-4 h-4" /> WhatsApp</a>
-            </div>
-          )}
+
           <div className="grid grid-cols-2 gap-3">
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Sale Amount</p><p className="font-mono font-bold tabular-nums">{formatBDT(sellPriceN)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Monthly Installment</p><p className="font-mono font-bold tabular-nums">{formatBDT(monthly)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Paid</p><p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(paid)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Due</p><p className="font-mono font-bold text-primary tabular-nums">{formatBDT(remaining)}</p></div>
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Monthly</p><p className="font-mono font-bold tabular-nums">{formatBDT(monthly)}</p></div>
           </div>
-          <Button className="w-full" onClick={() => setShowDeposit(true)} disabled={isClosed}>
-            <Plus className="w-4 h-4 mr-1" /> Deposit
+
+          <div className="space-y-2 text-sm border-t border-border pt-4">
+            <div className="flex justify-between"><span className="text-muted-foreground">Tenure</span><span className="font-medium">{loan.tenure_months} months</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Installments Paid</span><span className="font-medium">{installmentsPaid}/{loan.tenure_months}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Next Installment</span><span className="font-medium">{format(nextInstallmentDate, 'dd MMM yyyy')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> End Date</span><span className="font-medium">{format(endDate, 'dd MMM yyyy')}</span></div>
+          </div>
+
+          <div className="mb-2">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+              <span>Progress</span><span>{Math.round(progressPct)}%</span>
+            </div>
+            <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+              <div className="bg-primary h-full" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+
+          <Button className="w-full" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }} disabled={isClosed}>
+            <Plus className="w-4 h-4 mr-1" /> Request Installment Payment
           </Button>
         </div>
 
-        <Dialog open={showDeposit} onOpenChange={setShowDeposit}>
+        {/* Approved payment history */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h2 className="font-semibold mb-3">Payment History</h2>
+          {payments.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">এখনো কোন payment নেই</p>
+          ) : (
+            <div className="space-y-2">
+              {payments.slice(0, payLimit).map(p => (
+                <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
+                  </div>
+                  <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
+                </div>
+              ))}
+              {payments.length > payLimit && (
+                <button onClick={() => setPayLimit(l => l + 10)} className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg">
+                  See more ({payments.length - payLimit} বাকি)
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* My payment requests */}
+        {myRequests.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h2 className="font-semibold mb-3">My Requests</h2>
+            <div className="space-y-2">
+              {myRequests.map(r => (
+                <div key={r.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
+                  <div>
+                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                    {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600' : r.status === 'rejected' ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Dialog open={showRequest} onOpenChange={setShowRequest}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Record Deposit</DialogTitle></DialogHeader>
-            <div className="space-y-3">
+            <DialogHeader><DialogTitle>Request Installment Payment</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">Admin approve করলে এটা installment হিসেবে count হবে।</p>
+            <div className="space-y-3 mt-2">
               <div><Label>Amount (৳)</Label><Input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} /></div>
-              <div><Label>Type</Label>
-                <Select value={depositType} onValueChange={setDepositType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="installment">Installment</SelectItem>
-                    <SelectItem value="advance">Advance</SelectItem>
-                    <SelectItem value="full">Full Payment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="যেমন: bKash trxId, payment date" /></div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeposit(false)}>Cancel</Button>
-              <Button onClick={handleDeposit} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit</Button>
+              <Button variant="outline" onClick={() => setShowRequest(false)}>Cancel</Button>
+              <Button onClick={handleSubmitRequest} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit Request</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -288,17 +415,21 @@ export default function IslamicLoanDetailPage() {
     );
   }
 
-  // ───────── Admin view ─────────
+  // ───────── Admin & Member view ─────────
+  const pendingRequests = payRequests.filter(r => r.status === 'pending');
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-          <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
-          <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
+            <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
+          </div>
+        )}
       </div>
+
 
       {/* Header card */}
       <div className="bg-card border border-border rounded-xl p-6">
@@ -360,7 +491,7 @@ export default function IslamicLoanDetailPage() {
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
-          {isClosed && !alreadyDistributed && (
+          {isAdmin && isClosed && !alreadyDistributed && (
             <Button size="sm" onClick={handleDistribute} disabled={busy}>
               <Sparkles className="w-4 h-4 mr-1" /> Distribute Profit
             </Button>
@@ -386,16 +517,45 @@ export default function IslamicLoanDetailPage() {
               <div className="col-span-2 text-right">Profit</div>
             </div>
             {shareRows.map(r => (
-              <div key={r.memberId} className="grid grid-cols-12 gap-2 text-sm bg-secondary/30 rounded px-2 py-2">
-                <div className="col-span-5 truncate">{r.name}</div>
+              <div key={r.id} className={`grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
+                <div className="col-span-5 truncate">
+                  {r.name}
+                  {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Fund)</span>}
+                </div>
                 <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
-                <div className="col-span-2 text-right font-mono tabular-nums text-emerald-600 text-xs">{formatBDT(r.expected)}</div>
+                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground line-through' : 'text-emerald-600'}`}>{formatBDT(r.expected)}</div>
               </div>
             ))}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-এ যোগ হবে।</p>
           </div>
         )}
       </div>
+
+      {/* Pending payment requests (admin only) */}
+      {isAdmin && pendingRequests.length > 0 && (
+        <div className="bg-card border border-amber-500/40 rounded-xl p-5">
+          <h2 className="font-semibold mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-500" /> Pending Customer Requests ({pendingRequests.length})
+          </h2>
+          <div className="space-y-2">
+            {pendingRequests.map(r => (
+              <div key={r.id} className="flex justify-between items-center p-3 bg-amber-500/5 rounded-lg gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                  {r.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.note}</p>}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="sm" variant="default" onClick={() => approveRequest(r)} disabled={busy}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => rejectRequest(r)} disabled={busy}>Reject</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* Transactions */}
       <div className="bg-card border border-border rounded-xl p-6">

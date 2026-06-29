@@ -80,12 +80,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Set redirect target based on selected login type BEFORE signing in
-    if (loginType === 'customer') {
-      sessionStorage.setItem('postLoginRedirect', '/islamic-loans');
-    } else {
-      sessionStorage.removeItem('postLoginRedirect');
-    }
+    // Customer redirect is handled inside DashboardLayout (finds their loan).
+    // Always send through "/" so the layout can route them appropriately.
+    sessionStorage.removeItem('postLoginRedirect');
 
     setLoading(true);
     const { error } = await signIn(loginIdentifier, password);

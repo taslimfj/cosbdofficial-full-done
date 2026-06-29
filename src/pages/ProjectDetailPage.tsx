@@ -26,7 +26,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [txs, setTxs] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
@@ -41,11 +41,11 @@ export default function ProjectDetailPage() {
 
   const load = async () => {
     if (!id) return;
-    const [pRes, tRes, mRes, dRes, distRes] = await Promise.all([
+    const [pRes, tRes, mRes, snapRes, distRes] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('project_transactions').select('*').eq('project_id', id).order('created_at', { ascending: false }),
-      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
-      supabase.from('deposits').select('*').eq('status', 'approved'),
+      (supabase as any).from('member_directory').select('*'),
+      (supabase as any).from('project_member_shares').select('*').eq('project_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
     ]);
     const members = mRes.data || [];
@@ -55,7 +55,7 @@ export default function ProjectDetailPage() {
     setProject(project);
     setTxs(tRes.data || []);
     setMembers(members);
-    setDeposits(dRes.data || []);
+    setSnapshot(snapRes.data || []);
     setDistributions(distributions);
     setLoading(false);
   };
@@ -82,30 +82,29 @@ export default function ProjectDetailPage() {
     return { in: inAmt, out: outAmt, profit: Math.max(0, inAmt - outAmt) };
   }, [txs]);
 
-  // Snapshot shares from deposits approved before project creation
-  const shareRows = useMemo(() => {
-    if (!project) return [] as any[];
-    const cutoff = new Date(project.created_at).getTime();
-    const eligible = deposits.filter(d => new Date(d.created_at).getTime() <= cutoff);
-    const byMember = new Map<string, number>();
-    eligible.forEach(d => byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount)));
-    const total = Array.from(byMember.values()).reduce((a, b) => a + b, 0);
-    const mgrCut = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
-    const fundCut = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    const pool = Math.max(0, totals.profit - mgrCut - fundCut);
-    return Array.from(byMember.entries()).map(([memberId, dep]) => {
-      const m = members.find(x => x.id === memberId);
-      const pct = total > 0 ? (dep / total) * 100 : 0;
-      return { memberId, name: m?.full_name || 'Unknown', deposit: dep, sharePct: pct, expected: pool * pct / 100 };
-    }).sort((a, b) => b.sharePct - a.sharePct);
-  }, [project, deposits, members, totals]);
-
-  const profitTotals = useMemo(() => {
+  // Snapshot shares — locked at project creation
+  const profitTotalsPre = useMemo(() => {
     if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
     const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
     const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
     return { total: totals.profit, manager: mgr, fund, memberPool: Math.max(0, totals.profit - mgr - fund) };
   }, [project, totals]);
+
+  const shareRows = useMemo(() => {
+    if (!project || !snapshot.length) return [] as any[];
+    const pool = profitTotalsPre.memberPool;
+    return snapshot.map((s: any) => ({
+      id: s.id,
+      memberId: s.member_id,
+      name: s.member_name,
+      deposit: Number(s.deposit_snapshot),
+      sharePct: Number(s.share_percentage),
+      expected: pool * Number(s.share_percentage) / 100,
+      isDeleted: !!s.is_member_deleted || !s.member_id,
+    })).sort((a, b) => b.sharePct - a.sharePct);
+  }, [project, snapshot, profitTotalsPre]);
+
+  const profitTotals = profitTotalsPre;
 
   const alreadyDistributed = distributions.length > 0;
 
@@ -159,6 +158,8 @@ export default function ProjectDetailPage() {
     if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
+    const fundExtras: { amount: number; reason: string }[] = [];
+
     const managerId = project.manager_id || project.secondary_manager_id;
     if (profitTotals.manager > 0 && managerId) {
       rows.push({ source_type: 'project', source_id: id, member_id: managerId, amount: profitTotals.manager, share_percentage: Number(project.manager_profit_pct), distribution_type: 'manager' });
@@ -167,16 +168,30 @@ export default function ProjectDetailPage() {
       rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
     }
     shareRows.forEach(r => {
-      if (r.expected > 0) rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      if (r.expected <= 0) return;
+      if (r.isDeleted || !r.memberId) {
+        rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
+        fundExtras.push({ amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ` });
+      } else {
+        rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+      }
     });
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Add each member's profit share to their main balance (total_deposited)
+    // Add fund_transactions: Fund cut + each deleted-member redirect
+    const fundTxRows: any[] = [];
+    if (profitTotals.fund > 0) {
+      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
+    }
+    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
+    if (fundTxRows.length) await supabase.from('fund_transactions').insert(fundTxRows);
+
+    // Add each (non-deleted) member's share to their balance
     const perMember = new Map<string, number>();
     rows.forEach(r => {
-      if (r.member_id && r.amount > 0) {
+      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
         perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
       }
     });
@@ -194,6 +209,7 @@ export default function ProjectDetailPage() {
     toast.success('Profit distributed & added to balances');
     load();
   };
+
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!project) return <div className="text-center text-muted-foreground py-12">Project not found</div>;
@@ -282,18 +298,22 @@ export default function ProjectDetailPage() {
           <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
         </div>
         {shareRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No member shares (no approved deposits before project creation).</p>
+          <p className="text-xs text-muted-foreground text-center py-4">No member shares snapshot for this project.</p>
         ) : (
           <div className="space-y-1.5">
             {shareRows.map(r => (
-              <div key={r.memberId} className="flex justify-between items-center text-sm px-3 py-2 rounded-lg bg-secondary/30">
-                <span className="font-medium truncate">{r.name}</span>
+              <div key={r.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded-lg ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
+                <span className="font-medium truncate">
+                  {r.name}
+                  {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Fund)</span>}
+                </span>
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-muted-foreground">{r.sharePct.toFixed(2)}%</span>
-                  <span className="font-mono font-bold tabular-nums">{formatBDT(r.expected)}</span>
+                  <span className={`font-mono font-bold tabular-nums ${r.isDeleted ? 'line-through text-muted-foreground' : ''}`}>{formatBDT(r.expected)}</span>
                 </div>
               </div>
             ))}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Project তৈরির সময়ের snapshot — পরিবর্তন হয় না।</p>
           </div>
         )}
       </div>
