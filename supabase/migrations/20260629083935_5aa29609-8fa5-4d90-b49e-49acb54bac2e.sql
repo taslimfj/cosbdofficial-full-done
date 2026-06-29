@@ -1,0 +1,1 @@
+UPDATE public.profiles SET is_deleted = true, updated_at = now() WHERE id IN ('fd5ca5bf-4f45-490c-bd9b-7498e0711fb1', 'a9ec5daa-d9c4-4420-bb27-e89276f9c5f5');
