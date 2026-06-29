@@ -59,14 +59,19 @@ export default function MemberDetailPage() {
   }, [id]);
 
   const fetchData = async () => {
-    const [profileRes, depositsRes, distRes, loansRes, allProfilesRes] = await Promise.all([
+    const [profileRes, depositsRes, distRes, loansRes, allDepRes, allDistRes, roleRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id!).single(),
       supabase.from('deposits').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('profit_distributions').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('member_loans').select('*').eq('member_id', id!).in('status', ['approved', 'pending']),
-      supabase.from('profiles').select('total_deposited').eq('is_deleted', false),
+      supabase.from('deposits').select('amount').eq('status', 'approved'),
+      supabase.from('profit_distributions').select('amount'),
+      supabase.from('user_roles').select('role').eq('user_id', id!).eq('role', 'admin').maybeSingle(),
     ]);
-    setTotalAllBalances((allProfilesRes.data || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0));
+    const totalDep = (allDepRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    const totalProf = (allDistRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    setTotalAllBalances(totalDep + totalProf);
+    setIsTargetAdmin(!!roleRes.data);
     setMember(profileRes.data);
     setDeposits(depositsRes.data || []);
 
