@@ -73,7 +73,7 @@ export default function IslamicLoansPage() {
     if (!form.mediaPersonId) { toast.error('Select media person'); return; }
     setSubmitting(true);
     const code = generateCode('IL');
-    const { error } = await supabase.from('islamic_loans').insert({
+    const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
       borrower_phone: form.borrowerPhone.trim(),
@@ -89,9 +89,29 @@ export default function IslamicLoansPage() {
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
-    } as any);
+    } as any).select('id').single();
+    if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
+    const loanId = inserted.id;
+
+    // Snapshot current member shares — locked at creation
+    try { await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId }); }
+    catch (e: any) { console.warn('Snapshot failed:', e?.message); }
+
+    // Create customer login (phone + default password 123456) and link to loan
+    try {
+      const { data: custRes, error: custErr } = await supabase.functions.invoke('create-customer', {
+        body: { phone: form.borrowerPhone.trim(), fullName: form.borrowerName.trim() },
+      });
+      if (custErr) throw custErr;
+      if (custRes?.userId) {
+        await supabase.from('islamic_loans').update({ customer_user_id: custRes.userId } as any).eq('id', loanId);
+      }
+    } catch (e: any) {
+      console.warn('Customer account creation failed:', e?.message);
+      toast.warning('Loan created, but customer account creation failed: ' + (e?.message || 'unknown'));
+    }
+
     setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
     setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15', discountPct: '0' });
