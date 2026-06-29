@@ -48,9 +48,9 @@ export default function IslamicLoanDetailPage() {
   const load = async () => {
     if (!id) return;
     const isAdminLocal = role === 'admin';
-    const loanQuery = isAdminLocal
-      ? supabase.from('islamic_loans').select('*').eq('id', id).single()
-      : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).single();
+    const loanQuery = (isAdminLocal || isCustomer)
+      ? supabase.from('islamic_loans').select('*').eq('id', id).maybeSingle()
+      : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).maybeSingle();
     const [loanRes, payRes, memRes, snapRes, distRes, reqRes] = await Promise.all([
       loanQuery,
       supabase.from('islamic_loan_payments').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
