@@ -19,7 +19,7 @@ import { calculateSharePercentage } from '@/lib/finance';
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { role, loading: authLoading } = useAuth();
+  const { role, user, loading: authLoading } = useAuth();
   const [member, setMember] = useState<any>(null);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
@@ -39,6 +39,9 @@ export default function MemberDetailPage() {
   const [depositLimit, setDepositLimit] = useState(3);
   const [distLimit, setDistLimit] = useState(3);
   const [totalAllBalances, setTotalAllBalances] = useState(0);
+  const [isTargetAdmin, setIsTargetAdmin] = useState(false);
+  const [togglingAdmin, setTogglingAdmin] = useState(false);
+  
 
 
   useEffect(() => {
@@ -56,14 +59,19 @@ export default function MemberDetailPage() {
   }, [id]);
 
   const fetchData = async () => {
-    const [profileRes, depositsRes, distRes, loansRes, allProfilesRes] = await Promise.all([
+    const [profileRes, depositsRes, distRes, loansRes, allDepRes, allDistRes, roleRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id!).single(),
       supabase.from('deposits').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('profit_distributions').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('member_loans').select('*').eq('member_id', id!).in('status', ['approved', 'pending']),
-      supabase.from('profiles').select('total_deposited').eq('is_deleted', false),
+      supabase.from('deposits').select('amount').eq('status', 'approved'),
+      supabase.from('profit_distributions').select('amount'),
+      supabase.from('user_roles').select('role').eq('user_id', id!).eq('role', 'admin').maybeSingle(),
     ]);
-    setTotalAllBalances((allProfilesRes.data || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0));
+    const totalDep = (allDepRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    const totalProf = (allDistRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    setTotalAllBalances(totalDep + totalProf);
+    setIsTargetAdmin(!!roleRes.data);
     setMember(profileRes.data);
     setDeposits(depositsRes.data || []);
 
@@ -227,6 +235,25 @@ export default function MemberDetailPage() {
     setDeleting(false);
   };
 
+  const handleToggleAdmin = async () => {
+    if (!id) return;
+    setTogglingAdmin(true);
+    if (isTargetAdmin) {
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', id).eq('role', 'admin');
+      if (error) { toast.error(error.message); setTogglingAdmin(false); return; }
+      // ensure they still have member role
+      await supabase.from('user_roles').upsert({ user_id: id, role: 'member' as any }, { onConflict: 'user_id,role' });
+      toast.success('Admin অধিকার সরানো হয়েছে');
+      setIsTargetAdmin(false);
+    } else {
+      const { error } = await supabase.from('user_roles').insert({ user_id: id, role: 'admin' as any });
+      if (error) { toast.error(error.message); setTogglingAdmin(false); return; }
+      toast.success('Admin বানানো হয়েছে');
+      setIsTargetAdmin(true);
+    }
+    setTogglingAdmin(false);
+  };
+
   const handleDownloadPDF = () => {
     if (!member) return;
     generateMemberPDF(member, deposits, distributions);
@@ -246,6 +273,18 @@ export default function MemberDetailPage() {
           <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="gap-2">
             <Download className="w-4 h-4" /> PDF
           </Button>
+          {role === 'admin' && user?.id !== id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleAdmin}
+              disabled={togglingAdmin}
+              className={isTargetAdmin ? 'gap-2 text-destructive border-destructive/30' : 'gap-2 text-primary border-primary/30'}
+            >
+              {togglingAdmin && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
+            </Button>
+          )}
           {role === 'admin' && (
             <>
               {/* Withdraw Dialog */}
