@@ -38,6 +38,8 @@ export default function MemberDetailPage() {
   const [repaymentInput, setRepaymentInput] = useState('');
   const [depositLimit, setDepositLimit] = useState(3);
   const [distLimit, setDistLimit] = useState(3);
+  const [totalAllBalances, setTotalAllBalances] = useState(0);
+
 
   useEffect(() => {
     if (!inAppCall) return;
