@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, Pencil, Trash2, ChevronDown } from 'lucide-react';
 import { generateFundSummaryPDF } from '@/lib/pdfGenerator';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -24,6 +24,8 @@ export default function FundPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [balance, setBalance] = useState({ totalIn: 0, totalOut: 0 });
+  const [showAll, setShowAll] = useState(false);
+  const PREVIEW_LIMIT = 10;
 
   useEffect(() => { fetchTransactions(); }, []);
 
