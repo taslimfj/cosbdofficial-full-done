@@ -314,51 +314,100 @@ export default function IslamicLoanDetailPage() {
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
 
-  // ───────── Member view (non-admin): only deposit + call ─────────
-  if (!isAdmin) {
+  // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
+  if (isCustomer) {
+    const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
     return (
       <div className="space-y-6 animate-fade-in max-w-xl">
-        <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
-            {borrowerPhone && <p className="text-sm text-muted-foreground font-mono mt-1">{borrowerPhone}</p>}
           </div>
-          {phoneDigits && (
-            <div className="flex gap-2">
-              <a href={`tel:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-primary/10 text-sm"><Phone className="w-4 h-4" /> Call</a>
-              <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-primary/10 text-sm"><MessageCircle className="w-4 h-4" /> WhatsApp</a>
-            </div>
-          )}
+
           <div className="grid grid-cols-2 gap-3">
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Sale Amount</p><p className="font-mono font-bold tabular-nums">{formatBDT(sellPriceN)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Monthly Installment</p><p className="font-mono font-bold tabular-nums">{formatBDT(monthly)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Paid</p><p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(paid)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Due</p><p className="font-mono font-bold text-primary tabular-nums">{formatBDT(remaining)}</p></div>
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Monthly</p><p className="font-mono font-bold tabular-nums">{formatBDT(monthly)}</p></div>
           </div>
-          <Button className="w-full" onClick={() => setShowDeposit(true)} disabled={isClosed}>
-            <Plus className="w-4 h-4 mr-1" /> Deposit
+
+          <div className="space-y-2 text-sm border-t border-border pt-4">
+            <div className="flex justify-between"><span className="text-muted-foreground">Tenure</span><span className="font-medium">{loan.tenure_months} months</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Installments Paid</span><span className="font-medium">{installmentsPaid}/{loan.tenure_months}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Next Installment</span><span className="font-medium">{format(nextInstallmentDate, 'dd MMM yyyy')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> End Date</span><span className="font-medium">{format(endDate, 'dd MMM yyyy')}</span></div>
+          </div>
+
+          <div className="mb-2">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+              <span>Progress</span><span>{Math.round(progressPct)}%</span>
+            </div>
+            <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+              <div className="bg-primary h-full" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+
+          <Button className="w-full" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }} disabled={isClosed}>
+            <Plus className="w-4 h-4 mr-1" /> Request Installment Payment
           </Button>
         </div>
 
-        <Dialog open={showDeposit} onOpenChange={setShowDeposit}>
+        {/* Approved payment history */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h2 className="font-semibold mb-3">Payment History</h2>
+          {payments.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">এখনো কোন payment নেই</p>
+          ) : (
+            <div className="space-y-2">
+              {payments.slice(0, payLimit).map(p => (
+                <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
+                  </div>
+                  <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
+                </div>
+              ))}
+              {payments.length > payLimit && (
+                <button onClick={() => setPayLimit(l => l + 10)} className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg">
+                  See more ({payments.length - payLimit} বাকি)
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* My payment requests */}
+        {myRequests.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h2 className="font-semibold mb-3">My Requests</h2>
+            <div className="space-y-2">
+              {myRequests.map(r => (
+                <div key={r.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
+                  <div>
+                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                    {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600' : r.status === 'rejected' ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Dialog open={showRequest} onOpenChange={setShowRequest}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Record Deposit</DialogTitle></DialogHeader>
-            <div className="space-y-3">
+            <DialogHeader><DialogTitle>Request Installment Payment</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">Admin approve করলে এটা installment হিসেবে count হবে।</p>
+            <div className="space-y-3 mt-2">
               <div><Label>Amount (৳)</Label><Input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} /></div>
-              <div><Label>Type</Label>
-                <Select value={depositType} onValueChange={setDepositType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="installment">Installment</SelectItem>
-                    <SelectItem value="advance">Advance</SelectItem>
-                    <SelectItem value="full">Full Payment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="যেমন: bKash trxId, payment date" /></div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeposit(false)}>Cancel</Button>
-              <Button onClick={handleDeposit} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit</Button>
+              <Button variant="outline" onClick={() => setShowRequest(false)}>Cancel</Button>
+              <Button onClick={handleSubmitRequest} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit Request</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -366,17 +415,21 @@ export default function IslamicLoanDetailPage() {
     );
   }
 
-  // ───────── Admin view ─────────
+  // ───────── Admin & Member view ─────────
+  const pendingRequests = payRequests.filter(r => r.status === 'pending');
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-          <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
-          <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
+            <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
+          </div>
+        )}
       </div>
+
 
       {/* Header card */}
       <div className="bg-card border border-border rounded-xl p-6">
