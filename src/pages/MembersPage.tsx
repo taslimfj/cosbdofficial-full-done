@@ -29,6 +29,7 @@ export default function MembersPage() {
   const [adding, setAdding] = useState(false);
   const [visibleCount, setVisibleCount] = useState(5);
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
+  const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
 
   const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
   const [callMuted, setCallMuted] = useState(false);
@@ -43,21 +44,45 @@ export default function MembersPage() {
   }, [inAppCall]);
 
   const fetchMembers = async () => {
-    const [profRes, rolesRes] = await Promise.all([
+    const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_deleted', false),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
+      supabase.from('deposits').select('member_id, amount').eq('status', 'approved'),
+      supabase.from('profit_distributions').select('member_id, amount'),
     ]);
     const profiles = profRes.data || [];
     const admins = new Set<string>((rolesRes.data || []).map((r: any) => r.user_id));
     setAdminIds(admins);
-    const total = profiles.reduce((s, p) => s + Number(p.total_deposited || 0), 0);
+
+    const depositMap = new Map<string, number>();
+    const profitMap = new Map<string, number>();
+    for (const p of profiles) {
+      depositMap.set(p.id, 0);
+      profitMap.set(p.id, 0);
+    }
+    (depositsRes.data || []).forEach((d: any) => {
+      depositMap.set(d.member_id, (depositMap.get(d.member_id) || 0) + Number(d.amount || 0));
+    });
+    (distRes.data || []).forEach((d: any) => {
+      profitMap.set(d.member_id, (profitMap.get(d.member_id) || 0) + Number(d.amount || 0));
+    });
+
+    const balanceMap = new Map<string, number>();
+    let total = 0;
+    for (const p of profiles) {
+      const balance = (depositMap.get(p.id) || 0) + (profitMap.get(p.id) || 0);
+      balanceMap.set(p.id, balance);
+      total += balance;
+    }
     setTotalInvestment(total);
-    // Admins first, then by share % (= deposit) desc
+    setMemberBalances(balanceMap);
+
+    // Admins first, then by balance desc
     const sorted = [...profiles].sort((a, b) => {
       const aAdmin = admins.has(a.id) ? 1 : 0;
       const bAdmin = admins.has(b.id) ? 1 : 0;
       if (aAdmin !== bAdmin) return bAdmin - aAdmin;
-      return Number(b.total_deposited || 0) - Number(a.total_deposited || 0);
+      return (balanceMap.get(b.id) || 0) - (balanceMap.get(a.id) || 0);
     });
     setMembers(sorted);
     setLoading(false);
@@ -152,7 +177,7 @@ export default function MembersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Members</h1>
-          <p className="text-sm text-muted-foreground mt-1">{members.length} members · {formatBDT(totalInvestment)} total invested</p>
+          <p className="text-sm text-muted-foreground mt-1">{members.length} members · {formatBDT(totalInvestment)} total balance</p>
         </div>
         {role === 'admin' && (
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -201,14 +226,15 @@ export default function MembersPage() {
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
                   <th className="text-left px-5 py-3 font-medium text-muted-foreground">Member</th>
-                  <th className="text-right px-5 py-3 font-medium text-muted-foreground">Deposited</th>
+                  <th className="text-right px-5 py-3 font-medium text-muted-foreground">Total Investment</th>
                   <th className="text-right px-5 py-3 font-medium text-muted-foreground">Share %</th>
                   <th className="text-right px-5 py-3 font-medium text-muted-foreground">Contact</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.slice(0, visibleCount).map(member => {
-                  const share = calculateSharePercentage(Number(member.total_deposited || 0), totalInvestment);
+                  const balance = memberBalances.get(member.id) || 0;
+                  const share = calculateSharePercentage(balance, totalInvestment);
                   const isAdmin = adminIds.has(member.id);
                   return (
                     <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
@@ -226,7 +252,7 @@ export default function MembersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold tabular-nums">{formatBDT(Number(member.total_deposited || 0))}</td>
+                      <td className="px-5 py-3 text-right font-semibold tabular-nums">{formatBDT(balance)}</td>
                       <td className="px-5 py-3 text-right">
                         <span className="font-semibold tabular-nums">{share.toFixed(1)}%</span>
                       </td>
