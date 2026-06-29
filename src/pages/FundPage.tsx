@@ -144,7 +144,7 @@ export default function FundPage() {
           <div className="p-12 text-center"><p className="text-sm text-muted-foreground">No transactions recorded yet.</p></div>
         ) : (
           <div className="divide-y divide-border">
-            {transactions.map(tx => (
+            {transactions.slice(0, showAll ? undefined : PREVIEW_LIMIT).map(tx => (
               <div key={tx.id} className="flex items-center gap-3 px-5 py-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   tx.type === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
@@ -184,6 +184,18 @@ export default function FundPage() {
                 )}
               </div>
             ))}
+            {transactions.length > PREVIEW_LIMIT && (
+              <div className="px-5 py-3">
+                <Button
+                  variant="ghost"
+                  className="w-full gap-1 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowAll(s => !s)}
+                >
+                  {showAll ? 'See less' : 'See more'}
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
