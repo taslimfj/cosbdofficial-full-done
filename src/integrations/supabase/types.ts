@@ -110,6 +110,13 @@ export type Database = {
             foreignKeyName: "deposits_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposits_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -170,6 +177,13 @@ export type Database = {
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "islamic_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans_public"
             referencedColumns: ["id"]
           },
         ]
@@ -236,6 +250,13 @@ export type Database = {
           tenure_months?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "islamic_loans_media_person_id_fkey"
+            columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "islamic_loans_media_person_id_fkey"
             columns: ["media_person_id"]
@@ -312,6 +333,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "member_loans_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_loans_member_id_fkey"
             columns: ["member_id"]
@@ -453,6 +481,13 @@ export type Database = {
             foreignKeyName: "profit_distributions_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profit_distributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -544,7 +579,21 @@ export type Database = {
             foreignKeyName: "projects_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_secondary_manager_id_fkey"
+            columns: ["secondary_manager_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
             referencedColumns: ["id"]
           },
           {
@@ -576,7 +625,108 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      islamic_loans_public: {
+        Row: {
+          code: string | null
+          comments: string | null
+          created_at: string | null
+          discount_pct: number | null
+          fund_profit_pct: number | null
+          id: string | null
+          media_person_id: string | null
+          media_person_profit_pct: number | null
+          monthly_installment: number | null
+          profit_percentage: number | null
+          purchase_price: number | null
+          remaining_amount: number | null
+          sell_price: number | null
+          status: string | null
+          tenure_months: number | null
+        }
+        Insert: {
+          code?: string | null
+          comments?: string | null
+          created_at?: string | null
+          discount_pct?: number | null
+          fund_profit_pct?: number | null
+          id?: string | null
+          media_person_id?: string | null
+          media_person_profit_pct?: number | null
+          monthly_installment?: number | null
+          profit_percentage?: number | null
+          purchase_price?: number | null
+          remaining_amount?: number | null
+          sell_price?: number | null
+          status?: string | null
+          tenure_months?: number | null
+        }
+        Update: {
+          code?: string | null
+          comments?: string | null
+          created_at?: string | null
+          discount_pct?: number | null
+          fund_profit_pct?: number | null
+          id?: string | null
+          media_person_id?: string | null
+          media_person_profit_pct?: number | null
+          monthly_installment?: number | null
+          profit_percentage?: number | null
+          purchase_price?: number | null
+          remaining_amount?: number | null
+          sell_price?: number | null
+          status?: string | null
+          tenure_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "islamic_loans_media_person_id_fkey"
+            columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_media_person_id_fkey"
+            columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_directory: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          deleted_name: string | null
+          full_name: string | null
+          id: string | null
+          is_deleted: boolean | null
+          total_deposited: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          deleted_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_deleted?: boolean | null
+          total_deposited?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          deleted_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_deleted?: boolean | null
+          total_deposited?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
