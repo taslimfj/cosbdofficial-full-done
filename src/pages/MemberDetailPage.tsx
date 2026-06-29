@@ -65,11 +65,15 @@ export default function MemberDetailPage() {
       supabase.from('profit_distributions').select('*').eq('member_id', id!).order('created_at', { ascending: false }),
       supabase.from('member_loans').select('*').eq('member_id', id!).in('status', ['approved', 'pending']),
       supabase.from('deposits').select('amount').eq('status', 'approved'),
-      supabase.from('profit_distributions').select('amount'),
+      supabase.from('profit_distributions').select('amount, member_id'),
       supabase.from('user_roles').select('role').eq('user_id', id!).eq('role', 'admin').maybeSingle(),
     ]);
     const totalDep = (allDepRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
-    const totalProf = (allDistRes.data || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+    // Only member-attributed distributions count toward the shared balance pool
+    // (fund/manager rows have member_id = null and are excluded — same as MembersPage)
+    const totalProf = (allDistRes.data || [])
+      .filter((d: any) => d.member_id)
+      .reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
     setTotalAllBalances(totalDep + totalProf);
     setIsTargetAdmin(!!roleRes.data);
     setMember(profileRes.data);
