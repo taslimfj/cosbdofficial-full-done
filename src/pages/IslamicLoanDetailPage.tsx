@@ -47,17 +47,17 @@ export default function IslamicLoanDetailPage() {
 
   const load = async () => {
     if (!id) return;
-    const isAdmin = role === 'admin';
-    const loanQuery = isAdmin
+    const isAdminLocal = role === 'admin';
+    const loanQuery = isAdminLocal
       ? supabase.from('islamic_loans').select('*').eq('id', id).single()
       : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).single();
-    const [loanRes, payRes, memRes, depRes, distRes, allDistRes] = await Promise.all([
+    const [loanRes, payRes, memRes, snapRes, distRes, reqRes] = await Promise.all([
       loanQuery,
       supabase.from('islamic_loan_payments').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
-      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
-      supabase.from('deposits').select('*').eq('status', 'approved'),
+      (supabase as any).from('member_directory').select('*'),
+      (supabase as any).from('islamic_loan_member_shares').select('*').eq('loan_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'islamic_loan'),
-      supabase.from('profit_distributions').select('member_id, amount'),
+      (supabase as any).from('customer_payment_requests').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
     ]);
     const members = memRes.data || [];
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
@@ -66,9 +66,9 @@ export default function IslamicLoanDetailPage() {
     setLoan(loan);
     setPayments(payRes.data || []);
     setMembers(members);
-    setDeposits(depRes.data || []);
+    setSnapshot(snapRes.data || []);
     setDistributions(distributions);
-    setAllDistributions(allDistRes.data || []);
+    setPayRequests(reqRes.data || []);
     setLoading(false);
   };
 
@@ -96,41 +96,7 @@ export default function IslamicLoanDetailPage() {
     }
   }, [loan]);
 
-  // Share calc: use the SAME live balance formula as Members page
-  // balance = (approved deposits, signed) + (profit distributions received)
-  const shareRows = useMemo(() => {
-    if (!loan) return [] as any[];
-    const byMember = new Map<string, number>();
-    deposits.forEach(d => {
-      byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount));
-    });
-    allDistributions.forEach((d: any) => {
-      if (!d.member_id) return;
-      byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount || 0));
-    });
-    const total = Array.from(byMember.values()).reduce((a, b) => a + b, 0);
-    const sellP = Number(loan.sell_price);
-    const purchaseP = Number(loan.purchase_price);
-    const totalProfit = Math.max(0, sellP - purchaseP);
-    const mediaCut = totalProfit * (Number(loan.media_person_profit_pct) || 0) / 100;
-    const fundCut = totalProfit * (Number(loan.fund_profit_pct) || 0) / 100;
-    const memberPool = Math.max(0, totalProfit - mediaCut - fundCut);
-    const rows = Array.from(byMember.entries())
-      .filter(([, bal]) => bal > 0)
-      .map(([memberId, bal]) => {
-        const m = members.find(x => x.id === memberId);
-        const pct = total > 0 ? (bal / total) * 100 : 0;
-        return {
-          memberId,
-          name: m?.full_name || 'Unknown',
-          deposit: bal,
-          sharePct: pct,
-          expected: memberPool * pct / 100,
-        };
-      }).sort((a, b) => b.sharePct - a.sharePct);
-    return rows;
-  }, [loan, deposits, allDistributions, members]);
-
+  // Profit totals computed from loan (purchase/sell)
   const profitTotals = useMemo(() => {
     if (!loan) return { total: 0, fund: 0, media: 0, memberPool: 0 };
     const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
@@ -138,6 +104,24 @@ export default function IslamicLoanDetailPage() {
     const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
     return { total, fund, media, memberPool: Math.max(0, total - fund - media) };
   }, [loan]);
+
+  // Snapshot share rows — frozen at loan creation
+  const shareRows = useMemo(() => {
+    if (!loan || !snapshot.length) return [] as any[];
+    const pool = profitTotals.memberPool;
+    return snapshot
+      .map((s: any) => ({
+        id: s.id,
+        memberId: s.member_id,
+        name: s.member_name,
+        deposit: Number(s.deposit_snapshot),
+        sharePct: Number(s.share_percentage),
+        expected: pool * Number(s.share_percentage) / 100,
+        isDeleted: !!s.is_member_deleted || !s.member_id,
+      }))
+      .sort((a, b) => b.sharePct - a.sharePct);
+  }, [loan, snapshot, profitTotals]);
+
 
   const alreadyDistributed = distributions.length > 0;
 
