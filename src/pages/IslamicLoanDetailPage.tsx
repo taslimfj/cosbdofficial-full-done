@@ -491,7 +491,7 @@ export default function IslamicLoanDetailPage() {
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
-          {isClosed && !alreadyDistributed && (
+          {isAdmin && isClosed && !alreadyDistributed && (
             <Button size="sm" onClick={handleDistribute} disabled={busy}>
               <Sparkles className="w-4 h-4 mr-1" /> Distribute Profit
             </Button>
