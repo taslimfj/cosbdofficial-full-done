@@ -423,8 +423,8 @@ export default function MemberDetailPage() {
           {deposits.length === 0 ? (
             <div className="p-8 text-center"><p className="text-sm text-muted-foreground">No transactions yet</p></div>
           ) : (
-            <div className="divide-y divide-border max-h-96 overflow-y-auto">
             <>
+            <div className="divide-y divide-border">
             <div className="divide-y divide-border">
               {deposits.slice(0, depositLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
