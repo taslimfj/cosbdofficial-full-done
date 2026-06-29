@@ -479,9 +479,9 @@ export default function MemberDetailPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{formatBDT(Number(d.amount))}</p>
                     <p className="text-xs text-muted-foreground">{d.distribution_type} · {d.share_percentage?.toFixed(1)}%</p>
-                    {d.project ? (
+                    {d.source ? (
                       <p className="text-xs text-primary mt-0.5 truncate">
-                        📁 {d.project.name} <span className="font-mono text-muted-foreground">({d.project.code})</span>
+                        {d.source.kind === 'loan' ? '🕌' : '📁'} {d.source.name} <span className="font-mono text-muted-foreground">({d.source.code})</span>
                       </p>
                     ) : d.source_type ? (
                       <p className="text-xs text-muted-foreground mt-0.5 italic">{d.source_type}</p>
