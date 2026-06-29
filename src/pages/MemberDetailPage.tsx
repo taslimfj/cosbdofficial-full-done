@@ -364,7 +364,7 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6 shadow-subtle">
+      <div className="bg-card border border-border rounded-xl p-6 shadow-subtle space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
             {member.full_name?.charAt(0)?.toUpperCase() || '?'}
@@ -372,10 +372,6 @@ export default function MemberDetailPage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-foreground">{member.full_name}</h1>
             <p className="text-sm text-muted-foreground">{member.phone || 'No phone'}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-foreground tabular-nums">{formatBDT(Number(member.total_deposited || 0))}</p>
-            <p className="text-xs text-muted-foreground">Total Balance</p>
           </div>
           {member.phone && (
             <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
@@ -391,7 +387,37 @@ export default function MemberDetailPage() {
             </div>
           )}
         </div>
+
+        {(() => {
+          const depositSum = deposits.filter(d => Number(d.amount) > 0 && d.status === 'approved').reduce((s, d) => s + Number(d.amount), 0);
+          const withdrawSum = deposits.filter(d => Number(d.amount) < 0 && d.status === 'approved').reduce((s, d) => s + Math.abs(Number(d.amount)), 0);
+          const profitSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
+          const balance = depositSum + profitSum - withdrawSum;
+          const sharePct = calculateSharePercentage(balance, totalAllBalances);
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border">
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                <p className="text-xs text-muted-foreground">জমা (Deposit)</p>
+                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">+{formatBDT(depositSum)}</p>
+              </div>
+              <div className="rounded-lg bg-primary/5 p-3">
+                <p className="text-xs text-muted-foreground">প্রফিট (Profit)</p>
+                <p className="text-sm font-bold text-primary tabular-nums">+{formatBDT(profitSum)}</p>
+              </div>
+              <div className="rounded-lg bg-destructive/5 p-3">
+                <p className="text-xs text-muted-foreground">উত্তোলন (Withdraw)</p>
+                <p className="text-sm font-bold text-destructive tabular-nums">−{formatBDT(withdrawSum)}</p>
+              </div>
+              <div className="rounded-lg bg-foreground/5 p-3">
+                <p className="text-xs text-muted-foreground">মোট ব্যালেন্স</p>
+                <p className="text-sm font-bold text-foreground tabular-nums">{formatBDT(balance)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Share: {sharePct.toFixed(2)}%</p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
 
       <Dialog open={inAppCall} onOpenChange={(o) => !o && setInAppCall(false)}>
         <DialogContent className="max-w-sm">
