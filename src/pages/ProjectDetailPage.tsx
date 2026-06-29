@@ -26,7 +26,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [txs, setTxs] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
