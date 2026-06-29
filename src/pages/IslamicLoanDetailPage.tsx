@@ -29,6 +29,7 @@ export default function IslamicLoanDetailPage() {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [payLimit, setPayLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
