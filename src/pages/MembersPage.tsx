@@ -207,8 +207,9 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(member => {
+                {filtered.slice(0, visibleCount).map(member => {
                   const share = calculateSharePercentage(Number(member.total_deposited || 0), totalInvestment);
+                  const isAdmin = adminIds.has(member.id);
                   return (
                     <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
                       <td className="px-5 py-3">
@@ -217,7 +218,10 @@ export default function MembersPage() {
                             {member.full_name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
+                              {isAdmin && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">ADMIN</span>}
+                            </div>
                             <p className="text-xs text-muted-foreground">{member.phone || 'No phone'}</p>
                           </div>
                         </div>
@@ -266,9 +270,18 @@ export default function MembersPage() {
                 })}
               </tbody>
             </table>
+            {filtered.length > visibleCount && (
+              <button
+                onClick={() => setVisibleCount(c => c + 10)}
+                className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border"
+              >
+                See more ({filtered.length - visibleCount} বাকি)
+              </button>
+            )}
           </div>
         )}
       </div>
+
 
       <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
         <DialogContent className="max-w-sm">
