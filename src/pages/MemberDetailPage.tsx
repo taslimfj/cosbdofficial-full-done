@@ -34,6 +34,8 @@ export default function MemberDetailPage() {
   const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [repaymentInput, setRepaymentInput] = useState('');
+  const [depositLimit, setDepositLimit] = useState(3);
+  const [distLimit, setDistLimit] = useState(3);
 
   useEffect(() => {
     if (!inAppCall) return;
