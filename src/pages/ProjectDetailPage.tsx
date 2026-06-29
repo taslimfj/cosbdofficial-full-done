@@ -41,11 +41,11 @@ export default function ProjectDetailPage() {
 
   const load = async () => {
     if (!id) return;
-    const [pRes, tRes, mRes, dRes, distRes] = await Promise.all([
+    const [pRes, tRes, mRes, snapRes, distRes] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('project_transactions').select('*').eq('project_id', id).order('created_at', { ascending: false }),
-      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
-      supabase.from('deposits').select('*').eq('status', 'approved'),
+      (supabase as any).from('member_directory').select('*'),
+      (supabase as any).from('project_member_shares').select('*').eq('project_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
     ]);
     const members = mRes.data || [];
@@ -55,7 +55,7 @@ export default function ProjectDetailPage() {
     setProject(project);
     setTxs(tRes.data || []);
     setMembers(members);
-    setDeposits(dRes.data || []);
+    setSnapshot(snapRes.data || []);
     setDistributions(distributions);
     setLoading(false);
   };
@@ -82,23 +82,27 @@ export default function ProjectDetailPage() {
     return { in: inAmt, out: outAmt, profit: Math.max(0, inAmt - outAmt) };
   }, [txs]);
 
-  // Snapshot shares from deposits approved before project creation
+  // Snapshot shares — locked at project creation
+  const profitTotalsPre = useMemo(() => {
+    if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
+    const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
+    const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
+    return { total: totals.profit, manager: mgr, fund, memberPool: Math.max(0, totals.profit - mgr - fund) };
+  }, [project, totals]);
+
   const shareRows = useMemo(() => {
-    if (!project) return [] as any[];
-    const cutoff = new Date(project.created_at).getTime();
-    const eligible = deposits.filter(d => new Date(d.created_at).getTime() <= cutoff);
-    const byMember = new Map<string, number>();
-    eligible.forEach(d => byMember.set(d.member_id, (byMember.get(d.member_id) || 0) + Number(d.amount)));
-    const total = Array.from(byMember.values()).reduce((a, b) => a + b, 0);
-    const mgrCut = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
-    const fundCut = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    const pool = Math.max(0, totals.profit - mgrCut - fundCut);
-    return Array.from(byMember.entries()).map(([memberId, dep]) => {
-      const m = members.find(x => x.id === memberId);
-      const pct = total > 0 ? (dep / total) * 100 : 0;
-      return { memberId, name: m?.full_name || 'Unknown', deposit: dep, sharePct: pct, expected: pool * pct / 100 };
-    }).sort((a, b) => b.sharePct - a.sharePct);
-  }, [project, deposits, members, totals]);
+    if (!project || !snapshot.length) return [] as any[];
+    const pool = profitTotalsPre.memberPool;
+    return snapshot.map((s: any) => ({
+      id: s.id,
+      memberId: s.member_id,
+      name: s.member_name,
+      deposit: Number(s.deposit_snapshot),
+      sharePct: Number(s.share_percentage),
+      expected: pool * Number(s.share_percentage) / 100,
+      isDeleted: !!s.is_member_deleted || !s.member_id,
+    })).sort((a, b) => b.sharePct - a.sharePct);
+  }, [project, snapshot, profitTotalsPre]);
 
   const profitTotals = useMemo(() => {
     if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
