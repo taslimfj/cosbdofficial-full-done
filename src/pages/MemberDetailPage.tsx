@@ -482,8 +482,9 @@ export default function MemberDetailPage() {
           {distributions.length === 0 ? (
             <div className="p-8 text-center"><p className="text-sm text-muted-foreground">No distributions yet</p></div>
           ) : (
+            <>
             <div className="divide-y divide-border">
-              {distributions.map(d => (
+              {distributions.slice(0, distLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{formatBDT(Number(d.amount))}</p>
@@ -521,6 +522,12 @@ export default function MemberDetailPage() {
                 </div>
               ))}
             </div>
+            {distributions.length > distLimit && (
+              <button onClick={() => setDistLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+                See more ({distributions.length - distLimit} বাকি)
+              </button>
+            )}
+            </>
           )}
         </div>
       </div>
