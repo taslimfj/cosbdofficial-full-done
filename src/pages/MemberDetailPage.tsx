@@ -34,6 +34,8 @@ export default function MemberDetailPage() {
   const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [repaymentInput, setRepaymentInput] = useState('');
+  const [depositLimit, setDepositLimit] = useState(3);
+  const [distLimit, setDistLimit] = useState(3);
 
   useEffect(() => {
     if (!inAppCall) return;
@@ -421,8 +423,9 @@ export default function MemberDetailPage() {
           {deposits.length === 0 ? (
             <div className="p-8 text-center"><p className="text-sm text-muted-foreground">No transactions yet</p></div>
           ) : (
-            <div className="divide-y divide-border max-h-96 overflow-y-auto">
-              {deposits.map(d => (
+            <>
+            <div className="divide-y divide-border">
+              {deposits.slice(0, depositLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className={`text-sm font-medium ${Number(d.amount) < 0 ? 'text-destructive' : 'text-foreground'}`}>
@@ -462,6 +465,12 @@ export default function MemberDetailPage() {
                 </div>
               ))}
             </div>
+            {deposits.length > depositLimit && (
+              <button onClick={() => setDepositLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+                See more ({deposits.length - depositLimit} বাকি)
+              </button>
+            )}
+            </>
           )}
         </div>
 
@@ -473,8 +482,9 @@ export default function MemberDetailPage() {
           {distributions.length === 0 ? (
             <div className="p-8 text-center"><p className="text-sm text-muted-foreground">No distributions yet</p></div>
           ) : (
+            <>
             <div className="divide-y divide-border">
-              {distributions.map(d => (
+              {distributions.slice(0, distLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{formatBDT(Number(d.amount))}</p>
@@ -512,6 +522,12 @@ export default function MemberDetailPage() {
                 </div>
               ))}
             </div>
+            {distributions.length > distLimit && (
+              <button onClick={() => setDistLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+                See more ({distributions.length - distLimit} বাকি)
+              </button>
+            )}
+            </>
           )}
         </div>
       </div>
