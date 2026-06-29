@@ -425,7 +425,6 @@ export default function MemberDetailPage() {
           ) : (
             <>
             <div className="divide-y divide-border">
-            <div className="divide-y divide-border">
               {deposits.slice(0, depositLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div>
