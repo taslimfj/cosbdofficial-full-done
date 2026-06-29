@@ -14,6 +14,7 @@ import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
+import { LoanCalculator } from '@/components/LoanCalculator';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
@@ -107,6 +108,7 @@ export default function IslamicLoansPage() {
           <p className="text-sm text-muted-foreground mt-1">{loans.length} loans · Profit-based financing</p>
         </div>
         <div className="flex gap-2">
+          <LoanCalculator />
           <PdfPeriodButton onDownload={(p) => generateIslamicLoansPDF(loans, payments, p)} />
         {role === 'admin' && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
