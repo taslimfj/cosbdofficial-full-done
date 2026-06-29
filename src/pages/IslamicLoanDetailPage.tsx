@@ -20,28 +20,30 @@ import {
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, user, isCustomer } = useAuth();
   const isAdmin = role === 'admin';
 
   const [loan, setLoan] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
+  const [payRequests, setPayRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [payLimit, setPayLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
+  const [requestNote, setRequestNote] = useState('');
 
   const [edit, setEdit] = useState<any>(null);
 
-  const [allDistributions, setAllDistributions] = useState<any[]>([]);
 
   const load = async () => {
     if (!id) return;
