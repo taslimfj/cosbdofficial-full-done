@@ -59,15 +59,20 @@ export default function MemberDetailPage() {
     setMember(profileRes.data);
     setDeposits(depositsRes.data || []);
 
-    // Enrich profit distributions with source project name + code
+    // Enrich profit distributions with source project/loan name + code
     const dists = distRes.data || [];
     const projectIds = Array.from(new Set(dists.filter(d => d.source_type === 'project' && d.source_id).map(d => d.source_id)));
-    let projectMap = new Map<string, any>();
+    const loanIds = Array.from(new Set(dists.filter(d => d.source_type === 'islamic_loan' && d.source_id).map(d => d.source_id)));
+    const sourceMap = new Map<string, any>();
     if (projectIds.length > 0) {
       const { data: projs } = await supabase.from('projects').select('id, name, code').in('id', projectIds);
-      (projs || []).forEach((p: any) => projectMap.set(p.id, p));
+      (projs || []).forEach((p: any) => sourceMap.set(p.id, { kind: 'project', name: p.name, code: p.code }));
     }
-    setDistributions(dists.map((d: any) => ({ ...d, project: projectMap.get(d.source_id) || null })));
+    if (loanIds.length > 0) {
+      const { data: loans } = await (supabase as any).from('islamic_loans_public').select('id, code, borrower_label').in('id', loanIds);
+      (loans || []).forEach((l: any) => sourceMap.set(l.id, { kind: 'loan', name: l.borrower_label || 'Islamic Loan', code: l.code }));
+    }
+    setDistributions(dists.map((d: any) => ({ ...d, source: sourceMap.get(d.source_id) || null })));
 
     // Outstanding = approved - repaid, ignore pending zero
     const outstanding = (loansRes.data || []).filter(l => {
