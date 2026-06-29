@@ -15,6 +15,7 @@ import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
 import { LoanCalculator } from '@/components/LoanCalculator';
+import { snapshotMemberShares } from '@/lib/snapshotShares';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
