@@ -42,18 +42,26 @@ export default function IslamicLoanDetailPage() {
 
   const load = async () => {
     if (!id) return;
+    const isAdmin = role === 'admin';
+    const loanQuery = isAdmin
+      ? supabase.from('islamic_loans').select('*').eq('id', id).single()
+      : (supabase as any).from('islamic_loans_public').select('*').eq('id', id).single();
     const [loanRes, payRes, memRes, depRes, distRes] = await Promise.all([
-      supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').eq('id', id).single(),
+      loanQuery,
       supabase.from('islamic_loan_payments').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').eq('is_deleted', false),
+      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
       supabase.from('deposits').select('*').eq('status', 'approved'),
-      supabase.from('profit_distributions').select('*, member:profiles(*)').eq('source_id', id).eq('source_type', 'islamic_loan'),
+      supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'islamic_loan'),
     ]);
-    setLoan(loanRes.data);
+    const members = memRes.data || [];
+    const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
+    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null } : null;
+    const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
+    setLoan(loan);
     setPayments(payRes.data || []);
-    setMembers(memRes.data || []);
+    setMembers(members);
     setDeposits(depRes.data || []);
-    setDistributions(distRes.data || []);
+    setDistributions(distributions);
     setLoading(false);
   };
 

@@ -25,11 +25,14 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*'),
-    ]).then(([projRes, memRes]) => {
-      setProjects(projRes.data || []);
-      setMembers(memRes.data || []);
+      supabase.from('projects').select('*').order('created_at', { ascending: false }),
+      (supabase as any).from('member_directory').select('*'),
+    ]).then(([projRes, memRes]: any[]) => {
+      const members = memRes.data || [];
+      const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
+      const projects = (projRes.data || []).map((p: any) => ({ ...p, manager: byId.get(p.manager_id) || null }));
+      setProjects(projects);
+      setMembers(members);
       setLoading(false);
     });
   }, []);

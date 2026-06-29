@@ -37,17 +37,24 @@ export default function IslamicLoansPage() {
   });
 
   useEffect(() => {
+    const isAdmin = role === 'admin';
+    const loansQuery = isAdmin
+      ? supabase.from('islamic_loans').select('*').order('created_at', { ascending: false })
+      : (supabase as any).from('islamic_loans_public').select('*').order('created_at', { ascending: false });
     Promise.all([
-      supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*'),
+      loansQuery,
+      (supabase as any).from('member_directory').select('*'),
       supabase.from('islamic_loan_payments').select('*').order('created_at', { ascending: false }),
-    ]).then(([loansRes, membersRes, paymentsRes]) => {
-      setLoans(loansRes.data || []);
-      setMembers(membersRes.data || []);
+    ]).then(([loansRes, membersRes, paymentsRes]: any[]) => {
+      const members = membersRes.data || [];
+      const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
+      const loans = (loansRes.data || []).map((l: any) => ({ ...l, media_person: byId.get(l.media_person_id) || null }));
+      setLoans(loans);
+      setMembers(members);
       setPayments(paymentsRes.data || []);
       setLoading(false);
     });
-  }, []);
+  }, [role]);
 
   const tenure = parseInt(form.tenure);
   const purchasePrice = parseFloat(form.purchasePrice) || 0;

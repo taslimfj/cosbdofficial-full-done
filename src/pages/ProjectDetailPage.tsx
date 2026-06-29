@@ -41,17 +41,21 @@ export default function ProjectDetailPage() {
   const load = async () => {
     if (!id) return;
     const [pRes, tRes, mRes, dRes, distRes] = await Promise.all([
-      supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*), secondary_manager:profiles!projects_secondary_manager_id_fkey(*)').eq('id', id).single(),
+      supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('project_transactions').select('*').eq('project_id', id).order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').eq('is_deleted', false),
+      (supabase as any).from('member_directory').select('*').eq('is_deleted', false),
       supabase.from('deposits').select('*').eq('status', 'approved'),
-      supabase.from('profit_distributions').select('*, member:profiles(*)').eq('source_id', id).eq('source_type', 'project'),
+      supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
     ]);
-    setProject(pRes.data);
+    const members = mRes.data || [];
+    const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
+    const project = pRes.data ? { ...pRes.data, manager: byId.get(pRes.data.manager_id) || null, secondary_manager: byId.get(pRes.data.secondary_manager_id) || null } : null;
+    const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
+    setProject(project);
     setTxs(tRes.data || []);
-    setMembers(mRes.data || []);
+    setMembers(members);
     setDeposits(dRes.data || []);
-    setDistributions(distRes.data || []);
+    setDistributions(distributions);
     setLoading(false);
   };
 
