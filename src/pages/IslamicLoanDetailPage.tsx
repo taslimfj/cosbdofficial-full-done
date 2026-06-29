@@ -395,7 +395,7 @@ export default function IslamicLoanDetailPage() {
           <p className="text-sm text-muted-foreground text-center py-6">No transactions yet</p>
         ) : (
           <div className="space-y-2">
-            {payments.map(p => (
+            {payments.slice(0, payLimit).map(p => (
               <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
                 <div>
                   <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
@@ -404,9 +404,18 @@ export default function IslamicLoanDetailPage() {
                 <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
               </div>
             ))}
+            {payments.length > payLimit && (
+              <button
+                onClick={() => setPayLimit(l => l + 10)}
+                className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg"
+              >
+                See more ({payments.length - payLimit} বাকি)
+              </button>
+            )}
           </div>
         )}
       </div>
+
 
       {/* Edit Sheet */}
       <Sheet open={showEdit} onOpenChange={setShowEdit}>
