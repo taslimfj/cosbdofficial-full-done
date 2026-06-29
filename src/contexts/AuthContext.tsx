@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   role: AppRole | null;
   profile: any | null;
+  isCustomer: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     ]);
-    
+
     if (roleResult.data) setRole(roleResult.data.role as AppRole);
     if (profileResult.data) setProfile(profileResult.data);
   };
@@ -45,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // defer to avoid deadlock; mark loading until role/profile resolves
         setLoading(true);
         setTimeout(async () => {
           await fetchUserData(session.user.id);
@@ -92,8 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  const isCustomer = !!profile?.is_customer;
+
   return (
-    <AuthContext.Provider value={{ user, session, role, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, role, profile, isCustomer, loading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
