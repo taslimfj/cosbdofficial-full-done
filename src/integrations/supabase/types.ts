@@ -612,6 +612,56 @@ export type Database = {
           },
         ]
       }
+      project_fund_requests: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          project_id: string
+          reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_fund_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_member_shares: {
         Row: {
           created_at: string
@@ -710,10 +760,13 @@ export type Database = {
       }
       projects: {
         Row: {
+          budget_amount: number
+          budget_returned: number
           closed_at: string | null
           code: string
           comments: string | null
           created_at: string | null
+          extra_funds_approved: number
           fund_profit_pct: number | null
           id: string
           manager_id: string | null
@@ -723,10 +776,13 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          budget_amount?: number
+          budget_returned?: number
           closed_at?: string | null
           code: string
           comments?: string | null
           created_at?: string | null
+          extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string
           manager_id?: string | null
@@ -736,10 +792,13 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          budget_amount?: number
+          budget_returned?: number
           closed_at?: string | null
           code?: string
           comments?: string | null
           created_at?: string | null
+          extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string
           manager_id?: string | null
