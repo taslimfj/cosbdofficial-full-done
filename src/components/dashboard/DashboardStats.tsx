@@ -1,5 +1,5 @@
 import { formatBDT } from '@/lib/finance';
-import { TrendingUp, Wallet, Landmark, PiggyBank } from 'lucide-react';
+import { TrendingUp, Wallet, Landmark, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface StatsProps {
@@ -22,18 +22,18 @@ export function DashboardStats({ stats }: StatsProps) {
       onClick: () => navigate('/members'),
     },
     {
-      label: 'Available Balance',
+      label: 'Fund Net Balance',
       value: formatBDT(stats.availableFund),
       icon: Wallet,
       accent: true,
       onClick: () => navigate('/fund'),
     },
     {
-      label: 'Fund Net Balance',
-      value: formatBDT(stats.availableFund),
-      icon: PiggyBank,
+      label: 'Members',
+      value: stats.totalMembers.toString(),
+      icon: Users,
       accent: false,
-      onClick: () => navigate('/fund'),
+      onClick: () => navigate('/members'),
     },
     {
       label: 'Active Loans',
