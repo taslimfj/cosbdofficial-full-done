@@ -46,13 +46,18 @@ export default function ProjectsPage() {
 
     setSubmitting(true);
 
-    // Check available fund balance
-    const { data: fundTxs } = await supabase.from('fund_transactions').select('type, amount');
-    const fundBalance = (fundTxs || []).reduce((s: number, t: any) =>
-      s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
-    if (budget > fundBalance) {
+    // Check Available Balance = total capital + fund income - fund expense
+    const [{ data: profs }, { data: fundTxs }] = await Promise.all([
+      (supabase as any).from('member_directory').select('total_deposited'),
+      supabase.from('fund_transactions').select('type, amount'),
+    ]);
+    const totalCapital = (profs || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0);
+    const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
+      s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
+    const availableBalance = totalCapital + fundDelta;
+    if (budget > availableBalance) {
       setSubmitting(false);
-      toast.error(`Fund-এ পর্যাপ্ত টাকা নেই। Available: ৳${fundBalance.toFixed(0)}`);
+      toast.error(`Available Balance-এ পর্যাপ্ত টাকা নেই। Available: ৳${availableBalance.toFixed(0)}`);
       return;
     }
 
@@ -65,7 +70,7 @@ export default function ProjectsPage() {
     }).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 
-    // Reserve budget from Fund
+    // Reserve budget from Available Balance (ledger via fund_transactions)
     await supabase.from('fund_transactions').insert({
       type: 'expense', amount: budget,
       reason: `Project ${code} — Budget reserved (${form.name.trim()})`,
@@ -76,7 +81,7 @@ export default function ProjectsPage() {
     catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
 
     setSubmitting(false);
-    toast.success(`Project ${code} created — ৳${budget} Fund থেকে reserve হয়েছে`);
+    toast.success(`Project ${code} created — ৳${budget} Available Balance থেকে assign হলো`);
     setShowSheet(false);
     setForm({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15', budget: '' });
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
@@ -116,7 +121,7 @@ export default function ProjectsPage() {
                 <div className="space-y-2">
                   <Label>আনুমানিক Budget (৳)</Label>
                   <Input type="number" value={form.budget} onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} placeholder="যেমন 50000" />
-                  <p className="text-[11px] text-muted-foreground">এই টাকা Available Fund থেকে কেটে project-এ assign হবে। অতিরিক্ত থেকে গেলে close করার সময় Fund-এ ফেরত যাবে।</p>
+                  <p className="text-[11px] text-muted-foreground">এই টাকা Available Balance থেকে কেটে project-এ assign হবে। close করার সময় অব্যবহৃত টাকা + profit Available Balance-এ ফেরত যাবে।</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
