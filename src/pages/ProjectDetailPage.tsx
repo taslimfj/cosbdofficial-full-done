@@ -571,6 +571,21 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Fund Request */}
+      <Dialog open={showFundReq} onOpenChange={setShowFundReq}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>অতিরিক্ত Fund Request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>কত টাকা দরকার (৳)</Label><Input type="number" value={fundReq.amount} onChange={e => setFundReq({ ...fundReq, amount: e.target.value })} /></div>
+            <div><Label>কারণ</Label><Textarea value={fundReq.reason} onChange={e => setFundReq({ ...fundReq, reason: e.target.value })} rows={3} placeholder="কেন প্রয়োজন বিস্তারিত লিখুন" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFundReq(false)}>Cancel</Button>
+            <Button onClick={handleFundRequest} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
