@@ -230,60 +230,70 @@ export default function ProjectDetailPage() {
 
   const handleDistribute = async () => {
     if (alreadyDistributed) { toast.error('Already distributed'); return; }
-    if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
+    if (totals.profit <= 0 && totals.loss <= 0) { toast.error('Nothing to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
-    const fundExtras: { amount: number; reason: string }[] = [];
+    const fundTxRows: any[] = [];
+    const memberDelta = new Map<string, number>(); // +profit / -loss per member
 
-    const managerId = project.manager_id || project.secondary_manager_id;
-    if (profitTotals.manager > 0 && managerId) {
-      rows.push({ source_type: 'project', source_id: id, member_id: managerId, amount: profitTotals.manager, share_percentage: Number(project.manager_profit_pct), distribution_type: 'manager' });
-    }
-    if (profitTotals.fund > 0) {
-      rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
-    }
-    shareRows.forEach(r => {
-      if (r.expected <= 0) return;
-      if (r.isDeleted || !r.memberId) {
-        rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
-        fundExtras.push({ amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ` });
-      } else {
-        rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+    if (totals.profit > 0) {
+      const managerId = project.manager_id || project.secondary_manager_id;
+      if (profitTotals.manager > 0 && managerId) {
+        rows.push({ source_type: 'project', source_id: id, member_id: managerId, amount: profitTotals.manager, share_percentage: Number(project.manager_profit_pct), distribution_type: 'manager' });
+        memberDelta.set(managerId, (memberDelta.get(managerId) || 0) + profitTotals.manager);
       }
-    });
+      if (profitTotals.fund > 0) {
+        rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
+        fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
+      }
+      shareRows.forEach(r => {
+        if (r.expected <= 0) return;
+        if (r.isDeleted || !r.memberId) {
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
+          fundTxRows.push({ type: 'income', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted) profit share → Available Balance` });
+        } else {
+          rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
+          memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) + r.expected);
+        }
+      });
+    } else if (totals.loss > 0) {
+      // Loss distribution — proportional to snapshot share, fully borne by members
+      shareRows.forEach(r => {
+        if (r.lossShare <= 0) return;
+        if (r.isDeleted || !r.memberId) {
+          // Deleted member's loss absorbed by Available Balance
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss_deleted_to_fund' });
+          fundTxRows.push({ type: 'expense', amount: r.lossShare, reason: `Project ${project.code} — ${r.name} (deleted) loss share → Available Balance থেকে কাটা` });
+        } else {
+          rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss' });
+          memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) - r.lossShare);
+        }
+      });
+    }
+
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Add fund_transactions: Fund cut + each deleted-member redirect
-    const fundTxRows: any[] = [];
-    if (profitTotals.fund > 0) {
-      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
-    }
-    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
     if (fundTxRows.length) await supabase.from('fund_transactions').insert(fundTxRows);
 
-    // Add each (non-deleted) member's share to their balance
-    const perMember = new Map<string, number>();
-    rows.forEach(r => {
-      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
-        perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
-      }
-    });
-    if (perMember.size > 0) {
-      const ids = Array.from(perMember.keys());
+    // Apply member balance deltas (+profit / -loss)
+    if (memberDelta.size > 0) {
+      const ids = Array.from(memberDelta.keys());
       const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
       await Promise.all((profs || []).map((p: any) =>
         supabase.from('profiles').update({
-          total_deposited: Number(p.total_deposited || 0) + (perMember.get(p.id) || 0),
+          total_deposited: Math.max(0, Number(p.total_deposited || 0) + (memberDelta.get(p.id) || 0)),
         }).eq('id', p.id)
       ));
     }
 
     setBusy(false);
-    toast.success('Profit distributed & added to balances');
+    toast.success(totals.profit > 0 ? 'Profit distributed' : 'Loss distributed');
     load();
   };
+
+
 
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
