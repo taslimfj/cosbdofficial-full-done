@@ -23,6 +23,8 @@ export default function MemberLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
   const [requestReason, setRequestReason] = useState('');
+  const [showAllOngoing, setShowAllOngoing] = useState(false);
+  const [showAllPaid, setShowAllPaid] = useState(false);
 
   const [payLoan, setPayLoan] = useState<any | null>(null);
   const [payForm, setPayForm] = useState({
@@ -208,8 +210,11 @@ export default function MemberLoansPage() {
       </div>
 
       {(() => {
-        const repaidLoans = loans.filter(l => l.status === 'repaid');
-        const ongoingLoans = loans.filter(l => l.status !== 'repaid');
+        const sortByOldest = (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        const repaidLoans = loans.filter(l => l.status === 'repaid').sort(sortByOldest);
+        const ongoingLoans = loans.filter(l => l.status !== 'repaid').sort(sortByOldest);
+        const visibleOngoing = showAllOngoing ? ongoingLoans : ongoingLoans.slice(0, 5);
+        const visiblePaid = showAllPaid ? repaidLoans : repaidLoans.slice(0, 5);
 
         const renderLoanCard = (loan: any) => {
           const approved = Number(loan.approved_amount || 0);
@@ -317,7 +322,14 @@ export default function MemberLoansPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {ongoingLoans.map(renderLoanCard)}
+                  {visibleOngoing.map(renderLoanCard)}
+                  {ongoingLoans.length > 5 && (
+                    <div className="px-5 py-3 text-center">
+                      <Button variant="ghost" size="sm" onClick={() => setShowAllOngoing(v => !v)}>
+                        {showAllOngoing ? 'কম দেখুন' : `আরও দেখুন (${ongoingLoans.length - 5}টি)`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -334,13 +346,21 @@ export default function MemberLoansPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {repaidLoans.map(renderLoanCard)}
+                  {visiblePaid.map(renderLoanCard)}
+                  {repaidLoans.length > 5 && (
+                    <div className="px-5 py-3 text-center">
+                      <Button variant="ghost" size="sm" onClick={() => setShowAllPaid(v => !v)}>
+                        {showAllPaid ? 'কম দেখুন' : `আরও দেখুন (${repaidLoans.length - 5}টি)`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         );
       })()}
+
 
 
       <Dialog open={!!payLoan} onOpenChange={(o) => !o && setPayLoan(null)}>
