@@ -167,16 +167,21 @@ export default function ProjectDetailPage() {
   const handleFundDecision = async (req: any, decision: 'approved' | 'rejected', note?: string) => {
     setBusy(true);
     if (decision === 'approved') {
-      // Check Fund balance
-      const { data: fundTxs } = await supabase.from('fund_transactions').select('type, amount');
-      const fundBalance = (fundTxs || []).reduce((s: number, t: any) =>
-        s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
-      if (Number(req.amount) > fundBalance) {
+      // Check Available Balance
+      const [{ data: profs }, { data: fundTxs }] = await Promise.all([
+        (supabase as any).from('member_directory').select('total_deposited'),
+        supabase.from('fund_transactions').select('type, amount'),
+      ]);
+      const totalCapital = (profs || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0);
+      const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
+        s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
+      const availableBalance = totalCapital + fundDelta;
+      if (Number(req.amount) > availableBalance) {
         setBusy(false);
-        toast.error(`Fund-এ পর্যাপ্ত টাকা নেই। Available: ৳${fundBalance.toFixed(0)}`);
+        toast.error(`Available Balance-এ পর্যাপ্ত টাকা নেই। Available: ৳${availableBalance.toFixed(0)}`);
         return;
       }
-      // Debit fund + bump project's extra_funds_approved
+      // Debit Available Balance + bump project's extra_funds_approved
       await supabase.from('fund_transactions').insert({
         type: 'expense', amount: Number(req.amount),
         reason: `Project ${project.code} — অতিরিক্ত fund approved`,
