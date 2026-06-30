@@ -22,7 +22,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15' });
+  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15', budget: '' });
 
   useEffect(() => {
     Promise.all([
