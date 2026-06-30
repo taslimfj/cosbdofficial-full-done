@@ -41,6 +41,36 @@ export default function MemberLoansPage() {
 
   useEffect(() => { fetchLoans(); }, []);
 
+  const processOverdueLoans = async (loanRows: any[]) => {
+    if (role !== 'admin') return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const overdue = loanRows.filter(l => {
+      if (l.status !== 'approved') return false;
+      const approved = Number(l.approved_amount || 0);
+      const repaid = Number(l.repaid_amount || 0);
+      if (approved <= 0 || repaid >= approved) return false;
+      if (!l.due_date) return false;
+      return new Date(l.due_date) < today;
+    });
+    if (overdue.length === 0) return false;
+    for (const loan of overdue) {
+      const approved = Number(loan.approved_amount || 0);
+      const repaid = Number(loan.repaid_amount || 0);
+      const remaining = Math.max(0, approved - repaid);
+      const { data: prof } = await supabase.from('profiles').select('total_deposited').eq('id', loan.member_id).single();
+      const newTotal = Math.max(0, Number(prof?.total_deposited || 0) - remaining);
+      await supabase.from('profiles').update({ total_deposited: newTotal }).eq('id', loan.member_id);
+      await supabase.from('member_loans').update({
+        status: 'repaid',
+        repaid_amount: approved,
+        defaulted: true,
+      }).eq('id', loan.id);
+    }
+    toast.message(`${overdue.length}টি overdue loan member balance থেকে withdraw হিসেবে কাটা হয়েছে`);
+    return true;
+  };
+
   const fetchLoans = async () => {
     const [loansRes, repsRes] = await Promise.all([
       supabase
@@ -52,7 +82,17 @@ export default function MemberLoansPage() {
         .select('*')
         .order('created_at', { ascending: false }),
     ]);
-    setLoans(loansRes.data || []);
+    const loanRows = loansRes.data || [];
+    const changed = await processOverdueLoans(loanRows);
+    if (changed) {
+      const refetch = await supabase
+        .from('member_loans')
+        .select('*, member:profiles!member_loans_member_id_fkey(*)')
+        .order('created_at', { ascending: false });
+      setLoans(refetch.data || []);
+    } else {
+      setLoans(loanRows);
+    }
     setRepayments(repsRes.data || []);
     setLoading(false);
   };
