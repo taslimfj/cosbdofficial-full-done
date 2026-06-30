@@ -481,6 +481,11 @@ export default function IslamicLoanDetailPage() {
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
+            {(loan as any).product_name && (
+              <p className="text-sm font-medium mt-1 flex items-center gap-1 text-primary">
+                <Package className="w-3.5 h-3.5" /> {(loan as any).product_name}
+              </p>
+            )}
             {borrowerPhone && <p className="text-sm text-muted-foreground font-mono mt-1">{borrowerPhone}</p>}
             {relPhone && <p className="text-xs text-muted-foreground font-mono">Relative: {relPhone}</p>}
           </div>
