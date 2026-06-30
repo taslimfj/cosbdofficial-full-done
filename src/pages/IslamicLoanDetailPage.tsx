@@ -346,12 +346,27 @@ export default function IslamicLoanDetailPage() {
   // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
   if (isCustomer) {
     const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
+    const methods: PaymentMethod[] = Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [];
     return (
       <div className="space-y-6 animate-fade-in max-w-xl">
+        {/* Payment methods FIRST — most important for the customer */}
+        {!isClosed && methods.length > 0 && (
+          <PaymentMethodsCard
+            methods={methods}
+            title="এখানে টাকা পাঠান"
+            subtitle="Tap to copy · তারপর নিচে Request Installment দিন"
+          />
+        )}
+
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
+            {(loan as any).product_name && (
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                <Package className="w-3.5 h-3.5" /> {(loan as any).product_name}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
