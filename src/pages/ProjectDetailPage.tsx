@@ -471,9 +471,10 @@ export default function ProjectDetailPage() {
             <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ Available Balance থেকে কাটবে।</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.manager)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.fund)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Admins ({(project as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.admin)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
           </div>
         )}
