@@ -67,7 +67,7 @@ export default function MemberLoansPage() {
         </div>
         <div className="flex gap-2">
           <PdfPeriodButton onDownload={(p) => generateMemberLoansPDF(loans, p)} />
-        {role === 'member' && (
+        {(role === 'member' || role === 'admin') && (
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> Request Loan</Button>
