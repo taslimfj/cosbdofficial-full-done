@@ -10,7 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Loader2, HandCoins, Wallet, Check, X, RotateCcw } from 'lucide-react';
+import { Plus, Loader2, HandCoins, Wallet, Check, X, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateMemberLoansPDF } from '@/lib/pdfGenerator';
 
@@ -166,6 +170,18 @@ export default function MemberLoansPage() {
     fetchLoans();
   };
 
+  const handleDeleteLoan = async (loan: any) => {
+    if (loan.status !== 'repaid') { toast.error('শুধু পরিশোধিত লোন delete করা যাবে'); return; }
+    const isBorrower = loan.member_id === user?.id;
+    if (!(role === 'admin' || isBorrower)) { toast.error('আপনার অনুমতি নেই'); return; }
+    const { error: repErr } = await supabase.from('member_loan_repayments').delete().eq('loan_id', loan.id);
+    if (repErr) { toast.error(repErr.message); return; }
+    const { error } = await supabase.from('member_loans').delete().eq('id', loan.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('লোন delete হয়েছে');
+    fetchLoans();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
@@ -261,6 +277,29 @@ export default function MemberLoansPage() {
                     <Button size="sm" onClick={() => openPay(loan)} className="gap-1">
                       <Wallet className="w-3.5 h-3.5" /> Payment
                     </Button>
+                  )}
+                  {loan.status === 'repaid' && (role === 'admin' || loan.member_id === user?.id) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-destructive border-destructive/30 gap-1">
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>এই পরিশোধিত লোনটি delete করবেন?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            এই কাজটি undo করা যাবে না। লোন এবং এর সব payment record মুছে যাবে।
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteLoan(loan)} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </div>
               </div>
