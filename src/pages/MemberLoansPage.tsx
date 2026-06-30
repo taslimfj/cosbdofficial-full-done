@@ -53,13 +53,15 @@ export default function MemberLoansPage() {
 
   const handleRequest = async () => {
     const amount = parseFloat(requestAmount);
-    if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
+    if (!amount || amount <= 0) { toast.error('সঠিক পরিমাণ লিখুন'); return; }
+    if (!requestReason.trim()) { toast.error('লোনের কারণ লিখুন'); return; }
     setSubmitting(true);
     const dueDate = new Date();
     dueDate.setMonth(dueDate.getMonth() + 3);
     const { error } = await supabase.from('member_loans').insert({
       member_id: user?.id,
       requested_amount: amount,
+      reason: requestReason.trim(),
       due_date: dueDate.toISOString().split('T')[0],
     });
     setSubmitting(false);
@@ -67,6 +69,7 @@ export default function MemberLoansPage() {
     toast.success('Loan request submitted');
     setShowDialog(false);
     setRequestAmount('');
+    setRequestReason('');
     fetchLoans();
   };
 
