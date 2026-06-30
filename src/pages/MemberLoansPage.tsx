@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Loader2, HandCoins, Wallet, Check, X } from 'lucide-react';
+import { Plus, Loader2, HandCoins, Wallet, Check, X, RotateCcw } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateMemberLoansPDF } from '@/lib/pdfGenerator';
 
@@ -21,6 +22,7 @@ export default function MemberLoansPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
+  const [requestReason, setRequestReason] = useState('');
 
   const [payLoan, setPayLoan] = useState<any | null>(null);
   const [payForm, setPayForm] = useState({
@@ -51,13 +53,15 @@ export default function MemberLoansPage() {
 
   const handleRequest = async () => {
     const amount = parseFloat(requestAmount);
-    if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
+    if (!amount || amount <= 0) { toast.error('সঠিক পরিমাণ লিখুন'); return; }
+    if (!requestReason.trim()) { toast.error('লোনের কারণ লিখুন'); return; }
     setSubmitting(true);
     const dueDate = new Date();
     dueDate.setMonth(dueDate.getMonth() + 3);
     const { error } = await supabase.from('member_loans').insert({
       member_id: user?.id,
       requested_amount: amount,
+      reason: requestReason.trim(),
       due_date: dueDate.toISOString().split('T')[0],
     });
     setSubmitting(false);
@@ -65,6 +69,7 @@ export default function MemberLoansPage() {
     toast.success('Loan request submitted');
     setShowDialog(false);
     setRequestAmount('');
+    setRequestReason('');
     fetchLoans();
   };
 
@@ -121,35 +126,41 @@ export default function MemberLoansPage() {
     fetchLoans();
   };
 
-  const handleApproveRepayment = async (rep: any) => {
+  const setRepaymentStatus = async (rep: any, newStatus: 'approved' | 'rejected' | 'pending') => {
     const loan = loans.find(l => l.id === rep.loan_id);
     if (!loan) return;
+    const oldEff = rep.status === 'approved' ? Number(rep.amount || 0) : 0;
+    const newEff = newStatus === 'approved' ? Number(rep.amount || 0) : 0;
+    const delta = newEff - oldEff;
+
     const { error: upRepErr } = await supabase
       .from('member_loan_repayments')
-      .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: user?.id })
+      .update({
+        status: newStatus,
+        approved_at: newStatus === 'approved' ? new Date().toISOString() : null,
+        approved_by: newStatus === 'approved' ? user?.id : null,
+      })
       .eq('id', rep.id);
     if (upRepErr) { toast.error(upRepErr.message); return; }
 
-    const approved = Number(loan.approved_amount || 0);
-    const newRepaid = Number(loan.repaid_amount || 0) + Number(rep.amount || 0);
-    const fullyRepaid = newRepaid >= approved;
-    const { error: upLoanErr } = await supabase
-      .from('member_loans')
-      .update({ repaid_amount: newRepaid, status: fullyRepaid ? 'repaid' : loan.status })
-      .eq('id', loan.id);
-    if (upLoanErr) { toast.error(upLoanErr.message); return; }
+    if (delta !== 0 || loan.status === 'repaid') {
+      const approved = Number(loan.approved_amount || 0);
+      const newRepaid = Math.max(0, Number(loan.repaid_amount || 0) + delta);
+      let nextStatus = loan.status;
+      if (newRepaid >= approved && approved > 0) nextStatus = 'repaid';
+      else if (loan.status === 'repaid' && newRepaid < approved) nextStatus = 'approved';
+      const { error: upLoanErr } = await supabase
+        .from('member_loans')
+        .update({ repaid_amount: newRepaid, status: nextStatus })
+        .eq('id', loan.id);
+      if (upLoanErr) { toast.error(upLoanErr.message); return; }
+    }
 
-    toast.success(fullyRepaid ? 'লোন সম্পূর্ণ পরিশোধ হয়েছে' : 'পরিশোধ অনুমোদন হয়েছে');
-    fetchLoans();
-  };
-
-  const handleRejectRepayment = async (repId: string) => {
-    const { error } = await supabase
-      .from('member_loan_repayments')
-      .update({ status: 'rejected' })
-      .eq('id', repId);
-    if (error) { toast.error(error.message); return; }
-    toast.success('পরিশোধ বাতিল হয়েছে');
+    toast.success(
+      newStatus === 'approved' ? 'Paid হিসেবে চিহ্নিত হয়েছে' :
+      newStatus === 'rejected' ? 'Reject করা হয়েছে' :
+      'Pending করা হয়েছে'
+    );
     fetchLoans();
   };
 
@@ -175,6 +186,15 @@ export default function MemberLoansPage() {
                   <div className="space-y-2">
                     <Label>Amount (৳)</Label>
                     <Input type="number" value={requestAmount} onChange={e => setRequestAmount(e.target.value)} placeholder="0" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>কারণ *</Label>
+                    <Textarea
+                      value={requestReason}
+                      onChange={e => setRequestReason(e.target.value)}
+                      placeholder="কী কারণে লোন প্রয়োজন তা সংক্ষেপে লিখুন"
+                      rows={3}
+                    />
                   </div>
                   <p className="text-xs text-muted-foreground">Repayment deadline: 3 months. If not repaid, amount will be deducted from your balance.</p>
                   <Button className="w-full" onClick={handleRequest} disabled={submitting}>
@@ -220,6 +240,9 @@ export default function MemberLoansPage() {
                         {loan.status === 'approved' && remaining > 0 && ` · Remaining: ${formatBDT(remaining)}`}
                         {loan.due_date && ` · Due: ${format(new Date(loan.due_date), 'MMM d, yyyy')}`}
                       </p>
+                      {loan.reason && (
+                        <p className="text-xs text-muted-foreground/80 mt-0.5 italic">কারণ: {loan.reason}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -257,14 +280,23 @@ export default function MemberLoansPage() {
                           }`}>
                             {r.status === 'pending' ? 'pending approval' : r.status === 'approved' ? 'paid' : 'rejected'}
                           </span>
-                          {role === 'admin' && r.status === 'pending' && (
+                          {role === 'admin' && (
                             <div className="flex items-center gap-1 ml-auto">
-                              <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => handleApproveRepayment(r)}>
-                                <Check className="w-3 h-3" /> Approve
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => handleRejectRepayment(r.id)}>
-                                <X className="w-3 h-3" /> Reject
-                              </Button>
+                              {r.status !== 'approved' && (
+                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'approved')}>
+                                  <Check className="w-3 h-3" /> {r.status === 'rejected' ? 'Mark Paid' : 'Approve'}
+                                </Button>
+                              )}
+                              {r.status !== 'rejected' && (
+                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => setRepaymentStatus(r, 'rejected')}>
+                                  <X className="w-3 h-3" /> Reject
+                                </Button>
+                              )}
+                              {r.status !== 'pending' && (
+                                <Button size="sm" variant="ghost" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
+                                  <RotateCcw className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
