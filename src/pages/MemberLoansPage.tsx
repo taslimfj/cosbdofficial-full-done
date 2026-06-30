@@ -23,6 +23,8 @@ export default function MemberLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
   const [requestReason, setRequestReason] = useState('');
+  const [showAllOngoing, setShowAllOngoing] = useState(false);
+  const [showAllPaid, setShowAllPaid] = useState(false);
 
   const [payLoan, setPayLoan] = useState<any | null>(null);
   const [payForm, setPayForm] = useState({
