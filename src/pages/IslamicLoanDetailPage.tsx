@@ -304,16 +304,21 @@ export default function IslamicLoanDetailPage() {
   const handleSubmitRequest = async () => {
     const amt = parseFloat(depositAmt);
     if (!amt || amt <= 0) { toast.error('সঠিক amount দিন'); return; }
+    if (!paymentMethod) { toast.error('Payment মাধ্যম select করুন'); return; }
+    if (!transactionId.trim()) { toast.error('Transaction ID দিন'); return; }
     if (!user) return;
     setBusy(true);
     const { error } = await (supabase as any).from('customer_payment_requests').insert({
-      loan_id: id, customer_user_id: user.id, amount: amt, note: requestNote || null,
+      loan_id: id, customer_user_id: user.id, amount: amt,
+      note: requestNote || null,
+      payment_method: paymentMethod,
+      transaction_id: transactionId.trim(),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
     setShowRequest(false);
-    setDepositAmt(''); setRequestNote('');
+    setDepositAmt(''); setRequestNote(''); setPaymentMethod(''); setTransactionId('');
     load();
   };
 
@@ -322,6 +327,8 @@ export default function IslamicLoanDetailPage() {
     setBusy(true);
     const { error: rpcErr } = await supabase.rpc('record_islamic_loan_payment', {
       _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
+      _payment_method: req.payment_method || null,
+      _transaction_id: req.transaction_id || null,
     } as any);
     if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
     await (supabase as any).from('customer_payment_requests').update({
