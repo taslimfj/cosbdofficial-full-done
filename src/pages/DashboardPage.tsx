@@ -65,7 +65,7 @@ export default function DashboardPage() {
     setStats({
       totalInvestment,
       availableFund,
-      totalMembers: profiles.length,
+      totalMembers: profiles.filter((p: any) => !p.is_deleted && !p.is_customer).length,
       activeLoans: activeLoans.length,
     });
     setMembers(profiles);
