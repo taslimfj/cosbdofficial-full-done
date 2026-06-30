@@ -27,7 +27,14 @@ export default function FundPage() {
   const [showAll, setShowAll] = useState(false);
   const PREVIEW_LIMIT = 10;
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => {
+    fetchTransactions();
+    const channel = supabase
+      .channel('fund-page-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fund_transactions' }, fetchTransactions)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const fetchTransactions = async () => {
     const { data } = await supabase.from('fund_transactions').select('*').order('created_at', { ascending: false });
