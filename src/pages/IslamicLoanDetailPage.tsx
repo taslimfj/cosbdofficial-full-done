@@ -474,7 +474,26 @@ export default function IslamicLoanDetailPage() {
             <p className="text-xs text-muted-foreground">Admin approve করলে এটা installment হিসেবে count হবে।</p>
             <div className="space-y-3 mt-2">
               <div><Label>Amount (৳)</Label><Input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} /></div>
-              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="যেমন: bKash trxId, payment date" /></div>
+              <div>
+                <Label>কোন মাধ্যমে টাকা পাঠিয়েছেন?</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bKash">bKash</SelectItem>
+                    <SelectItem value="Nagad">Nagad</SelectItem>
+                    <SelectItem value="Rocket">Rocket</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Card">Card</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Transaction ID</Label>
+                <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
+              </div>
+              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowRequest(false)}>Cancel</Button>
