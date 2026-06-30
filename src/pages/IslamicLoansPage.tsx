@@ -91,6 +91,7 @@ export default function IslamicLoansPage() {
       borrower_name: form.borrowerName.trim(),
       borrower_phone: form.borrowerPhone.trim(),
       relative_phone: form.relativePhone.trim() || null,
+      product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
       sell_price: sellPrice,
       tenure_months: tenure,
@@ -102,6 +103,8 @@ export default function IslamicLoansPage() {
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
+      // Auto-populate admin's default payment methods so customer sees them immediately
+      payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
     const loanId = inserted.id;
@@ -127,9 +130,34 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
+  };
+
+  // Load admin's default payment methods
+  useEffect(() => {
+    (supabase as any).from('payment_method_defaults').select('*').order('sort_order')
+      .then(({ data }: any) => {
+        setDefaultMethods((data || []).map((d: any) => ({ label: d.label, value: d.value, note: d.note })));
+      });
+  }, []);
+
+  const saveDefaults = async () => {
+    if (role !== 'admin') return;
+    setSettingsBusy(true);
+    // Replace all rows transactionally: delete + insert
+    await (supabase as any).from('payment_method_defaults').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const rows = defaultMethods
+      .filter(m => m.label.trim() && m.value.trim())
+      .map((m, i) => ({ label: m.label.trim(), value: m.value.trim(), note: m.note?.trim() || null, sort_order: i }));
+    if (rows.length) {
+      const { error } = await (supabase as any).from('payment_method_defaults').insert(rows);
+      if (error) { setSettingsBusy(false); toast.error(error.message); return; }
+    }
+    setSettingsBusy(false);
+    toast.success('Default payment methods saved');
+    setShowSettings(false);
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
