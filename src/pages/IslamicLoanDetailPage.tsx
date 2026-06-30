@@ -75,6 +75,20 @@ export default function IslamicLoanDetailPage() {
     setSnapshot(snapRes.data || []);
     setDistributions(distributions);
     setPayRequests(reqRes.data || []);
+
+    // Fetch sibling loans (same customer, different loan, still active)
+    if (loan?.customer_user_id) {
+      const { data: sibs } = await supabase
+        .from('islamic_loans')
+        .select('id, code, borrower_name, product_name, status, remaining_amount, sell_price, monthly_installment')
+        .eq('customer_user_id', loan.customer_user_id)
+        .neq('id', id)
+        .order('created_at', { ascending: false });
+      setSiblingLoans(sibs || []);
+    } else {
+      setSiblingLoans([]);
+    }
+
     setLoading(false);
   };
 
