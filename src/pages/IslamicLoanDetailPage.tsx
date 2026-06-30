@@ -193,6 +193,23 @@ export default function IslamicLoanDetailPage() {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
     }
 
+    // Admin pool — split equally among all admins
+    if (profitTotals.admin > 0) {
+      const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+      const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+      if (adminIds.length > 0) {
+        const perAdmin = profitTotals.admin / adminIds.length;
+        const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
+        adminIds.forEach((uid: string) => {
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+        });
+      } else {
+        // No admins → redirect to Fund
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+        fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ` });
+      }
+    }
+
     shareRows.forEach(r => {
       if (r.expected <= 0) return;
       if (r.isDeleted || !r.memberId) {
