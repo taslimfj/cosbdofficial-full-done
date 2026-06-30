@@ -82,6 +82,7 @@ export default function IslamicLoanDetailPage() {
         borrower_name: loan.borrower_name || '',
         borrower_phone: loan.borrower_phone || '',
         relative_phone: loan.relative_phone || '',
+        product_name: (loan as any).product_name || '',
         purchase_price: String(loan.purchase_price ?? ''),
         sell_price: String(loan.sell_price ?? ''),
         tenure_months: String(loan.tenure_months ?? '3'),
@@ -94,6 +95,7 @@ export default function IslamicLoanDetailPage() {
         remaining_amount: String(loan.remaining_amount ?? ''),
         status: loan.status || 'active',
         comments: loan.comments || '',
+        payment_methods: Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [],
       });
     }
   }, [loan]);
