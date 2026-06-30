@@ -28,16 +28,19 @@ export default function ProjectDetailPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
+  const [fundRequests, setFundRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showTx, setShowTx] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showFundReq, setShowFundReq] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [edit, setEdit] = useState<any>(null);
   const [tx, setTx] = useState({ type: 'income', amount: '', reason: '', comments: '' });
+  const [fundReq, setFundReq] = useState({ amount: '', reason: '' });
 
   const load = async () => {
     if (!id) return;
