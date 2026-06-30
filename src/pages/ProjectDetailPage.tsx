@@ -403,7 +403,7 @@ export default function ProjectDetailPage() {
         <div className="mt-4 flex gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <span>Manager: {project.manager_profit_pct}%</span>
           <span>Fund: {project.fund_profit_pct}%</span>
-          <span>Members pool: {Math.max(0, 100 - Number(project.manager_profit_pct) - Number(project.fund_profit_pct))}%</span>
+          <span>Members pool: {Math.max(0, 100 - Number(project.manager_profit_pct) - Number(project.fund_profit_pct) - Number((project as any).admin_profit_pct || 0))}%</span>
         </div>
         {project.comments && <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{project.comments}</p>}
       </div>
