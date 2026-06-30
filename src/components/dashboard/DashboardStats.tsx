@@ -15,13 +15,13 @@ export function DashboardStats({ stats }: StatsProps) {
   const navigate = useNavigate();
   const items = [
     {
-      label: 'Total Investment',
+      label: 'Total Capital',
       value: formatBDT(stats.totalInvestment),
       icon: TrendingUp,
       accent: false,
     },
     {
-      label: 'Available Fund',
+      label: 'Available Balance',
       value: formatBDT(stats.availableFund),
       icon: Wallet,
       accent: true,
