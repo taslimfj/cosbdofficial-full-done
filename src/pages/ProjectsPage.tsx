@@ -113,6 +113,11 @@ export default function ProjectsPage() {
                     <SelectContent>{members.map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>আনুমানিক Budget (৳)</Label>
+                  <Input type="number" value={form.budget} onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} placeholder="যেমন 50000" />
+                  <p className="text-[11px] text-muted-foreground">এই টাকা Available Fund থেকে কেটে project-এ assign হবে। অতিরিক্ত থেকে গেলে close করার সময় Fund-এ ফেরত যাবে।</p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
                   <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} /></div>
