@@ -316,6 +316,8 @@ export type Database = {
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
+          payment_methods: Json
+          product_name: string | null
           profit_percentage: number | null
           purchase_price: number
           relative_phone: string | null
@@ -338,6 +340,8 @@ export type Database = {
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          payment_methods?: Json
+          product_name?: string | null
           profit_percentage?: number | null
           purchase_price: number
           relative_phone?: string | null
@@ -360,6 +364,8 @@ export type Database = {
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          payment_methods?: Json
+          product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number
           relative_phone?: string | null
@@ -510,6 +516,36 @@ export type Database = {
           message?: string | null
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      payment_method_defaults: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          sort_order: number
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          sort_order?: number
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          sort_order?: number
+          updated_at?: string
+          value?: string
         }
         Relationships: []
       }
@@ -897,6 +933,8 @@ export type Database = {
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
+          payment_methods: Json | null
+          product_name: string | null
           profit_percentage: number | null
           purchase_price: number | null
           relative_phone: string | null
@@ -919,6 +957,8 @@ export type Database = {
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          payment_methods?: Json | null
+          product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
           relative_phone?: never
@@ -941,6 +981,8 @@ export type Database = {
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          payment_methods?: Json | null
+          product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
           relative_phone?: never
