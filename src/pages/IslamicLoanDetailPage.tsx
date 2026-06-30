@@ -244,11 +244,12 @@ export default function IslamicLoanDetailPage() {
     // Add fund_transactions for fund (15%) + each deleted-member redirect
     const fundTxRows: any[] = [];
     if (profitTotals.fund > 0) {
-      fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
+      fundTxRows.push({ type: 'in', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
     }
-    fundExtras.forEach(f => fundTxRows.push({ type: 'income', amount: f.amount, reason: f.reason }));
+    fundExtras.forEach(f => fundTxRows.push({ type: 'in', amount: f.amount, reason: f.reason }));
     if (fundTxRows.length) {
-      await supabase.from('fund_transactions').insert(fundTxRows);
+      const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
+      if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
     // Credit each (non-deleted) member's profile balance

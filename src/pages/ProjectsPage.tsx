@@ -79,7 +79,7 @@ export default function ProjectsPage() {
 
     // Reserve budget from Available Balance (ledger via fund_transactions)
     await supabase.from('fund_transactions').insert({
-      type: 'expense', amount: budget,
+      type: 'out', amount: budget,
       reason: `Project ${code} — Budget reserved (${form.name.trim()})`,
     });
 
