@@ -517,10 +517,11 @@ export default function IslamicLoanDetailPage() {
           {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Total Profit</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.total)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.fund)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.media)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.admin)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Member Pool</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.memberPool)}</p></div>
         </div>
 
