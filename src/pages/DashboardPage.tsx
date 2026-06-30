@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
     const fundIn = fundTxns.filter(t => t.type === 'income' || t.type === 'in').reduce((s, t) => s + Number(t.amount), 0);
     const fundOut = fundTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
-    const availableFund = totalInvestment + fundIn - fundOut;
+    const availableFund = fundIn - fundOut;
 
     setStats({
       totalInvestment,
