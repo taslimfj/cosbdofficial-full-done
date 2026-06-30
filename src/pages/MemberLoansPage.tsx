@@ -280,14 +280,23 @@ export default function MemberLoansPage() {
                           }`}>
                             {r.status === 'pending' ? 'pending approval' : r.status === 'approved' ? 'paid' : 'rejected'}
                           </span>
-                          {role === 'admin' && r.status === 'pending' && (
+                          {role === 'admin' && (
                             <div className="flex items-center gap-1 ml-auto">
-                              <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => handleApproveRepayment(r)}>
-                                <Check className="w-3 h-3" /> Approve
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => handleRejectRepayment(r.id)}>
-                                <X className="w-3 h-3" /> Reject
-                              </Button>
+                              {r.status !== 'approved' && (
+                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'approved')}>
+                                  <Check className="w-3 h-3" /> {r.status === 'rejected' ? 'Mark Paid' : 'Approve'}
+                                </Button>
+                              )}
+                              {r.status !== 'rejected' && (
+                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => setRepaymentStatus(r, 'rejected')}>
+                                  <X className="w-3 h-3" /> Reject
+                                </Button>
+                              )}
+                              {r.status !== 'pending' && (
+                                <Button size="sm" variant="ghost" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
+                                  <RotateCcw className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
