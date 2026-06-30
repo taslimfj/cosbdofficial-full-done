@@ -169,9 +169,30 @@ export default function IslamicLoansPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Islamic Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">{loans.length} loans · Profit-based financing</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <LoanCalculator />
           <PdfPeriodButton onDownload={(p) => generateIslamicLoansPDF(loans, payments, p)} />
+        {role === 'admin' && (
+          <Sheet open={showSettings} onOpenChange={setShowSettings}>
+            <SheetTrigger asChild>
+              <Button size="sm" variant="outline"><Settings className="w-4 h-4 mr-1" /> Payment Defaults</Button>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Default Payment Methods</SheetTitle>
+              </SheetHeader>
+              <p className="text-xs text-muted-foreground mt-2">
+                নতুন loan তৈরি করার সময় এই payment methods automatically যুক্ত হবে এবং customer তার page-এ দেখতে পাবে।
+              </p>
+              <div className="mt-4">
+                <PaymentMethodsEditor methods={defaultMethods} onChange={setDefaultMethods} />
+              </div>
+              <Button className="w-full mt-4" onClick={saveDefaults} disabled={settingsBusy}>
+                {settingsBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Defaults
+              </Button>
+            </SheetContent>
+          </Sheet>
+        )}
         {role === 'admin' && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
@@ -193,6 +214,10 @@ export default function IslamicLoansPage() {
                     <Label>Relative Phone</Label>
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>পণ্যের নাম / Product Name</Label>
+                  <Input value={form.productName} onChange={e => setForm(p => ({ ...p, productName: e.target.value }))} placeholder="যেমন: iPhone 15, Honda CB150R" />
                 </div>
                 <div className="space-y-2">
                   <Label>Purchase Price (৳)</Label>
