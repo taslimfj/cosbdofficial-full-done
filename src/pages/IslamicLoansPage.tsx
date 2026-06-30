@@ -72,7 +72,13 @@ export default function IslamicLoansPage() {
     if (!purchasePrice) { toast.error('Enter purchase price'); return; }
     if (!form.mediaPersonId) { toast.error('Select media person'); return; }
     setSubmitting(true);
-    const code = generateCode('IL');
+    const now = new Date();
+    const yStart = new Date(now.getFullYear(), 0, 1).toISOString();
+    const { count: yearCount } = await supabase
+      .from('islamic_loans')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', yStart);
+    const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
