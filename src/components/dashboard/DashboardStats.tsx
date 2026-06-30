@@ -1,5 +1,5 @@
 import { formatBDT } from '@/lib/finance';
-import { TrendingUp, Wallet, Users, Landmark } from 'lucide-react';
+import { TrendingUp, Wallet, Landmark, PiggyBank } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface StatsProps {
@@ -19,38 +19,42 @@ export function DashboardStats({ stats }: StatsProps) {
       value: formatBDT(stats.totalInvestment),
       icon: TrendingUp,
       accent: false,
+      onClick: () => navigate('/members'),
     },
     {
       label: 'Available Balance',
       value: formatBDT(stats.availableFund),
       icon: Wallet,
       accent: true,
+      onClick: () => navigate('/fund'),
     },
     {
-      label: 'Total Members',
-      value: stats.totalMembers.toString(),
-      icon: Users,
+      label: 'Fund Net Balance',
+      value: formatBDT(stats.availableFund),
+      icon: PiggyBank,
       accent: false,
+      onClick: () => navigate('/fund'),
     },
     {
       label: 'Active Loans',
       value: stats.activeLoans.toString(),
       icon: Landmark,
       accent: false,
+      onClick: () => navigate('/islamic-loans'),
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {items.map((item, index) => (
+      {items.map((item) => (
         <div
           key={item.label}
-          onClick={index === 0 ? () => navigate('/members') : index === 1 ? () => navigate('/fund') : index === 3 ? () => navigate('/islamic-loans') : undefined}
-          className={`p-5 rounded-xl border shadow-subtle transition-shadow hover:shadow-card ${
+          onClick={item.onClick}
+          className={`p-5 rounded-xl border shadow-subtle transition-shadow hover:shadow-card cursor-pointer ${
             item.accent
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-card text-card-foreground border-border'
-          } ${index === 0 || index === 1 || index === 3 ? 'cursor-pointer' : ''}`}
+          }`}
         >
           <div className="flex items-center justify-between mb-3">
             <p className={`text-xs font-medium uppercase tracking-wider ${
@@ -66,3 +70,4 @@ export function DashboardStats({ stats }: StatsProps) {
     </div>
   );
 }
+
