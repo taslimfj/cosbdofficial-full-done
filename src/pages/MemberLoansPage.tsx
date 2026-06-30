@@ -126,35 +126,41 @@ export default function MemberLoansPage() {
     fetchLoans();
   };
 
-  const handleApproveRepayment = async (rep: any) => {
+  const setRepaymentStatus = async (rep: any, newStatus: 'approved' | 'rejected' | 'pending') => {
     const loan = loans.find(l => l.id === rep.loan_id);
     if (!loan) return;
+    const oldEff = rep.status === 'approved' ? Number(rep.amount || 0) : 0;
+    const newEff = newStatus === 'approved' ? Number(rep.amount || 0) : 0;
+    const delta = newEff - oldEff;
+
     const { error: upRepErr } = await supabase
       .from('member_loan_repayments')
-      .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: user?.id })
+      .update({
+        status: newStatus,
+        approved_at: newStatus === 'approved' ? new Date().toISOString() : null,
+        approved_by: newStatus === 'approved' ? user?.id : null,
+      })
       .eq('id', rep.id);
     if (upRepErr) { toast.error(upRepErr.message); return; }
 
-    const approved = Number(loan.approved_amount || 0);
-    const newRepaid = Number(loan.repaid_amount || 0) + Number(rep.amount || 0);
-    const fullyRepaid = newRepaid >= approved;
-    const { error: upLoanErr } = await supabase
-      .from('member_loans')
-      .update({ repaid_amount: newRepaid, status: fullyRepaid ? 'repaid' : loan.status })
-      .eq('id', loan.id);
-    if (upLoanErr) { toast.error(upLoanErr.message); return; }
+    if (delta !== 0 || loan.status === 'repaid') {
+      const approved = Number(loan.approved_amount || 0);
+      const newRepaid = Math.max(0, Number(loan.repaid_amount || 0) + delta);
+      let nextStatus = loan.status;
+      if (newRepaid >= approved && approved > 0) nextStatus = 'repaid';
+      else if (loan.status === 'repaid' && newRepaid < approved) nextStatus = 'approved';
+      const { error: upLoanErr } = await supabase
+        .from('member_loans')
+        .update({ repaid_amount: newRepaid, status: nextStatus })
+        .eq('id', loan.id);
+      if (upLoanErr) { toast.error(upLoanErr.message); return; }
+    }
 
-    toast.success(fullyRepaid ? 'লোন সম্পূর্ণ পরিশোধ হয়েছে' : 'পরিশোধ অনুমোদন হয়েছে');
-    fetchLoans();
-  };
-
-  const handleRejectRepayment = async (repId: string) => {
-    const { error } = await supabase
-      .from('member_loan_repayments')
-      .update({ status: 'rejected' })
-      .eq('id', repId);
-    if (error) { toast.error(error.message); return; }
-    toast.success('পরিশোধ বাতিল হয়েছে');
+    toast.success(
+      newStatus === 'approved' ? 'Paid হিসেবে চিহ্নিত হয়েছে' :
+      newStatus === 'rejected' ? 'Reject করা হয়েছে' :
+      'Pending করা হয়েছে'
+    );
     fetchLoans();
   };
 
