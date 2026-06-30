@@ -185,12 +185,14 @@ export default function IslamicLoanDetailPage() {
       _loan_id: id!,
       _amount: amt,
       _payment_type: depositType,
+      _payment_method: paymentMethod || null,
+      _transaction_id: transactionId || null,
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Deposit recorded');
     setShowDeposit(false);
-    setDepositAmt('');
+    setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
     load();
   };
 
