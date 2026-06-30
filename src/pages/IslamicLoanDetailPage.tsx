@@ -699,6 +699,14 @@ export default function IslamicLoanDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Comments</Label><Textarea value={edit.comments} onChange={e => setEdit({ ...edit, comments: e.target.value })} /></div>
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label>Payment Methods (customer-এর দেখার জন্য)</Label>
+                <p className="text-xs text-muted-foreground -mt-1">এই loan-এর জন্য customer এই numbers/accounts-এ টাকা পাঠাবে।</p>
+                <PaymentMethodsEditor
+                  methods={edit.payment_methods || []}
+                  onChange={(next) => setEdit({ ...edit, payment_methods: next })}
+                />
+              </div>
               <Button className="w-full" onClick={handleEditSave} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Save Changes</Button>
             </div>
           )}
