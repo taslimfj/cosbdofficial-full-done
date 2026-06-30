@@ -278,6 +278,29 @@ export default function MemberLoansPage() {
                       <Wallet className="w-3.5 h-3.5" /> Payment
                     </Button>
                   )}
+                  {loan.status === 'repaid' && (role === 'admin' || loan.member_id === user?.id) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-destructive border-destructive/30 gap-1">
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>এই পরিশোধিত লোনটি delete করবেন?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            এই কাজটি undo করা যাবে না। লোন এবং এর সব payment record মুছে যাবে।
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteLoan(loan)} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </div>
 
