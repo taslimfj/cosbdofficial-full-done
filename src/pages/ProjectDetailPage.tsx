@@ -113,8 +113,12 @@ export default function ProjectDetailPage() {
 
   const alreadyDistributed = distributions.length > 0;
 
+  const budgetAssigned = Number(project?.budget_amount || 0) + Number(project?.extra_funds_approved || 0);
+  const budgetRemaining = Math.max(0, budgetAssigned - totals.out);
+
   const handleEditSave = async () => {
     setBusy(true);
+    const becomingClosed = edit.status === 'closed' && project.status !== 'closed';
     const payload: any = {
       name: edit.name.trim(),
       manager_id: edit.manager_id || null,
@@ -125,13 +129,70 @@ export default function ProjectDetailPage() {
       comments: edit.comments,
       closed_at: edit.status === 'closed' && !project.closed_at ? new Date().toISOString() : project.closed_at,
     };
+
+    // On close: refund leftover budget to Fund
+    if (becomingClosed && budgetRemaining > 0 && Number(project.budget_returned || 0) === 0) {
+      await supabase.from('fund_transactions').insert({
+        type: 'income', amount: budgetRemaining,
+        reason: `Project ${project.code} — অব্যবহৃত budget Fund-এ ফেরত`,
+      });
+      payload.budget_returned = budgetRemaining;
+    }
+
     const { error } = await supabase.from('projects').update(payload).eq('id', id!);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success('Project updated');
+    toast.success(becomingClosed && budgetRemaining > 0
+      ? `Project closed — ৳${budgetRemaining.toFixed(0)} Fund-এ ফেরত গেল`
+      : 'Project updated');
     setShowEdit(false);
     load();
   };
+
+  const handleFundRequest = async () => {
+    const amt = parseFloat(fundReq.amount);
+    if (!amt || amt <= 0) { toast.error('Valid amount দিন'); return; }
+    setBusy(true);
+    const { error } = await (supabase as any).from('project_fund_requests').insert({
+      project_id: id, amount: amt, reason: fundReq.reason || null,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Fund request পাঠানো হয়েছে');
+    setShowFundReq(false);
+    setFundReq({ amount: '', reason: '' });
+    load();
+  };
+
+  const handleFundDecision = async (req: any, decision: 'approved' | 'rejected', note?: string) => {
+    setBusy(true);
+    if (decision === 'approved') {
+      // Check Fund balance
+      const { data: fundTxs } = await supabase.from('fund_transactions').select('type, amount');
+      const fundBalance = (fundTxs || []).reduce((s: number, t: any) =>
+        s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+      if (Number(req.amount) > fundBalance) {
+        setBusy(false);
+        toast.error(`Fund-এ পর্যাপ্ত টাকা নেই। Available: ৳${fundBalance.toFixed(0)}`);
+        return;
+      }
+      // Debit fund + bump project's extra_funds_approved
+      await supabase.from('fund_transactions').insert({
+        type: 'expense', amount: Number(req.amount),
+        reason: `Project ${project.code} — অতিরিক্ত fund approved`,
+      });
+      await supabase.from('projects').update({
+        extra_funds_approved: Number(project.extra_funds_approved || 0) + Number(req.amount),
+      }).eq('id', id!);
+    }
+    await (supabase as any).from('project_fund_requests').update({
+      status: decision, admin_note: note || null, decided_at: new Date().toISOString(),
+    }).eq('id', req.id);
+    setBusy(false);
+    toast.success(decision === 'approved' ? 'Approved & project budget বেড়েছে' : 'Rejected');
+    load();
+  };
+
 
   const handleAddTx = async () => {
     const amt = parseFloat(tx.amount);
