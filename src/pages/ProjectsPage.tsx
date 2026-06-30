@@ -61,7 +61,13 @@ export default function ProjectsPage() {
       return;
     }
 
-    const code = generateCode('PRJ');
+    const now = new Date();
+    const yStart = new Date(now.getFullYear(), 0, 1).toISOString();
+    const { count: yearCount } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', yStart);
+    const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, now);
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
