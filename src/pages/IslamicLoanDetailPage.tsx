@@ -248,7 +248,8 @@ export default function IslamicLoanDetailPage() {
     }
     fundExtras.forEach(f => fundTxRows.push({ type: 'in', amount: f.amount, reason: f.reason }));
     if (fundTxRows.length) {
-      await supabase.from('fund_transactions').insert(fundTxRows);
+      const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
+      if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
     // Credit each (non-deleted) member's profile balance
