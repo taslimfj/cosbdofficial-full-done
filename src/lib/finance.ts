@@ -17,6 +17,25 @@ export const generateCode = (prefix: string): string => {
   return `${prefix}-${num}`;
 };
 
+// New code: {PREFIX}{2-letter name}{2-digit yearly serial}{2-digit year}
+// e.g. ILRE0126  (Islamic Loan, borrower "Rete", 1st of 2026)
+//      PRJSH0326 (Project,      name "Shop",    3rd of 2026)
+export const buildEntityCode = (
+  prefix: 'IL' | 'PRJ',
+  name: string,
+  yearlySerial: number,
+  date: Date = new Date()
+): string => {
+  const letters = (name || '')
+    .replace(/[^A-Za-z\u0980-\u09FF]/g, '')
+    .slice(0, 2)
+    .toUpperCase()
+    .padEnd(2, 'X');
+  const serial = String(Math.max(1, yearlySerial)).padStart(2, '0');
+  const yr = String(date.getFullYear()).slice(-2);
+  return `${prefix}${letters}${serial}${yr}`;
+};
+
 export const calculateProfitPercentage = (tenureMonths: number): number => {
   switch (tenureMonths) {
     case 3: return 8;
