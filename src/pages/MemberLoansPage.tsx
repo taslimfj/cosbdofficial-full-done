@@ -10,7 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Loader2, HandCoins, Wallet, Check, X, RotateCcw } from 'lucide-react';
+import { Plus, Loader2, HandCoins, Wallet, Check, X, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateMemberLoansPDF } from '@/lib/pdfGenerator';
 
