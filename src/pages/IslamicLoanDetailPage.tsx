@@ -44,6 +44,9 @@ export default function IslamicLoanDetailPage() {
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
   const [requestNote, setRequestNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
 
   const [edit, setEdit] = useState<any>(null);
 
@@ -72,6 +75,20 @@ export default function IslamicLoanDetailPage() {
     setSnapshot(snapRes.data || []);
     setDistributions(distributions);
     setPayRequests(reqRes.data || []);
+
+    // Fetch sibling loans (same customer, different loan, still active)
+    if (loan?.customer_user_id) {
+      const { data: sibs } = await supabase
+        .from('islamic_loans')
+        .select('id, code, borrower_name, product_name, status, remaining_amount, sell_price, monthly_installment')
+        .eq('customer_user_id', loan.customer_user_id)
+        .neq('id', id)
+        .order('created_at', { ascending: false });
+      setSiblingLoans(sibs || []);
+    } else {
+      setSiblingLoans([]);
+    }
+
     setLoading(false);
   };
 
@@ -168,12 +185,14 @@ export default function IslamicLoanDetailPage() {
       _loan_id: id!,
       _amount: amt,
       _payment_type: depositType,
+      _payment_method: paymentMethod || null,
+      _transaction_id: transactionId || null,
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Deposit recorded');
     setShowDeposit(false);
-    setDepositAmt('');
+    setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
     load();
   };
 
@@ -285,16 +304,21 @@ export default function IslamicLoanDetailPage() {
   const handleSubmitRequest = async () => {
     const amt = parseFloat(depositAmt);
     if (!amt || amt <= 0) { toast.error('সঠিক amount দিন'); return; }
+    if (!paymentMethod) { toast.error('Payment মাধ্যম select করুন'); return; }
+    if (!transactionId.trim()) { toast.error('Transaction ID দিন'); return; }
     if (!user) return;
     setBusy(true);
     const { error } = await (supabase as any).from('customer_payment_requests').insert({
-      loan_id: id, customer_user_id: user.id, amount: amt, note: requestNote || null,
+      loan_id: id, customer_user_id: user.id, amount: amt,
+      note: requestNote || null,
+      payment_method: paymentMethod,
+      transaction_id: transactionId.trim(),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
     setShowRequest(false);
-    setDepositAmt(''); setRequestNote('');
+    setDepositAmt(''); setRequestNote(''); setPaymentMethod(''); setTransactionId('');
     load();
   };
 
@@ -303,6 +327,8 @@ export default function IslamicLoanDetailPage() {
     setBusy(true);
     const { error: rpcErr } = await supabase.rpc('record_islamic_loan_payment', {
       _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
+      _payment_method: req.payment_method || null,
+      _transaction_id: req.transaction_id || null,
     } as any);
     if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
     await (supabase as any).from('customer_payment_requests').update({
@@ -350,6 +376,29 @@ export default function IslamicLoanDetailPage() {
     const methods: PaymentMethod[] = Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [];
     return (
       <div className="space-y-6 animate-fade-in max-w-xl">
+        {/* Other active loans for this customer — quick switcher */}
+        {siblingLoans.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs font-medium text-muted-foreground mb-2">আপনার অন্যান্য চলমান Islamic Loan</p>
+            <div className="flex flex-wrap gap-2">
+              {siblingLoans.map(s => (
+                <Link
+                  key={s.id}
+                  to={`/islamic-loans/${s.id}`}
+                  className="flex-1 min-w-[160px] border border-border rounded-lg p-2.5 hover:bg-secondary/60 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded">{s.code}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{s.status}</span>
+                  </div>
+                  {s.product_name && <p className="text-xs font-medium mt-1 truncate">{s.product_name}</p>}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Due: <span className="font-mono">{formatBDT(Number(s.remaining_amount))}</span></p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Payment methods FIRST — most important for the customer */}
         {!isClosed && methods.length > 0 && (
           <PaymentMethodsCard
@@ -407,9 +456,10 @@ export default function IslamicLoanDetailPage() {
             <div className="space-y-2">
               {payments.slice(0, payLimit).map(p => (
                 <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
+                    {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
                   </div>
                   <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
                 </div>
@@ -430,9 +480,10 @@ export default function IslamicLoanDetailPage() {
             <div className="space-y-2">
               {myRequests.map(r => (
                 <div key={r.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                  <div>
-                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <div className="min-w-0">
+                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}{r.payment_method ? ` · ${r.payment_method}` : ''}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                    {r.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {r.transaction_id}</p>}
                     {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600' : r.status === 'rejected' ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{r.status}</span>
@@ -448,7 +499,26 @@ export default function IslamicLoanDetailPage() {
             <p className="text-xs text-muted-foreground">Admin approve করলে এটা installment হিসেবে count হবে।</p>
             <div className="space-y-3 mt-2">
               <div><Label>Amount (৳)</Label><Input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} /></div>
-              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="যেমন: bKash trxId, payment date" /></div>
+              <div>
+                <Label>কোন মাধ্যমে টাকা পাঠিয়েছেন?</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bKash">bKash</SelectItem>
+                    <SelectItem value="Nagad">Nagad</SelectItem>
+                    <SelectItem value="Rocket">Rocket</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Card">Card</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Transaction ID</Label>
+                <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
+              </div>
+              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowRequest(false)}>Cancel</Button>
@@ -479,6 +549,30 @@ export default function IslamicLoanDetailPage() {
         )}
       </div>
 
+      {/* Other active loans for this customer — quick switcher */}
+      {siblingLoans.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            একই customer-এর অন্য Islamic Loan ({siblingLoans.length})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {siblingLoans.map(s => (
+              <Link
+                key={s.id}
+                to={`/islamic-loans/${s.id}`}
+                className="flex-1 min-w-[180px] border border-border rounded-lg p-2.5 hover:bg-secondary/60 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded">{s.code}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{s.status}</span>
+                </div>
+                {s.product_name && <p className="text-xs font-medium mt-1 truncate">{s.product_name}</p>}
+                <p className="text-[11px] text-muted-foreground mt-0.5">Due: <span className="font-mono">{formatBDT(Number(s.remaining_amount))}</span></p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Header card */}
       <div className="bg-card border border-border rounded-xl p-6">
@@ -597,8 +691,9 @@ export default function IslamicLoanDetailPage() {
             {pendingRequests.map(r => (
               <div key={r.id} className="flex justify-between items-center p-3 bg-amber-500/5 rounded-lg gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}{r.payment_method ? ` · ${r.payment_method}` : ''}</p>
                   <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                  {r.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {r.transaction_id}</p>}
                   {r.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.note}</p>}
                 </div>
                 <div className="flex gap-1 shrink-0">
@@ -621,9 +716,10 @@ export default function IslamicLoanDetailPage() {
           <div className="space-y-2">
             {payments.slice(0, payLimit).map(p => (
               <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
                   <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy · hh:mm a')}</p>
+                  {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
                 </div>
                 <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
               </div>
@@ -733,6 +829,25 @@ export default function IslamicLoanDetailPage() {
                   <SelectItem value="full">Full Payment</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Payment Method (optional)</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger><SelectValue placeholder="bKash / Nagad / Bank ..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bKash">bKash</SelectItem>
+                  <SelectItem value="Nagad">Nagad</SelectItem>
+                  <SelectItem value="Rocket">Rocket</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Card">Card</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Transaction ID (optional)</Label>
+              <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
             </div>
           </div>
           <DialogFooter>

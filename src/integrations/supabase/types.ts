@@ -82,9 +82,11 @@ export type Database = {
           id: string
           loan_id: string
           note: string | null
+          payment_method: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          transaction_id: string | null
         }
         Insert: {
           amount: number
@@ -93,9 +95,11 @@ export type Database = {
           id?: string
           loan_id: string
           note?: string | null
+          payment_method?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          transaction_id?: string | null
         }
         Update: {
           amount?: number
@@ -104,9 +108,11 @@ export type Database = {
           id?: string
           loan_id?: string
           note?: string | null
+          payment_method?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -268,21 +274,27 @@ export type Database = {
           created_at: string | null
           id: string
           loan_id: string
+          payment_method: string | null
           payment_type: string | null
+          transaction_id: string | null
         }
         Insert: {
           amount: number
           created_at?: string | null
           id?: string
           loan_id: string
+          payment_method?: string | null
           payment_type?: string | null
+          transaction_id?: string | null
         }
         Update: {
           amount?: number
           created_at?: string | null
           id?: string
           loan_id?: string
+          payment_method?: string | null
           payment_type?: string | null
+          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -1051,7 +1063,13 @@ export type Database = {
         Returns: boolean
       }
       record_islamic_loan_payment: {
-        Args: { _amount: number; _loan_id: string; _payment_type?: string }
+        Args: {
+          _amount: number
+          _loan_id: string
+          _payment_method?: string
+          _payment_type?: string
+          _transaction_id?: string
+        }
         Returns: string
       }
     }
