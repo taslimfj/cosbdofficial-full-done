@@ -138,7 +138,7 @@ export default function ProjectDetailPage() {
     // On close: refund leftover budget to Available Balance
     if (becomingClosed && budgetRemaining > 0 && Number(project.budget_returned || 0) === 0) {
       await supabase.from('fund_transactions').insert({
-        type: 'income', amount: budgetRemaining,
+        type: 'in', amount: budgetRemaining,
         reason: `Project ${project.code} — অব্যবহৃত budget Available Balance-এ ফেরত`,
       });
       payload.budget_returned = budgetRemaining;
