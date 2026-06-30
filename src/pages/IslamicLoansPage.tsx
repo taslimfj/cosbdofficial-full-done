@@ -224,25 +224,19 @@ export default function IslamicLoansPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loans.length === 0 ? (
-          <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
-            <p className="text-sm text-muted-foreground">No Islamic loans yet. Create your first one.</p>
-          </div>
-        ) : loans.map(loan => {
+      {(() => {
+        const renderLoan = (loan: any) => {
           const remaining = Number(loan.remaining_amount);
           const monthly = Number(loan.monthly_installment);
-          const borrowerName = (loan as any).borrower_name || loan.media_person?.full_name || 'N/A';
-          const borrowerPhone = (loan as any).borrower_phone || loan.media_person?.phone || '';
+          const borrowerName = loan.borrower_name || loan.media_person?.full_name || 'N/A';
+          const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
           const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
-
           return (
             <Link
               key={loan.id}
               to={`/islamic-loans/${loan.id}`}
               className="group bg-card border border-border p-5 rounded-xl hover:border-primary/30 hover:shadow-md transition-all flex flex-col"
             >
-              {/* Borrower */}
               <div className="mb-4 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-foreground truncate">{borrowerName}</h3>
@@ -250,41 +244,43 @@ export default function IslamicLoansPage() {
                 </div>
                 <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${loan.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{loan.status}</span>
               </div>
-
-              {/* Contact actions */}
               {phoneDigits && (
                 <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
-                  <a href={`tel:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors">
-                    <Phone className="w-3.5 h-3.5" /> Call
-                  </a>
-                  <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors">
-                    <MessageCircle className="w-3.5 h-3.5" /> WA
-                  </a>
-                  <a href={`sms:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors">
-                    <MessageSquare className="w-3.5 h-3.5" /> SMS
-                  </a>
+                  <a href={`tel:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors"><Phone className="w-3.5 h-3.5" /> Call</a>
+                  <a href={`https://wa.me/${phoneDigits}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors"><MessageCircle className="w-3.5 h-3.5" /> WA</a>
+                  <a href={`sms:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
                 </div>
               )}
-
-              {/* 3 amounts */}
               <div className="grid grid-cols-3 gap-2 mt-auto pt-4 border-t border-border">
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p>
-                  <p className="font-mono font-bold text-primary tabular-nums text-sm">{formatBDT(remaining)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p>
-                  <p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly</p>
-                  <p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(monthly)}</p>
-                </div>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p><p className="font-mono font-bold text-primary tabular-nums text-sm">{formatBDT(remaining)}</p></div>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p></div>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(monthly)}</p></div>
               </div>
             </Link>
           );
-        })}
-      </div>
+        };
+        const active = loans.filter(l => l.status === 'active');
+        const closed = loans.filter(l => l.status !== 'active');
+        return (
+          <Tabs defaultValue="active" className="w-full">
+            <TabsList>
+              <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
+              <TabsTrigger value="closed">Closed ({closed.length})</TabsTrigger>
+            </TabsList>
+            {([['active', active], ['closed', closed]] as const).map(([key, list]) => (
+              <TabsContent key={key} value={key} className="mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {list.length === 0 ? (
+                    <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
+                      <p className="text-sm text-muted-foreground">No {key} loans.</p>
+                    </div>
+                  ) : list.map(renderLoan)}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        );
+      })()}
     </div>
   );
 }
