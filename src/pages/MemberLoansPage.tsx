@@ -22,6 +22,7 @@ export default function MemberLoansPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
+  const [requestReason, setRequestReason] = useState('');
 
   const [payLoan, setPayLoan] = useState<any | null>(null);
   const [payForm, setPayForm] = useState({
