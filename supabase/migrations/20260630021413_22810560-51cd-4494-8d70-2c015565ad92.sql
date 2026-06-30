@@ -1,0 +1,1 @@
+ALTER TABLE public.member_loans ADD COLUMN IF NOT EXISTS defaulted boolean NOT NULL DEFAULT false;

@@ -434,6 +434,7 @@ export type Database = {
           approved_amount: number | null
           approved_at: string | null
           created_at: string | null
+          defaulted: boolean
           due_date: string | null
           id: string
           member_id: string
@@ -446,6 +447,7 @@ export type Database = {
           approved_amount?: number | null
           approved_at?: string | null
           created_at?: string | null
+          defaulted?: boolean
           due_date?: string | null
           id?: string
           member_id: string
@@ -458,6 +460,7 @@ export type Database = {
           approved_amount?: number | null
           approved_at?: string | null
           created_at?: string | null
+          defaulted?: boolean
           due_date?: string | null
           id?: string
           member_id?: string
