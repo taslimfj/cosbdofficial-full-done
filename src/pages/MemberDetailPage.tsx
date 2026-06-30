@@ -204,36 +204,19 @@ export default function MemberDetailPage() {
 
     setDeleting(true);
 
-    // Hard-delete: wipe every record belonging to this member.
-    // Order matters because of FKs — child rows first, profile last.
-    const memberLoanIds = (outstandingLoans || []).map(l => l.id);
-    const { data: allLoans } = await supabase.from('member_loans').select('id').eq('member_id', id!);
-    const allLoanIds = (allLoans || []).map((l: any) => l.id);
+    // Hard-delete via edge function (uses service role to remove auth user + all data)
+    const { data, error } = await supabase.functions.invoke('delete-member', {
+      body: { memberId: id! },
+    });
 
-    if (allLoanIds.length > 0) {
-      await supabase.from('member_loan_repayments').delete().in('loan_id', allLoanIds);
-    }
-    await Promise.all([
-      supabase.from('deposits').delete().eq('member_id', id!),
-      supabase.from('profit_distributions').delete().eq('member_id', id!),
-      supabase.from('member_loans').delete().eq('member_id', id!),
-      supabase.from('notifications').delete().eq('user_id', id!),
-      supabase.from('user_roles').delete().eq('user_id', id!),
-    ]);
-
-    // Finally remove the profile itself
-    const { error: profileErr } = await supabase.from('profiles').delete().eq('id', id!);
-    if (profileErr) {
-      // Fallback: if FK constraint blocks deletion, soft-delete with cleared state
-      await supabase.from('profiles').update({
-        is_deleted: true,
-        deleted_name: member.full_name,
-        total_deposited: 0,
-        full_name: `[${member.full_name}] (মুছে ফেলা হয়েছে)`,
-      }).eq('id', id!);
+    if (error || (data as any)?.error) {
+      const msg = (data as any)?.error || error?.message || 'Delete failed';
+      toast.error(msg);
+      setDeleting(false);
+      return;
     }
 
-    toast.success(`${member.full_name}-এর সকল রেকর্ড মুছে ফেলা হয়েছে।`);
+    toast.success(`${member.full_name}-এর সকল রেকর্ড সম্পূর্ণভাবে মুছে ফেলা হয়েছে।`);
     setShowDeleteDialog(false);
     navigate('/members');
     setDeleting(false);
