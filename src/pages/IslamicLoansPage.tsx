@@ -11,12 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { Plus, Phone, MessageCircle, MessageSquare, Loader2, Settings } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
 import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
+import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
@@ -25,11 +27,15 @@ export default function IslamicLoansPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
+  const [settingsBusy, setSettingsBusy] = useState(false);
   const [form, setForm] = useState({
     borrowerName: '',
     borrowerPhone: '+880',
     relativePhone: '+880',
+    productName: '',
     purchasePrice: '',
     tenure: '3',
     mediaPersonId: '',
@@ -85,6 +91,7 @@ export default function IslamicLoansPage() {
       borrower_name: form.borrowerName.trim(),
       borrower_phone: form.borrowerPhone.trim(),
       relative_phone: form.relativePhone.trim() || null,
+      product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
       sell_price: sellPrice,
       tenure_months: tenure,
@@ -96,6 +103,8 @@ export default function IslamicLoansPage() {
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
+      // Auto-populate admin's default payment methods so customer sees them immediately
+      payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
     const loanId = inserted.id;
@@ -121,9 +130,34 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
+  };
+
+  // Load admin's default payment methods
+  useEffect(() => {
+    (supabase as any).from('payment_method_defaults').select('*').order('sort_order')
+      .then(({ data }: any) => {
+        setDefaultMethods((data || []).map((d: any) => ({ label: d.label, value: d.value, note: d.note })));
+      });
+  }, []);
+
+  const saveDefaults = async () => {
+    if (role !== 'admin') return;
+    setSettingsBusy(true);
+    // Replace all rows transactionally: delete + insert
+    await (supabase as any).from('payment_method_defaults').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    const rows = defaultMethods
+      .filter(m => m.label.trim() && m.value.trim())
+      .map((m, i) => ({ label: m.label.trim(), value: m.value.trim(), note: m.note?.trim() || null, sort_order: i }));
+    if (rows.length) {
+      const { error } = await (supabase as any).from('payment_method_defaults').insert(rows);
+      if (error) { setSettingsBusy(false); toast.error(error.message); return; }
+    }
+    setSettingsBusy(false);
+    toast.success('Default payment methods saved');
+    setShowSettings(false);
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -135,9 +169,30 @@ export default function IslamicLoansPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Islamic Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">{loans.length} loans · Profit-based financing</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <LoanCalculator />
           <PdfPeriodButton onDownload={(p) => generateIslamicLoansPDF(loans, payments, p)} />
+        {role === 'admin' && (
+          <Sheet open={showSettings} onOpenChange={setShowSettings}>
+            <SheetTrigger asChild>
+              <Button size="sm" variant="outline"><Settings className="w-4 h-4 mr-1" /> Payment Defaults</Button>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Default Payment Methods</SheetTitle>
+              </SheetHeader>
+              <p className="text-xs text-muted-foreground mt-2">
+                নতুন loan তৈরি করার সময় এই payment methods automatically যুক্ত হবে এবং customer তার page-এ দেখতে পাবে।
+              </p>
+              <div className="mt-4">
+                <PaymentMethodsEditor methods={defaultMethods} onChange={setDefaultMethods} />
+              </div>
+              <Button className="w-full mt-4" onClick={saveDefaults} disabled={settingsBusy}>
+                {settingsBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Defaults
+              </Button>
+            </SheetContent>
+          </Sheet>
+        )}
         {role === 'admin' && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
@@ -159,6 +214,10 @@ export default function IslamicLoansPage() {
                     <Label>Relative Phone</Label>
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>পণ্যের নাম / Product Name</Label>
+                  <Input value={form.productName} onChange={e => setForm(p => ({ ...p, productName: e.target.value }))} placeholder="যেমন: iPhone 15, Honda CB150R" />
                 </div>
                 <div className="space-y-2">
                   <Label>Purchase Price (৳)</Label>

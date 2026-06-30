@@ -14,8 +14,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
-  Clock, Pencil, Trash2, Plus, Sparkles, Users,
+  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package,
 } from 'lucide-react';
+import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
+import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -80,6 +82,7 @@ export default function IslamicLoanDetailPage() {
         borrower_name: loan.borrower_name || '',
         borrower_phone: loan.borrower_phone || '',
         relative_phone: loan.relative_phone || '',
+        product_name: (loan as any).product_name || '',
         purchase_price: String(loan.purchase_price ?? ''),
         sell_price: String(loan.sell_price ?? ''),
         tenure_months: String(loan.tenure_months ?? '3'),
@@ -92,6 +95,7 @@ export default function IslamicLoanDetailPage() {
         remaining_amount: String(loan.remaining_amount ?? ''),
         status: loan.status || 'active',
         comments: loan.comments || '',
+        payment_methods: Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [],
       });
     }
   }, [loan]);
@@ -132,6 +136,7 @@ export default function IslamicLoanDetailPage() {
       borrower_name: edit.borrower_name.trim() || null,
       borrower_phone: edit.borrower_phone.trim() || null,
       relative_phone: edit.relative_phone.trim() || null,
+      product_name: edit.product_name?.trim() || null,
       purchase_price: parseFloat(edit.purchase_price) || 0,
       sell_price: parseFloat(edit.sell_price) || 0,
       tenure_months: parseInt(edit.tenure_months) || 3,
@@ -144,6 +149,7 @@ export default function IslamicLoanDetailPage() {
       remaining_amount: parseFloat(edit.remaining_amount) || 0,
       status: edit.status,
       comments: edit.comments,
+      payment_methods: (edit.payment_methods || []).filter((m: PaymentMethod) => m.label?.trim() && m.value?.trim()),
     };
     const { error } = await supabase.from('islamic_loans').update(payload).eq('id', id!);
     setBusy(false);
@@ -340,12 +346,27 @@ export default function IslamicLoanDetailPage() {
   // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
   if (isCustomer) {
     const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
+    const methods: PaymentMethod[] = Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [];
     return (
       <div className="space-y-6 animate-fade-in max-w-xl">
+        {/* Payment methods FIRST — most important for the customer */}
+        {!isClosed && methods.length > 0 && (
+          <PaymentMethodsCard
+            methods={methods}
+            title="এখানে টাকা পাঠান"
+            subtitle="Tap to copy · তারপর নিচে Request Installment দিন"
+          />
+        )}
+
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
+            {(loan as any).product_name && (
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                <Package className="w-3.5 h-3.5" /> {(loan as any).product_name}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -460,6 +481,11 @@ export default function IslamicLoanDetailPage() {
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
+            {(loan as any).product_name && (
+              <p className="text-sm font-medium mt-1 flex items-center gap-1 text-primary">
+                <Package className="w-3.5 h-3.5" /> {(loan as any).product_name}
+              </p>
+            )}
             {borrowerPhone && <p className="text-sm text-muted-foreground font-mono mt-1">{borrowerPhone}</p>}
             {relPhone && <p className="text-xs text-muted-foreground font-mono">Relative: {relPhone}</p>}
           </div>
@@ -617,6 +643,10 @@ export default function IslamicLoanDetailPage() {
           {edit && (
             <div className="space-y-3 mt-6">
               <div className="space-y-2"><Label>Borrower Name</Label><Input value={edit.borrower_name} onChange={e => setEdit({ ...edit, borrower_name: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>পণ্যের নাম / Product Name</Label>
+                <Input value={edit.product_name} onChange={e => setEdit({ ...edit, product_name: e.target.value })} placeholder="যেমন: iPhone 15" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Borrower Phone</Label><Input value={edit.borrower_phone} onChange={e => setEdit({ ...edit, borrower_phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Relative Phone</Label><Input value={edit.relative_phone} onChange={e => setEdit({ ...edit, relative_phone: e.target.value })} /></div>
@@ -669,6 +699,14 @@ export default function IslamicLoanDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Comments</Label><Textarea value={edit.comments} onChange={e => setEdit({ ...edit, comments: e.target.value })} /></div>
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label>Payment Methods (customer-এর দেখার জন্য)</Label>
+                <p className="text-xs text-muted-foreground -mt-1">এই loan-এর জন্য customer এই numbers/accounts-এ টাকা পাঠাবে।</p>
+                <PaymentMethodsEditor
+                  methods={edit.payment_methods || []}
+                  onChange={(next) => setEdit({ ...edit, payment_methods: next })}
+                />
+              </div>
               <Button className="w-full" onClick={handleEditSave} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Save Changes</Button>
             </div>
           )}
