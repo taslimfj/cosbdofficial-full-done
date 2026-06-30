@@ -20,6 +20,18 @@ const toBn = (val: string | number | null | undefined): string => {
 export function LoanContractPdf({ loan }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  const [defaults, setDefaults] = useState<Array<{ label: string; value: string }>>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from('payment_method_defaults')
+      .select('label,value,sort_order')
+      .order('sort_order')
+      .then(({ data }: any) => {
+        if (Array.isArray(data)) setDefaults(data);
+      });
+  }, []);
+
 
   const borrowerName = loan.borrower_name || loan.media_person?.full_name || '';
   const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
