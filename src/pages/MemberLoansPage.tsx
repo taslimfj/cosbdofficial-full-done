@@ -207,108 +207,141 @@ export default function MemberLoansPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">
-        {loans.length === 0 ? (
-          <div className="p-12 text-center">
-            <HandCoins className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No loan requests yet.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {loans.map(loan => {
-              const approved = Number(loan.approved_amount || 0);
-              const repaid = Number(loan.repaid_amount || 0);
-              const loanReps = repayments.filter(r => r.loan_id === loan.id);
-              const pendingReps = loanReps.filter(r => r.status === 'pending');
-              const pendingAmt = pendingReps.reduce((s, r) => s + Number(r.amount || 0), 0);
-              const remaining = Math.max(0, approved - repaid - pendingAmt);
-              const isBorrower = loan.member_id === user?.id;
-              const canPay = isBorrower && loan.status === 'approved' && remaining > 0;
-              return (
-                <div key={loan.id} className="px-5 py-4 space-y-3">
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
-                      {loan.member?.full_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{loan.member?.full_name || 'Unknown'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Requested: {formatBDT(Number(loan.requested_amount))}
-                        {approved > 0 && ` · Approved: ${formatBDT(approved)}`}
-                        {repaid > 0 && ` · Paid: ${formatBDT(repaid)}`}
-                        {pendingAmt > 0 && ` · Pending approval: ${formatBDT(pendingAmt)}`}
-                        {loan.status === 'approved' && remaining > 0 && ` · Remaining: ${formatBDT(remaining)}`}
-                        {loan.due_date && ` · Due: ${format(new Date(loan.due_date), 'MMM d, yyyy')}`}
-                      </p>
-                      {loan.reason && (
-                        <p className="text-xs text-muted-foreground/80 mt-0.5 italic">কারণ: {loan.reason}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        loan.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-                        loan.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-                        loan.status === 'repaid' ? 'bg-secondary text-muted-foreground' :
-                        'bg-warning/10 text-warning'
-                      }`}>{loan.status}</span>
-                      {role === 'admin' && loan.status === 'pending' && (
-                        <Button size="sm" variant="outline" onClick={() => handleApproveLoan(loan.id, Number(loan.requested_amount))}>
-                          Approve
-                        </Button>
-                      )}
-                      {canPay && (
-                        <Button size="sm" onClick={() => openPay(loan)} className="gap-1">
-                          <Wallet className="w-3.5 h-3.5" /> Payment
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+      {(() => {
+        const repaidLoans = loans.filter(l => l.status === 'repaid');
+        const ongoingLoans = loans.filter(l => l.status !== 'repaid');
 
-                  {loanReps.length > 0 && (
-                    <div className="ml-12 space-y-1">
-                      {loanReps.map(r => (
-                        <div key={r.id} className="flex items-center gap-2 text-xs">
-                          <span className="text-muted-foreground">
-                            {format(new Date(r.created_at), 'MMM d, yyyy')} · {formatBDT(Number(r.amount))}
-                            {r.payment_method && ` · ${r.payment_method}`}
-                            {r.transaction_number && ` · ${r.transaction_number}`}
-                          </span>
-                          <span className={`px-1.5 py-0.5 rounded font-medium ${
-                            r.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-                            r.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-                            'bg-warning/10 text-warning'
-                          }`}>
-                            {r.status === 'pending' ? 'pending approval' : r.status === 'approved' ? 'paid' : 'rejected'}
-                          </span>
-                          {role === 'admin' && (
-                            <div className="flex items-center gap-1 ml-auto">
-                              {r.status !== 'approved' && (
-                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'approved')}>
-                                  <Check className="w-3 h-3" /> {r.status === 'rejected' ? 'Mark Paid' : 'Approve'}
-                                </Button>
-                              )}
-                              {r.status !== 'rejected' && (
-                                <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => setRepaymentStatus(r, 'rejected')}>
-                                  <X className="w-3 h-3" /> Reject
-                                </Button>
-                              )}
-                              {r.status !== 'pending' && (
-                                <Button size="sm" variant="ghost" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
-                                  <RotateCcw className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+        const renderLoanCard = (loan: any) => {
+          const approved = Number(loan.approved_amount || 0);
+          const repaid = Number(loan.repaid_amount || 0);
+          const loanReps = repayments.filter(r => r.loan_id === loan.id);
+          const pendingReps = loanReps.filter(r => r.status === 'pending');
+          const pendingAmt = pendingReps.reduce((s, r) => s + Number(r.amount || 0), 0);
+          const remaining = Math.max(0, approved - repaid - pendingAmt);
+          const isBorrower = loan.member_id === user?.id;
+          const canPay = isBorrower && loan.status === 'approved' && remaining > 0;
+          return (
+            <div key={loan.id} className="px-5 py-4 space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                  {loan.member?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{loan.member?.full_name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Requested: {formatBDT(Number(loan.requested_amount))}
+                    {approved > 0 && ` · Approved: ${formatBDT(approved)}`}
+                    {repaid > 0 && ` · Paid: ${formatBDT(repaid)}`}
+                    {pendingAmt > 0 && ` · Pending approval: ${formatBDT(pendingAmt)}`}
+                    {loan.status === 'approved' && remaining > 0 && ` · Remaining: ${formatBDT(remaining)}`}
+                    {loan.due_date && ` · Due: ${format(new Date(loan.due_date), 'MMM d, yyyy')}`}
+                  </p>
+                  {loan.reason && (
+                    <p className="text-xs text-muted-foreground/80 mt-0.5 italic">কারণ: {loan.reason}</p>
                   )}
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    loan.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
+                    loan.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
+                    loan.status === 'repaid' ? 'bg-secondary text-muted-foreground' :
+                    'bg-warning/10 text-warning'
+                  }`}>{loan.status}</span>
+                  {role === 'admin' && loan.status === 'pending' && (
+                    <Button size="sm" variant="outline" onClick={() => handleApproveLoan(loan.id, Number(loan.requested_amount))}>
+                      Approve
+                    </Button>
+                  )}
+                  {canPay && (
+                    <Button size="sm" onClick={() => openPay(loan)} className="gap-1">
+                      <Wallet className="w-3.5 h-3.5" /> Payment
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {loanReps.length > 0 && (
+                <div className="ml-12 space-y-1">
+                  {loanReps.map(r => (
+                    <div key={r.id} className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">
+                        {format(new Date(r.created_at), 'MMM d, yyyy')} · {formatBDT(Number(r.amount))}
+                        {r.payment_method && ` · ${r.payment_method}`}
+                        {r.transaction_number && ` · ${r.transaction_number}`}
+                      </span>
+                      <span className={`px-1.5 py-0.5 rounded font-medium ${
+                        r.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
+                        r.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
+                        'bg-warning/10 text-warning'
+                      }`}>
+                        {r.status === 'pending' ? 'pending approval' : r.status === 'approved' ? 'paid' : 'rejected'}
+                      </span>
+                      {role === 'admin' && (
+                        <div className="flex items-center gap-1 ml-auto">
+                          {r.status !== 'approved' && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'approved')}>
+                              <Check className="w-3 h-3" /> {r.status === 'rejected' ? 'Mark Paid' : 'Approve'}
+                            </Button>
+                          )}
+                          {r.status !== 'rejected' && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 gap-1 text-destructive border-destructive/30" onClick={() => setRepaymentStatus(r, 'rejected')}>
+                              <X className="w-3 h-3" /> Reject
+                            </Button>
+                          )}
+                          {r.status !== 'pending' && (
+                            <Button size="sm" variant="ghost" className="h-6 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
+                              <RotateCcw className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <div className="space-y-6">
+            <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">
+              <div className="px-5 py-3 border-b border-border bg-secondary/30">
+                <h2 className="text-sm font-semibold text-foreground">Ongoing Loans</h2>
+                <p className="text-xs text-muted-foreground">যেগুলো এখনো সম্পূর্ণ পরিশোধ হয়নি</p>
+              </div>
+              {ongoingLoans.length === 0 ? (
+                <div className="p-12 text-center">
+                  <HandCoins className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">কোনো চলমান লোন নেই।</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {ongoingLoans.map(renderLoanCard)}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">
+              <div className="px-5 py-3 border-b border-border bg-secondary/30">
+                <h2 className="text-sm font-semibold text-foreground">Paid / Completed Loans</h2>
+                <p className="text-xs text-muted-foreground">যেগুলো সম্পূর্ণ পরিশোধ হয়ে গেছে</p>
+              </div>
+              {repaidLoans.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Check className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">এখনো কোনো লোন সম্পূর্ণ পরিশোধ হয়নি।</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {repaidLoans.map(renderLoanCard)}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
+
 
       <Dialog open={!!payLoan} onOpenChange={(o) => !o && setPayLoan(null)}>
         <DialogContent>
