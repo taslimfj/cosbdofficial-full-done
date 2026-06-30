@@ -250,7 +250,11 @@ export default function ProjectDetailPage() {
       // Admin pool — split equally among all admins
       if (profitTotals.admin > 0) {
         const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
-        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+        const adminRoleIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
+        const { data: adminProfiles } = adminRoleIds.length
+          ? await supabase.from('profiles').select('id').in('id', adminRoleIds)
+          : { data: [] as any[] };
+        const adminIds = (adminProfiles || []).map((p: any) => p.id);
         if (adminIds.length > 0) {
           const perAdmin = profitTotals.admin / adminIds.length;
           const perAdminPct = (Number((project as any).admin_profit_pct) || 0) / adminIds.length;
