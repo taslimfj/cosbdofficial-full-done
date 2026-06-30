@@ -98,11 +98,12 @@ export default function IslamicLoanDetailPage() {
 
   // Profit totals computed from loan (purchase/sell)
   const profitTotals = useMemo(() => {
-    if (!loan) return { total: 0, fund: 0, media: 0, memberPool: 0 };
+    if (!loan) return { total: 0, fund: 0, media: 0, admin: 0, memberPool: 0 };
     const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
     const fund = total * (Number(loan.fund_profit_pct) || 0) / 100;
     const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
-    return { total, fund, media, memberPool: Math.max(0, total - fund - media) };
+    const admin = total * (Number((loan as any).admin_profit_pct) || 0) / 100;
+    return { total, fund, media, admin, memberPool: Math.max(0, total - fund - media - admin) };
   }, [loan]);
 
   // Snapshot share rows — frozen at loan creation
