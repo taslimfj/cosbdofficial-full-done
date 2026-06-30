@@ -643,6 +643,10 @@ export default function IslamicLoanDetailPage() {
           {edit && (
             <div className="space-y-3 mt-6">
               <div className="space-y-2"><Label>Borrower Name</Label><Input value={edit.borrower_name} onChange={e => setEdit({ ...edit, borrower_name: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>পণ্যের নাম / Product Name</Label>
+                <Input value={edit.product_name} onChange={e => setEdit({ ...edit, product_name: e.target.value })} placeholder="যেমন: iPhone 15" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Borrower Phone</Label><Input value={edit.borrower_phone} onChange={e => setEdit({ ...edit, borrower_phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Relative Phone</Label><Input value={edit.relative_phone} onChange={e => setEdit({ ...edit, relative_phone: e.target.value })} /></div>
