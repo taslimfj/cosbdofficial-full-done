@@ -44,12 +44,13 @@ export default function ProjectDetailPage() {
 
   const load = async () => {
     if (!id) return;
-    const [pRes, tRes, mRes, snapRes, distRes] = await Promise.all([
+    const [pRes, tRes, mRes, snapRes, distRes, frRes] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('project_transactions').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       (supabase as any).from('member_directory').select('*'),
       (supabase as any).from('project_member_shares').select('*').eq('project_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
+      (supabase as any).from('project_fund_requests').select('*').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
     const members = mRes.data || [];
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
@@ -60,6 +61,7 @@ export default function ProjectDetailPage() {
     setMembers(members);
     setSnapshot(snapRes.data || []);
     setDistributions(distributions);
+    setFundRequests(frRes.data || []);
     setLoading(false);
   };
 
