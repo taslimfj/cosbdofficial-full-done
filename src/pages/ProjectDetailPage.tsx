@@ -188,7 +188,7 @@ export default function ProjectDetailPage() {
       }
       // Debit Available Balance + bump project's extra_funds_approved
       await supabase.from('fund_transactions').insert({
-        type: 'expense', amount: Number(req.amount),
+        type: 'out', amount: Number(req.amount),
         reason: `Project ${project.code} — অতিরিক্ত fund approved`,
       });
       await supabase.from('projects').update({
