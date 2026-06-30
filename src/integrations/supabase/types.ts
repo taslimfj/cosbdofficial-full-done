@@ -423,6 +423,7 @@ export type Database = {
       member_loans: {
         Row: {
           approved_amount: number | null
+          approved_at: string | null
           created_at: string | null
           due_date: string | null
           id: string
@@ -433,6 +434,7 @@ export type Database = {
         }
         Insert: {
           approved_amount?: number | null
+          approved_at?: string | null
           created_at?: string | null
           due_date?: string | null
           id?: string
@@ -443,6 +445,7 @@ export type Database = {
         }
         Update: {
           approved_amount?: number | null
+          approved_at?: string | null
           created_at?: string | null
           due_date?: string | null
           id?: string
