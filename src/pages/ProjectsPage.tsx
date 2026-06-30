@@ -39,25 +39,46 @@ export default function ProjectsPage() {
   }, []);
 
   const handleCreate = async () => {
-    if (!form.name.trim()) { toast.error('Enter project name'); return; }
-    if (!form.managerId) { toast.error('Select manager'); return; }
+    if (!form.name.trim()) { toast.error('Project name দিন'); return; }
+    if (!form.managerId) { toast.error('Manager select করুন'); return; }
+    const budget = parseFloat(form.budget);
+    if (!budget || budget <= 0) { toast.error('আনুমানিক budget দিন'); return; }
+
     setSubmitting(true);
+
+    // Check available fund balance
+    const { data: fundTxs } = await supabase.from('fund_transactions').select('type, amount');
+    const fundBalance = (fundTxs || []).reduce((s: number, t: any) =>
+      s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+    if (budget > fundBalance) {
+      setSubmitting(false);
+      toast.error(`Fund-এ পর্যাপ্ত টাকা নেই। Available: ৳${fundBalance.toFixed(0)}`);
+      return;
+    }
+
     const code = generateCode('PRJ');
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
+      budget_amount: budget,
     }).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
+
+    // Reserve budget from Fund
+    await supabase.from('fund_transactions').insert({
+      type: 'expense', amount: budget,
+      reason: `Project ${code} — Budget reserved (${form.name.trim()})`,
+    });
 
     // Snapshot member shares — locked at creation
     try { await snapshotMemberShares({ type: 'project', sourceId: inserted.id }); }
     catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
 
     setSubmitting(false);
-    toast.success(`Project ${code} created`);
+    toast.success(`Project ${code} created — ৳${budget} Fund থেকে reserve হয়েছে`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15' });
+    setForm({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15', budget: '' });
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };
