@@ -84,7 +84,8 @@ export default function ProjectDetailPage() {
   const totals = useMemo(() => {
     const inAmt = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
     const outAmt = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-    return { in: inAmt, out: outAmt, profit: Math.max(0, inAmt - outAmt) };
+    const net = inAmt - outAmt;
+    return { in: inAmt, out: outAmt, profit: Math.max(0, net), loss: Math.max(0, -net), net };
   }, [txs]);
 
   // Snapshot shares — locked at project creation
@@ -98,6 +99,7 @@ export default function ProjectDetailPage() {
   const shareRows = useMemo(() => {
     if (!project || !snapshot.length) return [] as any[];
     const pool = profitTotalsPre.memberPool;
+    const lossPool = totals.loss; // loss fully borne by members per snapshot share
     return snapshot.map((s: any) => ({
       id: s.id,
       memberId: s.member_id,
@@ -105,13 +107,15 @@ export default function ProjectDetailPage() {
       deposit: Number(s.deposit_snapshot),
       sharePct: Number(s.share_percentage),
       expected: pool * Number(s.share_percentage) / 100,
+      lossShare: lossPool * Number(s.share_percentage) / 100,
       isDeleted: !!s.is_member_deleted || !s.member_id,
     })).sort((a, b) => b.sharePct - a.sharePct);
-  }, [project, snapshot, profitTotalsPre]);
+  }, [project, snapshot, profitTotalsPre, totals.loss]);
 
   const profitTotals = profitTotalsPre;
 
   const alreadyDistributed = distributions.length > 0;
+
 
   const budgetAssigned = Number(project?.budget_amount || 0) + Number(project?.extra_funds_approved || 0);
   const budgetRemaining = Math.max(0, budgetAssigned - totals.out);
