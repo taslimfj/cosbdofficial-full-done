@@ -170,6 +170,18 @@ export default function MemberLoansPage() {
     fetchLoans();
   };
 
+  const handleDeleteLoan = async (loan: any) => {
+    if (loan.status !== 'repaid') { toast.error('শুধু পরিশোধিত লোন delete করা যাবে'); return; }
+    const isBorrower = loan.member_id === user?.id;
+    if (!(role === 'admin' || isBorrower)) { toast.error('আপনার অনুমতি নেই'); return; }
+    const { error: repErr } = await supabase.from('member_loan_repayments').delete().eq('loan_id', loan.id);
+    if (repErr) { toast.error(repErr.message); return; }
+    const { error } = await supabase.from('member_loans').delete().eq('id', loan.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('লোন delete হয়েছে');
+    fetchLoans();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
