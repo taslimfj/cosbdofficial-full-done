@@ -245,7 +245,7 @@ export default function ProjectDetailPage() {
       }
       if (profitTotals.fund > 0) {
         rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
-        fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
+        fundTxRows.push({ type: 'in', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
       }
       // Admin pool — split equally among all admins
       if (profitTotals.admin > 0) {
@@ -264,14 +264,14 @@ export default function ProjectDetailPage() {
           });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((project as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
-          fundTxRows.push({ type: 'income', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) → Available Balance` });
         }
       }
       shareRows.forEach(r => {
         if (r.expected <= 0) return;
         if (r.isDeleted || !r.memberId) {
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
-          fundTxRows.push({ type: 'income', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted) profit share → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted) profit share → Available Balance` });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
           memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) + r.expected);
@@ -284,7 +284,7 @@ export default function ProjectDetailPage() {
         if (r.isDeleted || !r.memberId) {
           // Deleted member's loss absorbed by Available Balance
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss_deleted_to_fund' });
-          fundTxRows.push({ type: 'expense', amount: r.lossShare, reason: `Project ${project.code} — ${r.name} (deleted) loss share → Available Balance থেকে কাটা` });
+          fundTxRows.push({ type: 'out', amount: r.lossShare, reason: `Project ${project.code} — ${r.name} (deleted) loss share → Available Balance থেকে কাটা` });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss' });
           memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) - r.lossShare);
