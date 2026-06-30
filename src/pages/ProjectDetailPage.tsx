@@ -73,8 +73,8 @@ export default function ProjectDetailPage() {
         name: project.name || '',
         manager_id: project.manager_id || '',
         secondary_manager_id: project.secondary_manager_id || '',
-        manager_profit_pct: String(project.manager_profit_pct ?? '5'),
-        fund_profit_pct: String(project.fund_profit_pct ?? '15'),
+        manager_profit_pct: String(project.manager_profit_pct ?? '10'),
+        fund_profit_pct: String(project.fund_profit_pct ?? '5'),
         status: project.status || 'active',
         comments: project.comments || '',
       });
