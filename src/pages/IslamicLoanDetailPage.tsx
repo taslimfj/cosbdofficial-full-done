@@ -716,9 +716,10 @@ export default function IslamicLoanDetailPage() {
           <div className="space-y-2">
             {payments.slice(0, payLimit).map(p => (
               <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
                   <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy · hh:mm a')}</p>
+                  {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
                 </div>
                 <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
               </div>
