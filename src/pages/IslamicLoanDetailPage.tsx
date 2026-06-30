@@ -136,6 +136,7 @@ export default function IslamicLoanDetailPage() {
       borrower_name: edit.borrower_name.trim() || null,
       borrower_phone: edit.borrower_phone.trim() || null,
       relative_phone: edit.relative_phone.trim() || null,
+      product_name: edit.product_name?.trim() || null,
       purchase_price: parseFloat(edit.purchase_price) || 0,
       sell_price: parseFloat(edit.sell_price) || 0,
       tenure_months: parseInt(edit.tenure_months) || 3,
@@ -148,6 +149,7 @@ export default function IslamicLoanDetailPage() {
       remaining_amount: parseFloat(edit.remaining_amount) || 0,
       status: edit.status,
       comments: edit.comments,
+      payment_methods: (edit.payment_methods || []).filter((m: PaymentMethod) => m.label?.trim() && m.value?.trim()),
     };
     const { error } = await supabase.from('islamic_loans').update(payload).eq('id', id!);
     setBusy(false);
