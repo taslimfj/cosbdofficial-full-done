@@ -480,9 +480,10 @@ export default function IslamicLoanDetailPage() {
             <div className="space-y-2">
               {myRequests.map(r => (
                 <div key={r.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                  <div>
-                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <div className="min-w-0">
+                    <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}{r.payment_method ? ` · ${r.payment_method}` : ''}</p>
                     <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                    {r.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {r.transaction_id}</p>}
                     {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600' : r.status === 'rejected' ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{r.status}</span>
