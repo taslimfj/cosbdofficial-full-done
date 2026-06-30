@@ -44,6 +44,9 @@ export default function IslamicLoanDetailPage() {
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
   const [requestNote, setRequestNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
 
   const [edit, setEdit] = useState<any>(null);
 
