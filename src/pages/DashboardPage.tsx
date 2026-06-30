@@ -24,25 +24,40 @@ export default function DashboardPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fund_transactions' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profit_distributions' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchData = async () => {
-    const [profilesRes, fundRes, loansRes] = await Promise.all([
+    const [profilesRes, fundRes, loansRes, depsRes, distRes] = await Promise.all([
       (supabase as any).from('member_directory').select('*'),
       supabase.from('fund_transactions').select('*'),
       (supabase as any).from('islamic_loans_public').select('*').eq('status', 'active'),
+      supabase.from('deposits').select('member_id, amount, status'),
+      supabase.from('profit_distributions').select('member_id, amount'),
     ]);
 
     const profiles = profilesRes.data || [];
     const fundTxns = fundRes.data || [];
     const activeLoans = loansRes.data || [];
+    const deposits = depsRes.data || [];
+    const distributions = distRes.data || [];
 
-    const totalInvestment = profiles
-      .filter((p: any) => !p.is_deleted)
-      .reduce((sum, p) => sum + Number(p.total_deposited || 0), 0);
+    // Per-member current balance = approved deposits + profit distributions − approved withdrawals
+    const activeProfileIds = new Set(profiles.filter((p: any) => !p.is_deleted).map((p: any) => p.id));
+    const balanceByMember = new Map<string, number>();
+    for (const d of deposits) {
+      if (d.status !== 'approved' || !activeProfileIds.has(d.member_id)) continue;
+      balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount));
+    }
+    for (const r of distributions) {
+      if (!activeProfileIds.has(r.member_id)) continue;
+      balanceByMember.set(r.member_id, (balanceByMember.get(r.member_id) || 0) + Number(r.amount || 0));
+    }
+    const totalInvestment = Array.from(balanceByMember.values()).reduce((s, v) => s + v, 0);
+
     const fundIn = fundTxns.filter(t => t.type === 'income' || t.type === 'in').reduce((s, t) => s + Number(t.amount), 0);
     const fundOut = fundTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
     const availableFund = totalInvestment + fundIn - fundOut;
