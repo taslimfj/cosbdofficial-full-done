@@ -826,6 +826,25 @@ export default function IslamicLoanDetailPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Payment Method (optional)</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger><SelectValue placeholder="bKash / Nagad / Bank ..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bKash">bKash</SelectItem>
+                  <SelectItem value="Nagad">Nagad</SelectItem>
+                  <SelectItem value="Rocket">Rocket</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Card">Card</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Transaction ID (optional)</Label>
+              <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeposit(false)}>Cancel</Button>
