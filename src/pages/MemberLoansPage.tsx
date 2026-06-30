@@ -240,6 +240,9 @@ export default function MemberLoansPage() {
                         {loan.status === 'approved' && remaining > 0 && ` · Remaining: ${formatBDT(remaining)}`}
                         {loan.due_date && ` · Due: ${format(new Date(loan.due_date), 'MMM d, yyyy')}`}
                       </p>
+                      {loan.reason && (
+                        <p className="text-xs text-muted-foreground/80 mt-0.5 italic">কারণ: {loan.reason}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
