@@ -23,7 +23,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15', budget: '' });
+  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', budget: '' });
 
   useEffect(() => {
     Promise.all([
@@ -90,7 +90,7 @@ export default function ProjectsPage() {
     setSubmitting(false);
     toast.success(`Project ${code} created — ৳${budget} Available Balance থেকে assign হলো`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '5', fundProfitPct: '15', budget: '' });
+    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', budget: '' });
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };

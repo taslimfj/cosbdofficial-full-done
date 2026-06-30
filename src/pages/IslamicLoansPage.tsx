@@ -34,8 +34,8 @@ export default function IslamicLoansPage() {
     tenure: '3',
     mediaPersonId: '',
     comments: '',
-    mediaPersonProfitPct: '5',
-    fundProfitPct: '15',
+    mediaPersonProfitPct: '10',
+    fundProfitPct: '5',
     discountPct: '0',
   });
 
@@ -121,7 +121,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '5', fundProfitPct: '15', discountPct: '0' });
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
   };

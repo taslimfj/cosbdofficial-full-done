@@ -86,8 +86,8 @@ export default function IslamicLoanDetailPage() {
         profit_percentage: String(loan.profit_percentage ?? ''),
         discount_pct: String(loan.discount_pct ?? '0'),
         media_person_id: loan.media_person_id || '',
-        media_person_profit_pct: String(loan.media_person_profit_pct ?? '5'),
-        fund_profit_pct: String(loan.fund_profit_pct ?? '15'),
+        media_person_profit_pct: String(loan.media_person_profit_pct ?? '10'),
+        fund_profit_pct: String(loan.fund_profit_pct ?? '5'),
         monthly_installment: String(loan.monthly_installment ?? ''),
         remaining_amount: String(loan.remaining_amount ?? ''),
         status: loan.status || 'active',
@@ -98,11 +98,12 @@ export default function IslamicLoanDetailPage() {
 
   // Profit totals computed from loan (purchase/sell)
   const profitTotals = useMemo(() => {
-    if (!loan) return { total: 0, fund: 0, media: 0, memberPool: 0 };
+    if (!loan) return { total: 0, fund: 0, media: 0, admin: 0, memberPool: 0 };
     const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
     const fund = total * (Number(loan.fund_profit_pct) || 0) / 100;
     const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
-    return { total, fund, media, memberPool: Math.max(0, total - fund - media) };
+    const admin = total * (Number((loan as any).admin_profit_pct) || 0) / 100;
+    return { total, fund, media, admin, memberPool: Math.max(0, total - fund - media - admin) };
   }, [loan]);
 
   // Snapshot share rows — frozen at loan creation
@@ -190,6 +191,23 @@ export default function IslamicLoanDetailPage() {
     }
     if (profitTotals.media > 0 && loan.media_person_id) {
       rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
+    }
+
+    // Admin pool — split equally among all admins
+    if (profitTotals.admin > 0) {
+      const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+      const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+      if (adminIds.length > 0) {
+        const perAdmin = profitTotals.admin / adminIds.length;
+        const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
+        adminIds.forEach((uid: string) => {
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+        });
+      } else {
+        // No admins → redirect to Fund
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+        fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ` });
+      }
     }
 
     shareRows.forEach(r => {
@@ -499,10 +517,11 @@ export default function IslamicLoanDetailPage() {
           {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Total Profit</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.total)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.fund)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.media)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.admin)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Member Pool</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.memberPool)}</p></div>
         </div>
 

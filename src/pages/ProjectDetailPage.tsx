@@ -73,8 +73,8 @@ export default function ProjectDetailPage() {
         name: project.name || '',
         manager_id: project.manager_id || '',
         secondary_manager_id: project.secondary_manager_id || '',
-        manager_profit_pct: String(project.manager_profit_pct ?? '5'),
-        fund_profit_pct: String(project.fund_profit_pct ?? '15'),
+        manager_profit_pct: String(project.manager_profit_pct ?? '10'),
+        fund_profit_pct: String(project.fund_profit_pct ?? '5'),
         status: project.status || 'active',
         comments: project.comments || '',
       });
@@ -90,10 +90,11 @@ export default function ProjectDetailPage() {
 
   // Snapshot shares — locked at project creation
   const profitTotalsPre = useMemo(() => {
-    if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
+    if (!project) return { total: 0, manager: 0, fund: 0, admin: 0, memberPool: 0 };
     const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
     const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    return { total: totals.profit, manager: mgr, fund, memberPool: Math.max(0, totals.profit - mgr - fund) };
+    const admin = totals.profit * (Number((project as any).admin_profit_pct) || 0) / 100;
+    return { total: totals.profit, manager: mgr, fund, admin, memberPool: Math.max(0, totals.profit - mgr - fund - admin) };
   }, [project, totals]);
 
   const shareRows = useMemo(() => {
@@ -246,6 +247,22 @@ export default function ProjectDetailPage() {
         rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
         fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
       }
+      // Admin pool — split equally among all admins
+      if (profitTotals.admin > 0) {
+        const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+        if (adminIds.length > 0) {
+          const perAdmin = profitTotals.admin / adminIds.length;
+          const perAdminPct = (Number((project as any).admin_profit_pct) || 0) / adminIds.length;
+          adminIds.forEach((uid: string) => {
+            rows.push({ source_type: 'project', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+            memberDelta.set(uid, (memberDelta.get(uid) || 0) + perAdmin);
+          });
+        } else {
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((project as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+          fundTxRows.push({ type: 'income', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) → Available Balance` });
+        }
+      }
       shareRows.forEach(r => {
         if (r.expected <= 0) return;
         if (r.isDeleted || !r.memberId) {
@@ -386,7 +403,7 @@ export default function ProjectDetailPage() {
         <div className="mt-4 flex gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <span>Manager: {project.manager_profit_pct}%</span>
           <span>Fund: {project.fund_profit_pct}%</span>
-          <span>Members pool: {Math.max(0, 100 - Number(project.manager_profit_pct) - Number(project.fund_profit_pct))}%</span>
+          <span>Members pool: {Math.max(0, 100 - Number(project.manager_profit_pct) - Number(project.fund_profit_pct) - Number((project as any).admin_profit_pct || 0))}%</span>
         </div>
         {project.comments && <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{project.comments}</p>}
       </div>
@@ -454,9 +471,10 @@ export default function ProjectDetailPage() {
             <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ Available Balance থেকে কাটবে।</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.manager)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.fund)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Admins ({(project as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.admin)}</p></div>
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
           </div>
         )}
