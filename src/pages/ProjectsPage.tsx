@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Plus, Loader2, FolderKanban } from 'lucide-react';
@@ -143,27 +144,40 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.length === 0 ? (
-          <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
-            <FolderKanban className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No projects yet.</p>
-          </div>
-        ) : projects.map(proj => (
-          <Link key={proj.id} to={`/projects/${proj.id}`} className="block bg-card border border-border p-5 rounded-xl hover:border-primary/30 transition-colors shadow-subtle">
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-xs font-mono bg-secondary px-2 py-1 rounded text-foreground">{proj.code}</span>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${proj.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-secondary text-muted-foreground'}`}>{proj.status}</span>
-            </div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">{proj.name}</h3>
-            <p className="text-xs text-muted-foreground">Manager: {proj.manager?.full_name || 'N/A'}</p>
-            <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-              <span>Manager: {proj.manager_profit_pct}%</span>
-              <span>Fund: {proj.fund_profit_pct}%</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList>
+          <TabsTrigger value="active">Active ({projects.filter(p => p.status === 'active').length})</TabsTrigger>
+          <TabsTrigger value="closed">Closed ({projects.filter(p => p.status !== 'active').length})</TabsTrigger>
+        </TabsList>
+        {(['active', 'closed'] as const).map(tab => {
+          const list = projects.filter(p => tab === 'active' ? p.status === 'active' : p.status !== 'active');
+          return (
+            <TabsContent key={tab} value={tab} className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {list.length === 0 ? (
+                  <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
+                    <FolderKanban className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No {tab} projects.</p>
+                  </div>
+                ) : list.map(proj => (
+                  <Link key={proj.id} to={`/projects/${proj.id}`} className="block bg-card border border-border p-5 rounded-xl hover:border-primary/30 transition-colors shadow-subtle">
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-xs font-mono bg-secondary px-2 py-1 rounded text-foreground">{proj.code}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${proj.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-secondary text-muted-foreground'}`}>{proj.status}</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">{proj.name}</h3>
+                    <p className="text-xs text-muted-foreground">Manager: {proj.manager?.full_name || 'N/A'}</p>
+                    <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
+                      <span>Manager: {proj.manager_profit_pct}%</span>
+                      <span>Fund: {proj.fund_profit_pct}%</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
     </div>
   );
 }
