@@ -247,6 +247,22 @@ export default function ProjectDetailPage() {
         rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(project.fund_profit_pct), distribution_type: 'fund' });
         fundTxRows.push({ type: 'income', amount: profitTotals.fund, reason: `Project ${project.code} — Fund profit share (${project.fund_profit_pct}%)` });
       }
+      // Admin pool — split equally among all admins
+      if (profitTotals.admin > 0) {
+        const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+        const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+        if (adminIds.length > 0) {
+          const perAdmin = profitTotals.admin / adminIds.length;
+          const perAdminPct = (Number((project as any).admin_profit_pct) || 0) / adminIds.length;
+          adminIds.forEach((uid: string) => {
+            rows.push({ source_type: 'project', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+            memberDelta.set(uid, (memberDelta.get(uid) || 0) + perAdmin);
+          });
+        } else {
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((project as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+          fundTxRows.push({ type: 'income', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) → Available Balance` });
+        }
+      }
       shareRows.forEach(r => {
         if (r.expected <= 0) return;
         if (r.isDeleted || !r.memberId) {
