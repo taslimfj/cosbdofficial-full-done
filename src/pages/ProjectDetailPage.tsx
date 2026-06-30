@@ -90,10 +90,11 @@ export default function ProjectDetailPage() {
 
   // Snapshot shares — locked at project creation
   const profitTotalsPre = useMemo(() => {
-    if (!project) return { total: 0, manager: 0, fund: 0, memberPool: 0 };
+    if (!project) return { total: 0, manager: 0, fund: 0, admin: 0, memberPool: 0 };
     const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
     const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    return { total: totals.profit, manager: mgr, fund, memberPool: Math.max(0, totals.profit - mgr - fund) };
+    const admin = totals.profit * (Number((project as any).admin_profit_pct) || 0) / 100;
+    return { total: totals.profit, manager: mgr, fund, admin, memberPool: Math.max(0, totals.profit - mgr - fund - admin) };
   }, [project, totals]);
 
   const shareRows = useMemo(() => {
