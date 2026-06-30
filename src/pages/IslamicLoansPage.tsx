@@ -11,12 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { Plus, Phone, MessageCircle, MessageSquare, Loader2, Settings } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
 import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
+import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
