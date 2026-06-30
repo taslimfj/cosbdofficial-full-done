@@ -435,43 +435,58 @@ export default function ProjectDetailPage() {
       </div>
 
 
-      {/* Profit Distribution */}
+      {/* Profit / Loss Distribution */}
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold">Profit Distribution</h2>
-          {isAdmin && isClosed && !alreadyDistributed && (
-            <Button size="sm" onClick={handleDistribute} disabled={busy || profitTotals.total <= 0}>
+          <h2 className="font-semibold">{totals.loss > 0 ? 'Loss Distribution' : 'Profit Distribution'}</h2>
+          {isAdmin && isClosed && !alreadyDistributed && (totals.profit > 0 || totals.loss > 0) && (
+            <Button size="sm" variant={totals.loss > 0 ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
               {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-              <Sparkles className="w-4 h-4 mr-1" /> Distribute Profit
+              <Sparkles className="w-4 h-4 mr-1" /> Distribute {totals.loss > 0 ? 'Loss' : 'Profit'}
             </Button>
           )}
           {alreadyDistributed && <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-full">Distributed</span>}
         </div>
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.manager)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.fund)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
-        </div>
+        {totals.loss > 0 ? (
+          <div className="bg-destructive/5 rounded-lg p-3 mb-4">
+            <p className="text-xs text-muted-foreground mb-1">Total Loss</p>
+            <p className="font-mono font-bold tabular-nums text-sm text-destructive">−{formatBDT(totals.loss)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ Available Balance থেকে কাটবে।</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.manager)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.fund)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
+          </div>
+        )}
         {shareRows.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">No member shares snapshot for this project.</p>
         ) : (
           <div className="space-y-1.5">
-            {shareRows.map(r => (
-              <div key={r.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded-lg ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
-                <span className="font-medium truncate">
-                  {r.name}
-                  {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Fund)</span>}
-                </span>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground">{r.sharePct.toFixed(2)}%</span>
-                  <span className={`font-mono font-bold tabular-nums ${r.isDeleted ? 'line-through text-muted-foreground' : ''}`}>{formatBDT(r.expected)}</span>
+            {shareRows.map(r => {
+              const isLoss = totals.loss > 0;
+              const amount = isLoss ? r.lossShare : r.expected;
+              return (
+                <div key={r.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded-lg ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
+                  <span className="font-medium truncate">
+                    {r.name}
+                    {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Available Balance)</span>}
+                  </span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-muted-foreground">{r.sharePct.toFixed(2)}%</span>
+                    <span className={`font-mono font-bold tabular-nums ${r.isDeleted ? 'line-through text-muted-foreground' : isLoss ? 'text-destructive' : ''}`}>
+                      {isLoss ? '−' : ''}{formatBDT(amount)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <p className="text-[10px] text-muted-foreground mt-2 italic">Project তৈরির সময়ের snapshot — পরিবর্তন হয় না।</p>
           </div>
         )}
       </div>
+
 
       {/* Transactions */}
       <div className="bg-card border border-border rounded-xl p-5">
