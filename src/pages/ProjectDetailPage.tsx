@@ -296,7 +296,10 @@ export default function ProjectDetailPage() {
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    if (fundTxRows.length) await supabase.from('fund_transactions').insert(fundTxRows);
+    if (fundTxRows.length) {
+      const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
+      if (ftErr) toast.error('Fund tx: ' + ftErr.message);
+    }
 
     // Apply member balance deltas (+profit / -loss)
     if (memberDelta.size > 0) {
