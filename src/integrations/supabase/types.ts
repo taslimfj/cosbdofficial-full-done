@@ -437,6 +437,7 @@ export type Database = {
           due_date: string | null
           id: string
           member_id: string
+          reason: string | null
           repaid_amount: number | null
           requested_amount: number
           status: string | null
@@ -448,6 +449,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           member_id: string
+          reason?: string | null
           repaid_amount?: number | null
           requested_amount: number
           status?: string | null
@@ -459,6 +461,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           member_id?: string
+          reason?: string | null
           repaid_amount?: number | null
           requested_amount?: number
           status?: string | null
