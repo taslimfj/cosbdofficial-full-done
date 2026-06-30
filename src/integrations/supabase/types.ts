@@ -388,26 +388,35 @@ export type Database = {
       member_loan_repayments: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           id: string
           loan_id: string
           payment_method: string | null
+          status: string
           transaction_number: string | null
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           id?: string
           loan_id: string
           payment_method?: string | null
+          status?: string
           transaction_number?: string | null
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           id?: string
           loan_id?: string
           payment_method?: string | null
+          status?: string
           transaction_number?: string | null
         }
         Relationships: [
