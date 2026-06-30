@@ -187,6 +187,15 @@ export default function MemberLoansPage() {
                     <Label>Amount (৳)</Label>
                     <Input type="number" value={requestAmount} onChange={e => setRequestAmount(e.target.value)} placeholder="0" />
                   </div>
+                  <div className="space-y-2">
+                    <Label>কারণ *</Label>
+                    <Textarea
+                      value={requestReason}
+                      onChange={e => setRequestReason(e.target.value)}
+                      placeholder="কী কারণে লোন প্রয়োজন তা সংক্ষেপে লিখুন"
+                      rows={3}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground">Repayment deadline: 3 months. If not repaid, amount will be deducted from your balance.</p>
                   <Button className="w-full" onClick={handleRequest} disabled={submitting}>
                     {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Submit Request
