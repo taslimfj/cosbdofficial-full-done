@@ -884,9 +884,13 @@ export type Database = {
     Views: {
       islamic_loans_public: {
         Row: {
+          admin_profit_pct: number | null
+          borrower_name: string | null
+          borrower_phone: string | null
           code: string | null
           comments: string | null
           created_at: string | null
+          customer_user_id: string | null
           discount_pct: number | null
           fund_profit_pct: number | null
           id: string | null
@@ -895,15 +899,20 @@ export type Database = {
           monthly_installment: number | null
           profit_percentage: number | null
           purchase_price: number | null
+          relative_phone: string | null
           remaining_amount: number | null
           sell_price: number | null
           status: string | null
           tenure_months: number | null
         }
         Insert: {
+          admin_profit_pct?: number | null
+          borrower_name?: never
+          borrower_phone?: never
           code?: string | null
           comments?: string | null
           created_at?: string | null
+          customer_user_id?: string | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string | null
@@ -912,15 +921,20 @@ export type Database = {
           monthly_installment?: number | null
           profit_percentage?: number | null
           purchase_price?: number | null
+          relative_phone?: never
           remaining_amount?: number | null
           sell_price?: number | null
           status?: string | null
           tenure_months?: number | null
         }
         Update: {
+          admin_profit_pct?: number | null
+          borrower_name?: never
+          borrower_phone?: never
           code?: string | null
           comments?: string | null
           created_at?: string | null
+          customer_user_id?: string | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string | null
@@ -929,6 +943,7 @@ export type Database = {
           monthly_installment?: number | null
           profit_percentage?: number | null
           purchase_price?: number | null
+          relative_phone?: never
           remaining_amount?: number | null
           sell_price?: number | null
           status?: string | null
