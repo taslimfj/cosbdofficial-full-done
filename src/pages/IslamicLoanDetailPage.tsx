@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
+import { LoanContractPdf } from '@/components/LoanContractPdf';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -465,12 +466,16 @@ export default function IslamicLoanDetailPage() {
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        {isAdmin && (
-          <div className="flex gap-2">
+        {isAdmin ? (
+          <div className="flex gap-2 flex-wrap">
+            <LoanContractPdf loan={loan} />
             <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
             <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
             <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
           </div>
+        ) : (
+          // Member (non-customer) — only download contract
+          <LoanContractPdf loan={loan} />
         )}
       </div>
 
