@@ -40,7 +40,9 @@ export default function DashboardPage() {
     const fundTxns = fundRes.data || [];
     const activeLoans = loansRes.data || [];
 
-    const totalInvestment = profiles.reduce((sum, p) => sum + Number(p.total_deposited || 0), 0);
+    const totalInvestment = profiles
+      .filter((p: any) => !p.is_deleted)
+      .reduce((sum, p) => sum + Number(p.total_deposited || 0), 0);
     const fundIn = fundTxns.filter(t => t.type === 'income' || t.type === 'in').reduce((s, t) => s + Number(t.amount), 0);
     const fundOut = fundTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
     const availableFund = totalInvestment + fundIn - fundOut;
