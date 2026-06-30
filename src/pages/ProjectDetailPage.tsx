@@ -130,11 +130,11 @@ export default function ProjectDetailPage() {
       closed_at: edit.status === 'closed' && !project.closed_at ? new Date().toISOString() : project.closed_at,
     };
 
-    // On close: refund leftover budget to Fund
+    // On close: refund leftover budget to Available Balance
     if (becomingClosed && budgetRemaining > 0 && Number(project.budget_returned || 0) === 0) {
       await supabase.from('fund_transactions').insert({
         type: 'income', amount: budgetRemaining,
-        reason: `Project ${project.code} — অব্যবহৃত budget Fund-এ ফেরত`,
+        reason: `Project ${project.code} — অব্যবহৃত budget Available Balance-এ ফেরত`,
       });
       payload.budget_returned = budgetRemaining;
     }
@@ -143,7 +143,7 @@ export default function ProjectDetailPage() {
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(becomingClosed && budgetRemaining > 0
-      ? `Project closed — ৳${budgetRemaining.toFixed(0)} Fund-এ ফেরত গেল`
+      ? `Project closed — ৳${budgetRemaining.toFixed(0)} Available Balance-এ ফেরত`
       : 'Project updated');
     setShowEdit(false);
     load();
