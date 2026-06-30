@@ -116,23 +116,23 @@ export function LoanContractPdf({ loan }: Props) {
 
         {/* Product / price / installment */}
         <div style={{ marginBottom: 6 }}>
-          <b>পণ্য:</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 500, paddingLeft: 6 }}>{productName}</span>
+          <b>পণ্য:</b> <span style={{ paddingLeft: 6 }}>{productName}</span>
         </div>
         <div style={{ marginBottom: 6 }}>
-          <b>বিক্রয় মূল্য:</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 500, paddingLeft: 6 }}>{toBn(formatBDT(sellPrice))}</span>
+          <b>বিক্রয় মূল্য:</b> <span style={{ paddingLeft: 6 }}>{toBn(formatBDT(sellPrice))}</span>
         </div>
         <div style={{ marginBottom: 18 }}>
-          <b>কিস্তির পরিমাণ:</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 220, paddingLeft: 6 }}>{toBn(formatBDT(monthly))}</span>
+          <b>কিস্তির পরিমাণ:</b> <span style={{ paddingLeft: 6 }}>{toBn(formatBDT(monthly))}</span>
           <span style={{ marginLeft: 12 }}>মাসিক</span>
         </div>
 
         {/* Main clause */}
         <p style={{ textAlign: 'justify', margin: '18px 0' }}>
-          <b style={{ borderBottom: '1px dotted #333', padding: '0 6px' }}>{borrowerName}</b>
+          <b style={{ padding: '0 6px' }}>{borrowerName}</b>
           {' '}কে{' '}
-          <b style={{ borderBottom: '1px dotted #333', padding: '0 6px' }}>{toBn(tenure)}</b>
+          <b style={{ padding: '0 6px' }}>{toBn(tenure)}</b>
           {' '}মাসের কিস্তি সুবিধা চুক্তিতে পণ্যটি বিক্রয় করা হলো। তিনি পণ্যটির সম্পূর্ণ মূল্য{' '}
-          <b style={{ borderBottom: '1px dotted #333', padding: '0 6px' }}>{dueDateBn}</b>
+          <b style={{ padding: '0 6px' }}>{dueDateBn}</b>
           {' '}তারিখ এর মধ্যে পরিশোধ করিতে বাধ্য থাকিবেন অন্যথায় আইনানুগ ব্যবস্থা গ্রহণ করা হবে এবং এর সকল দায়ভার মাধ্যম গ্রহণ করিবে।
         </p>
 
@@ -160,22 +160,23 @@ export function LoanContractPdf({ loan }: Props) {
         <div style={{ marginTop: 24 }}>
           <b>শর্ত:</b>
           <ol style={{ paddingLeft: 20, margin: '6px 0' }}>
-            <li>মাসিক ভিত্তিতে প্রতি মাসের ১০ তারিখের ভিতরে টাকা পরিশোধ করতে হবে।</li>
             <li>সাপ্তাহিক ভিত্তিতে প্রতি সপ্তাহের সোমবারের মধ্যে টাকা পরিশোধ করতে হবে।</li>
             <li>মোবাইল ব্যাংকিং এর মাধ্যমে পাঠালে বিকাশে হাজারে ১২ টাকা ৫০ পয়সা, নগদে ১৫ টাকা খরচ সহকারে পাঠাতে হবে।</li>
           </ol>
         </div>
 
-        {/* Bank info */}
+        {/* Bank info — from default payment methods */}
         <div style={{ marginTop: 18, fontSize: 13 }}>
           <b>ব্যাংক অ্যাকাউন্ট</b>
-          <div>ইসলামী ব্যাংক বাংলাদেশ, বরিশাল শাখা</div>
-          <div>নাম: Rahmatullah Mohamed Taslim</div>
-          <div>অ্যাকাউন্ট নাম্বার: ২০৫০১১১৬৭০০৬৯৪৩০৫</div>
-          <div>রাউটিং নাম্বার: ১২৫০৬০২৮৮</div>
-          <div>Visa কার্ড নাম্বার: ৪১৭০৩৩১০১৬০১৩৩৯৮</div>
-          <div>বিকাশ / নগদ : ০১৫৬৮০০৫৩৯৯</div>
+          {defaults.length === 0 ? (
+            <div style={{ color: '#888' }}>কোনো ডিফল্ট পেমেন্ট মাধ্যম সেট করা নেই।</div>
+          ) : (
+            defaults.map((d, i) => (
+              <div key={i}>{d.label}: {toBn(d.value)}</div>
+            ))
+          )}
         </div>
+
 
         {/* Signatures */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 60, gap: 30 }}>
