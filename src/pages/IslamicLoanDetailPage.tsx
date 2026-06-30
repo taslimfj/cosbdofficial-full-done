@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
+import { LoanContractPdf } from '@/components/LoanContractPdf';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
