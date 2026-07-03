@@ -13,7 +13,7 @@ import { generateDashboardPDF } from '@/lib/pdfGenerator';
 export default function DashboardPage() {
   const { role } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalInvestment: 0, availableFund: 0, totalMembers: 0, activeLoans: 0 });
+  const [stats, setStats] = useState({ totalInvestment: 0, availableFund: 0, cashInHand: 0, totalMembers: 0, activeLoans: 0 });
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -25,18 +25,24 @@ export default function DashboardPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fund_transactions' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profit_distributions' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_transactions' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loans' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loan_payments' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchData = async () => {
-    const [profilesRes, fundRes, loansRes, depsRes, distRes] = await Promise.all([
+    const [profilesRes, fundRes, loansRes, depsRes, distRes, projTxRes, ilRes, ilPayRes] = await Promise.all([
       (supabase as any).from('member_directory').select('*'),
       supabase.from('fund_transactions').select('*'),
       (supabase as any).from('islamic_loans_public').select('*').eq('status', 'active'),
       supabase.from('deposits').select('member_id, amount, status'),
       supabase.from('profit_distributions').select('member_id, amount'),
+      supabase.from('project_transactions').select('type, amount'),
+      supabase.from('islamic_loans').select('purchase_price'),
+      supabase.from('islamic_loan_payments').select('amount'),
     ]);
 
     const profiles = profilesRes.data || [];
@@ -44,8 +50,10 @@ export default function DashboardPage() {
     const activeLoans = loansRes.data || [];
     const deposits = depsRes.data || [];
     const distributions = distRes.data || [];
+    const projTxns = projTxRes.data || [];
+    const ilLoans = ilRes.data || [];
+    const ilPayments = ilPayRes.data || [];
 
-    // Per-member current balance = approved deposits + profit distributions − approved withdrawals
     const activeProfileIds = new Set(profiles.filter((p: any) => !p.is_deleted).map((p: any) => p.id));
     const balanceByMember = new Map<string, number>();
     for (const d of deposits) {
@@ -62,9 +70,18 @@ export default function DashboardPage() {
     const fundOut = fundTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
     const availableFund = fundIn - fundOut;
 
+    const projectIncome = projTxns.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const projectExpense = projTxns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const ilPurchases = ilLoans.reduce((s: number, l: any) => s + Number(l.purchase_price || 0), 0);
+    const ilInstallments = ilPayments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+
+    const cashInHand =
+      totalInvestment + availableFund + projectIncome - projectExpense - ilPurchases + ilInstallments;
+
     setStats({
       totalInvestment,
       availableFund,
+      cashInHand,
       totalMembers: profiles.filter((p: any) => !p.is_deleted && !p.is_customer).length,
       activeLoans: activeLoans.length,
     });

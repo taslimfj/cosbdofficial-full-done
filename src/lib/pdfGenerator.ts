@@ -347,3 +347,36 @@ export function generateDashboardPDF(data: DashboardPDFData, period: ReportPerio
   footer(doc);
   doc.save(`overall-summary-${period}.pdf`);
 }
+
+// ---------- Cash in Hand ----------
+export function generateCashInHandPDF(
+  allRows: Array<{ created_at: string | null; source: string; direction: 'in' | 'out'; amount: number; reason: string }>,
+  period?: ReportPeriod
+) {
+  const doc = new jsPDF();
+  const rows = period ? filterByPeriod(allRows, period) : allRows;
+  const inn = rows.filter(r => r.direction === 'in').reduce((s, r) => s + r.amount, 0);
+  const out = rows.filter(r => r.direction === 'out').reduce((s, r) => s + r.amount, 0);
+
+  header(doc, 'Cash in Hand Report', period);
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  const y = period ? 50 : 43;
+  doc.text(`Total In: ${formatAmount(inn)}`, 14, y);
+  doc.text(`Total Out: ${formatAmount(out)}`, 14, y + 7);
+  doc.text(`Net (Cash in Hand): ${formatAmount(inn - out)}`, 14, y + 14);
+
+  autoTable(doc, {
+    startY: y + 22,
+    head: [['Date', 'Source', 'Type', 'Amount', 'Reason']],
+    body: rows.map(r => [
+      r.created_at ? format(new Date(r.created_at), 'MMM d, yyyy') : '-',
+      r.source,
+      r.direction === 'in' ? 'In' : 'Out',
+      formatAmount(r.amount),
+      r.reason || '-',
+    ]),
+    ...tableStyle,
+  });
+  footer(doc);
+  doc.save(`cash-in-hand-${period || 'all'}.pdf`);
+}
