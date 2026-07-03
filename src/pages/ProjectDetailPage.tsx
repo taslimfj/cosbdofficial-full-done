@@ -173,11 +173,13 @@ export default function ProjectDetailPage() {
     setBusy(true);
     if (decision === 'approved') {
       // Check Available Balance
-      const [{ data: profs }, { data: fundTxs }] = await Promise.all([
-        (supabase as any).from('member_directory').select('total_deposited'),
+      const [{ data: deps }, { data: dists }, { data: fundTxs }] = await Promise.all([
+        supabase.from('deposits').select('member_id, amount, status').eq('status', 'approved'),
+        supabase.from('profit_distributions').select('member_id, amount'),
         supabase.from('fund_transactions').select('type, amount'),
       ]);
-      const totalCapital = (profs || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0);
+      const totalCapital = (deps || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
+        + (dists || []).filter((d: any) => d.member_id).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
       const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
         s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
       const availableBalance = totalCapital + fundDelta;
@@ -299,17 +301,6 @@ export default function ProjectDetailPage() {
     if (fundTxRows.length) {
       const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
-    }
-
-    // Apply member balance deltas (+profit / -loss)
-    if (memberDelta.size > 0) {
-      const ids = Array.from(memberDelta.keys());
-      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
-      await Promise.all((profs || []).map((p: any) =>
-        supabase.from('profiles').update({
-          total_deposited: Math.max(0, Number(p.total_deposited || 0) + (memberDelta.get(p.id) || 0)),
-        }).eq('id', p.id)
-      ));
     }
 
     setBusy(false);

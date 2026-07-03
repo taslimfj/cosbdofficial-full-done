@@ -48,11 +48,13 @@ export default function ProjectsPage() {
     setSubmitting(true);
 
     // Check Available Balance = total capital + fund income - fund expense
-    const [{ data: profs }, { data: fundTxs }] = await Promise.all([
-      (supabase as any).from('member_directory').select('total_deposited'),
+    const [{ data: deps }, { data: dists }, { data: fundTxs }] = await Promise.all([
+      supabase.from('deposits').select('member_id, amount, status').eq('status', 'approved'),
+      supabase.from('profit_distributions').select('member_id, amount'),
       supabase.from('fund_transactions').select('type, amount'),
     ]);
-    const totalCapital = (profs || []).reduce((s: number, p: any) => s + Number(p.total_deposited || 0), 0);
+    const totalCapital = (deps || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
+      + (dists || []).filter((d: any) => d.member_id).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
     const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
       s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
     const availableBalance = totalCapital + fundDelta;

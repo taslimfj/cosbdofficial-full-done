@@ -58,9 +58,6 @@ export function PendingApprovals() {
     const { error } = await supabase.from('deposits').update({ status: 'approved' }).eq('id', id);
     if (error) return toast.error('Failed to approve deposit');
 
-    const { data: profile } = await supabase.from('profiles').select('total_deposited').eq('id', memberId).single();
-    await supabase.from('profiles').update({ total_deposited: Number(profile?.total_deposited || 0) + Number(amount) }).eq('id', memberId);
-
     toast.success('Deposit approved');
     fetchData();
   };

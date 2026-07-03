@@ -322,23 +322,6 @@ export default function IslamicLoanDetailPage() {
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
-    // Adjust each (non-deleted) member's profile balance (+profit / -loss)
-    const perMember = new Map<string, number>();
-    rows.forEach(r => {
-      if (r.member_id && r.amount !== 0 && r.distribution_type !== 'deleted_member_to_fund') {
-        perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
-      }
-    });
-    if (perMember.size > 0) {
-      const ids = Array.from(perMember.keys());
-      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
-      await Promise.all((profs || []).map((p: any) =>
-        supabase.from('profiles').update({
-          total_deposited: Number(p.total_deposited || 0) + (perMember.get(p.id) || 0),
-        }).eq('id', p.id)
-      ));
-    }
-
     setBusy(false);
     toast.success(isLoss ? 'Loss distributed among members' : 'Profit distributed');
     load();
