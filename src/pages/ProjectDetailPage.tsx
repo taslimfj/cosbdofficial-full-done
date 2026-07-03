@@ -438,10 +438,7 @@ export default function ProjectDetailPage() {
                   <p className="text-[10px] text-muted-foreground">{format(new Date(r.created_at), 'PPp')}</p>
                 </div>
                 {isAdmin && r.status === 'pending' && (
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => handleFundDecision(r, 'approved')} disabled={busy}>Approve</Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleFundDecision(r, 'rejected')} disabled={busy}>Reject</Button>
-                  </div>
+                  <span className="text-[11px] px-2 py-1 rounded-full bg-warning/10 text-warning shrink-0">Dashboard-এ approve/reject</span>
                 )}
               </div>
             ))}

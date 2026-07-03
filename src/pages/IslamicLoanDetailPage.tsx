@@ -772,12 +772,13 @@ export default function IslamicLoanDetailPage() {
         )}
       </div>
 
-      {/* Pending payment requests (admin only) */}
+      {/* Pending payment requests — view-only (approve/reject moved to admin dashboard) */}
       {isAdmin && pendingRequests.length > 0 && (
         <div className="bg-card border border-amber-500/40 rounded-xl p-5">
           <h2 className="font-semibold mb-3 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-500" /> Pending Customer Requests ({pendingRequests.length})
           </h2>
+          <p className="text-xs text-muted-foreground mb-3">Approve / Reject করতে Admin Dashboard-এ যান।</p>
           <div className="space-y-2">
             {pendingRequests.map(r => (
               <div key={r.id} className="flex justify-between items-center p-3 bg-amber-500/5 rounded-lg gap-2">
@@ -787,10 +788,7 @@ export default function IslamicLoanDetailPage() {
                   {r.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {r.transaction_id}</p>}
                   {r.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.note}</p>}
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button size="sm" variant="default" onClick={() => approveRequest(r)} disabled={busy}>Approve</Button>
-                  <Button size="sm" variant="outline" onClick={() => rejectRequest(r)} disabled={busy}>Reject</Button>
-                </div>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-warning/10 text-warning shrink-0">pending</span>
               </div>
             ))}
           </div>

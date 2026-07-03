@@ -197,12 +197,7 @@ export default function MemberLoanDetailPage() {
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>{loan.status}</span>
             {loan.defaulted && <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">defaulted</span>}
             {role === 'admin' && loan.status === 'pending' && (
-              <>
-                <Button size="sm" onClick={handleApproveLoan} className="gap-1"><Check className="w-3.5 h-3.5" /> Approve</Button>
-                <Button size="sm" variant="outline" onClick={handleRejectLoan} className="gap-1 text-destructive border-destructive/30">
-                  <X className="w-3.5 h-3.5" /> Reject
-                </Button>
-              </>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-warning/10 text-warning">Dashboard থেকে approve/reject করুন</span>
             )}
             {canPay && (
               <Button size="sm" onClick={openPay} className="gap-1"><Wallet className="w-3.5 h-3.5" /> পরিশোধ করুন</Button>
@@ -280,24 +275,10 @@ export default function MemberLoanDetailPage() {
                 }`}>
                   {r.status === 'pending' ? 'pending approval' : r.status === 'approved' ? 'paid' : 'rejected'}
                 </span>
-                {role === 'admin' && (
-                  <div className="flex items-center gap-1">
-                    {r.status !== 'approved' && (
-                      <Button size="sm" variant="outline" className="h-7 px-2 gap-1" onClick={() => setRepaymentStatus(r, 'approved')}>
-                        <Check className="w-3 h-3" /> {r.status === 'rejected' ? 'Mark Paid' : 'Approve'}
-                      </Button>
-                    )}
-                    {r.status !== 'rejected' && (
-                      <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-destructive border-destructive/30" onClick={() => setRepaymentStatus(r, 'rejected')}>
-                        <X className="w-3 h-3" /> Reject
-                      </Button>
-                    )}
-                    {r.status !== 'pending' && (
-                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
-                        <RotateCcw className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
+                {role === 'admin' && r.status !== 'pending' && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setRepaymentStatus(r, 'pending')} title="Move back to pending">
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
                 )}
               </div>
             ))}
