@@ -130,6 +130,32 @@ export default function CashInHandPage() {
       });
     });
 
+    // Member loan disbursements (money OUT) — only approved/repaid loans
+    (mlRes.data || []).forEach((l: any) => {
+      if (l.status !== 'approved' && l.status !== 'repaid') return;
+      merged.push({
+        id: `ml-${l.id}`,
+        created_at: l.approved_at || l.created_at,
+        source: 'Member Loan',
+        direction: 'out',
+        amount: Number(l.approved_amount || 0),
+        reason: `Loan disbursed — ${memberName.get(l.member_id) || 'Member'}`,
+      });
+    });
+
+    // Member loan repayments (money IN)
+    (mlPayRes.data || []).forEach((r: any) => {
+      const l = mlById.get(r.loan_id);
+      merged.push({
+        id: `mlp-${r.id}`,
+        created_at: r.approved_at || r.created_at,
+        source: 'Member Loan',
+        direction: 'in',
+        amount: Number(r.amount || 0),
+        reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
+      });
+    });
+
     merged.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
     setRows(merged);
     setLoading(false);
