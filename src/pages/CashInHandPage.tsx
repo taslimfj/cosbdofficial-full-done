@@ -10,7 +10,7 @@ import { generateCashInHandPDF } from '@/lib/pdfGenerator';
 type Row = {
   id: string;
   created_at: string | null;
-  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Profit';
+  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Profit' | 'Member Loan';
   direction: 'in' | 'out';
   amount: number;
   reason: string;
