@@ -127,11 +127,11 @@ export function PendingApprovals() {
                 <p className="text-sm font-medium text-foreground truncate">{l.member_name}</p>
                 <p className="text-xs text-muted-foreground">Loan · {formatBDT(Number(l.requested_amount))}</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8" onClick={() => approveLoan(l.id, Number(l.requested_amount))}>
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50" onClick={() => approveLoan(l.id, Number(l.requested_amount))}>
+                Approve
               </Button>
-              <Button size="sm" variant="outline" className="h-8" onClick={() => rejectLoan(l.id)}>
-                <XCircle className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-medium text-rose-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50" onClick={() => rejectLoan(l.id)}>
+                Reject
               </Button>
             </div>
           ))}
