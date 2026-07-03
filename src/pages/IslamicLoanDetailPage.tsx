@@ -587,8 +587,9 @@ export default function IslamicLoanDetailPage() {
 
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
+  const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
+    <div className={`space-y-6 animate-fade-in max-w-3xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/5 ring-2 ring-destructive/40' : ''}`}>
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
         {isAdmin ? (
@@ -603,6 +604,35 @@ export default function IslamicLoanDetailPage() {
           <LoanContractPdf loan={loan} />
         )}
       </div>
+
+      {overdue && (
+        <div className="bg-destructive text-destructive-foreground rounded-xl p-4 flex items-start gap-3 shadow-md">
+          <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-base">এই মাসের installment এখনো পরিশোধ হয়নি</p>
+            <p className="text-sm opacity-90 mt-0.5">Customer-কে remind করুন — payment হলে এই status স্বয়ংক্রিয়ভাবে সাদা হয়ে যাবে।</p>
+          </div>
+        </div>
+      )}
+
+      {/* Customer rating badge */}
+      {rating.totalLoans > 0 && (
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Customer Rating: {rating.score}/10</p>
+              <p className="text-xs text-muted-foreground">
+                {rating.totalLoans} loan · {rating.closedLoans} closed
+                {rating.totalMonthsEarly > 0 && <span className="text-emerald-600"> · {rating.totalMonthsEarly} মাস early payoff</span>}
+                {rating.overdueActive > 0 && <span className="text-destructive"> · {rating.overdueActive} overdue</span>}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Other active loans for this customer — quick switcher */}
       {siblingLoans.length > 0 && (
