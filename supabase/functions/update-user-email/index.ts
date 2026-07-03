@@ -15,41 +15,55 @@ function json(body: unknown, status = 200) {
 }
 
 async function cleanupStaleUser(admin: any, userId: string) {
-  await admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", userId);
-  await admin.from("projects").update({ manager_id: null }).eq("manager_id", userId);
-  await admin.from("projects").update({ secondary_manager_id: null }).eq("secondary_manager_id", userId);
-  await admin.from("project_member_shares")
-    .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
-    .eq("member_id", userId);
-  await admin.from("islamic_loan_member_shares")
-    .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
-    .eq("member_id", userId);
+  const run = async (label: string, fn: () => Promise<any>) => {
+    try {
+      const res = await fn();
+      if (res?.error) {
+        console.error(`[cleanup:${label}] error`, res.error);
+      }
+      return res;
+    } catch (e) {
+      console.error(`[cleanup:${label}] throw`, e);
+      throw new Error(`cleanup step '${label}' failed: ${(e as any)?.message || JSON.stringify(e)}`);
+    }
+  };
 
-  const { data: islamicLoans } = await admin.from("islamic_loans").select("id").eq("customer_user_id", userId);
+  await run("islamic_loans.media", () => admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", userId));
+  await run("projects.manager", () => admin.from("projects").update({ manager_id: null }).eq("manager_id", userId));
+  await run("projects.secondary", () => admin.from("projects").update({ secondary_manager_id: null }).eq("secondary_manager_id", userId));
+  await run("project_member_shares", () => admin.from("project_member_shares")
+    .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+    .eq("member_id", userId));
+  await run("islamic_loan_member_shares.upd", () => admin.from("islamic_loan_member_shares")
+    .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+    .eq("member_id", userId));
+
+  const { data: islamicLoans } = await run("islamic_loans.select", () => admin.from("islamic_loans").select("id").eq("customer_user_id", userId));
   const islamicLoanIds = (islamicLoans || []).map((loan: any) => loan.id);
   if (islamicLoanIds.length) {
-    await admin.from("islamic_loan_payments").delete().in("loan_id", islamicLoanIds);
-    await admin.from("islamic_loan_member_shares").delete().in("loan_id", islamicLoanIds);
-    await admin.from("islamic_loans").delete().in("id", islamicLoanIds);
+    await run("islamic_loan_payments.del", () => admin.from("islamic_loan_payments").delete().in("loan_id", islamicLoanIds));
+    await run("islamic_loan_member_shares.del", () => admin.from("islamic_loan_member_shares").delete().in("loan_id", islamicLoanIds));
+    await run("islamic_loans.del", () => admin.from("islamic_loans").delete().in("id", islamicLoanIds));
   }
 
-  const { data: memberLoans } = await admin.from("member_loans").select("id").eq("member_id", userId);
+  const { data: memberLoans } = await run("member_loans.select", () => admin.from("member_loans").select("id").eq("member_id", userId));
   const memberLoanIds = (memberLoans || []).map((loan: any) => loan.id);
-  if (memberLoanIds.length) await admin.from("member_loan_repayments").delete().in("loan_id", memberLoanIds);
+  if (memberLoanIds.length) await run("member_loan_repayments.del", () => admin.from("member_loan_repayments").delete().in("loan_id", memberLoanIds));
 
-  await admin.from("profit_distributions").delete().eq("member_id", userId);
-  await admin.from("deposits").delete().eq("member_id", userId);
-  await admin.from("member_loans").delete().eq("member_id", userId);
-  await admin.from("customer_payment_requests").delete().eq("customer_user_id", userId);
-  await admin.from("project_fund_requests").delete().eq("requested_by", userId);
-  await admin.from("notifications").delete().eq("user_id", userId);
-  await admin.from("user_roles").delete().eq("user_id", userId);
-  await admin.from("phone_book").delete().eq("created_by", userId);
-  await admin.from("profiles").delete().eq("id", userId);
+  await run("profit_distributions.del", () => admin.from("profit_distributions").delete().eq("member_id", userId));
+  await run("deposits.del", () => admin.from("deposits").delete().eq("member_id", userId));
+  await run("member_loans.del", () => admin.from("member_loans").delete().eq("member_id", userId));
+  await run("customer_payment_requests.del", () => admin.from("customer_payment_requests").delete().eq("customer_user_id", userId));
+  await run("project_fund_requests.del", () => admin.from("project_fund_requests").delete().eq("requested_by", userId));
+  await run("notifications.del", () => admin.from("notifications").delete().eq("user_id", userId));
+  await run("user_roles.del", () => admin.from("user_roles").delete().eq("user_id", userId));
+  await run("phone_book.del", () => admin.from("phone_book").delete().eq("created_by", userId));
+  await run("profiles.del", () => admin.from("profiles").delete().eq("id", userId));
 
   const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error) throw error;
+  if (error) throw new Error(`deleteUser failed: ${error.message || JSON.stringify(error)}`);
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
