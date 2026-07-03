@@ -303,17 +303,6 @@ export default function ProjectDetailPage() {
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
-    // Apply member balance deltas (+profit / -loss)
-    if (memberDelta.size > 0) {
-      const ids = Array.from(memberDelta.keys());
-      const { data: profs } = await supabase.from('profiles').select('id, total_deposited').in('id', ids);
-      await Promise.all((profs || []).map((p: any) =>
-        supabase.from('profiles').update({
-          total_deposited: Math.max(0, Number(p.total_deposited || 0) + (memberDelta.get(p.id) || 0)),
-        }).eq('id', p.id)
-      ));
-    }
-
     setBusy(false);
     toast.success(totals.profit > 0 ? 'Profit distributed' : 'Loss distributed');
     load();
