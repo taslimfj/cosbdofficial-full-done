@@ -30,7 +30,7 @@ export default function ProjectsPage() {
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
       (supabase as any).from('member_directory').select('*'),
     ]).then(([projRes, memRes]: any[]) => {
-      const members = memRes.data || [];
+      const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
       const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
       const projects = (projRes.data || []).map((p: any) => ({ ...p, manager: byId.get(p.manager_id) || null }));
       setProjects(projects);

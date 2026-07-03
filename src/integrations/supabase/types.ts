@@ -1088,6 +1088,7 @@ export type Database = {
           id: string | null
           is_customer: boolean | null
           is_deleted: boolean | null
+          phone: string | null
           total_deposited: number | null
           updated_at: string | null
         }
@@ -1099,6 +1100,7 @@ export type Database = {
           id?: string | null
           is_customer?: boolean | null
           is_deleted?: boolean | null
+          phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
         }
@@ -1110,6 +1112,7 @@ export type Database = {
           id?: string | null
           is_customer?: boolean | null
           is_deleted?: boolean | null
+          phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
         }

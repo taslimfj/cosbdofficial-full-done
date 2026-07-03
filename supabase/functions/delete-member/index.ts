@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { memberId } = await req.json();
+    const { memberId, loanPaymentConfirmed } = await req.json();
     if (!memberId || typeof memberId !== "string") {
       return new Response(JSON.stringify({ error: "memberId required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -57,9 +57,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1. Wipe child rows that don't cascade
+    // 1. Personal loans must be marked paid/confirmed before deletion
+    const { data: mLoans } = await admin
+      .from("member_loans")
+      .select("id, requested_amount, approved_amount, repaid_amount, status")
+      .eq("member_id", memberId);
+    const outstandingTotal = (mLoans || []).reduce((sum: number, loan: any) => {
+      if (!["approved", "pending"].includes(loan.status)) return sum;
+      const principal = Number(loan.approved_amount || loan.requested_amount || 0);
+      const repaid = Number(loan.repaid_amount || 0);
+      return sum + Math.max(0, principal - repaid);
+    }, 0);
+
+    if (outstandingTotal > 0 && loanPaymentConfirmed !== true) {
+      return new Response(JSON.stringify({
+        error: `Personal loan must be paid before deletion. Outstanding: ${outstandingTotal}`,
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. Wipe child rows that don't cascade
     // member_loan_repayments via member_loans
-    const { data: mLoans } = await admin.from("member_loans").select("id").eq("member_id", memberId);
     const mLoanIds = (mLoans || []).map((l: any) => l.id);
     if (mLoanIds.length) {
       await admin.from("member_loan_repayments").delete().in("loan_id", mLoanIds);
@@ -78,8 +97,12 @@ Deno.serve(async (req) => {
     await admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", memberId);
     await admin.from("projects").update({ manager_id: null }).eq("manager_id", memberId);
     await admin.from("projects").update({ secondary_manager_id: null }).eq("secondary_manager_id", memberId);
-    await admin.from("project_member_shares").update({ member_id: null }).eq("member_id", memberId);
-    await admin.from("islamic_loan_member_shares").update({ member_id: null }).eq("member_id", memberId);
+    await admin.from("project_member_shares")
+      .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+      .eq("member_id", memberId);
+    await admin.from("islamic_loan_member_shares")
+      .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+      .eq("member_id", memberId);
 
     // Direct deletes
     await admin.from("profit_distributions").delete().eq("member_id", memberId);
