@@ -198,10 +198,32 @@ export default function IslamicLoanDetailPage() {
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    // If this payment fully settled the loan → stamp closed_at + months_paid_early
+    await maybeMarkClosed(amt);
     toast.success('Deposit recorded');
     setShowDeposit(false);
     setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
     load();
+  };
+
+  // After a payment, if remaining reaches 0, freeze closed_at + months_paid_early
+  const maybeMarkClosed = async (justPaid: number) => {
+    if (!loan) return;
+    const currentRemaining = Number(loan.remaining_amount) - justPaid;
+    if (currentRemaining > 0.01) return;
+    if (loan.closed_at) return;
+    const now = new Date();
+    const start = new Date(loan.created_at);
+    const monthsUsed =
+      (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth()) +
+      (now.getDate() >= start.getDate() ? 0 : -1);
+    const monthsEarly = Math.max(0, Number(loan.tenure_months) - Math.max(0, monthsUsed));
+    await supabase.from('islamic_loans').update({
+      closed_at: now.toISOString(),
+      months_paid_early: monthsEarly,
+      status: 'closed',
+    } as any).eq('id', id!);
   };
 
   const handleDelete = async () => {
