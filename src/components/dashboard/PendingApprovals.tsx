@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
