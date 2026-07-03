@@ -247,6 +247,37 @@ export default function IslamicLoansPage() {
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
                   </div>
                 </div>
+
+                {/* Phone history reminder: discount credit + customer rating */}
+                {phoneHistory && (phoneHistory.rating.totalLoans > 0) && (
+                  <div className="space-y-2">
+                    {phoneHistory.credit && phoneHistory.credit.months > 0 && (
+                      <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-lg p-3 flex gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <p className="font-semibold text-emerald-700">
+                            পূর্বের loan {phoneHistory.credit.fromLoanCode ? `(${phoneHistory.credit.fromLoanCode})` : ''} {phoneHistory.credit.months} মাস আগে পরিশোধ করা হয়েছিল
+                          </p>
+                          <p className="text-muted-foreground mt-0.5">
+                            এই loan-এ <b className="text-emerald-700">{phoneHistory.credit.months}% discount</b> স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে (এক-বারই ব্যবহারযোগ্য)।
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="border border-border bg-secondary/40 rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <div>
+                          <p className="font-semibold">Customer Rating: {phoneHistory.rating.score}/10</p>
+                          <p className="text-muted-foreground">
+                            {phoneHistory.rating.totalLoans} loan · {phoneHistory.rating.closedLoans} closed
+                            {phoneHistory.rating.overdueActive > 0 && <span className="text-destructive"> · {phoneHistory.rating.overdueActive} overdue</span>}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>পণ্যের নাম / Product Name</Label>
                   <Input value={form.productName} onChange={e => setForm(p => ({ ...p, productName: e.target.value }))} placeholder="যেমন: iPhone 15, Honda CB150R" />
