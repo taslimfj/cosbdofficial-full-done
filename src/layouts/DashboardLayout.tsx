@@ -17,6 +17,7 @@ import {
   Bell,
   BookUser,
   Package,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ const navItems = [
   { to: '/member-loans', icon: HandCoins, label: 'Member Loans', roles: ['admin', 'member'] },
   { to: '/phone-book', icon: BookUser, label: 'Phone Book', roles: ['admin', 'member'] },
   { to: '/assets', icon: Package, label: 'Assets', roles: ['admin', 'member'] },
+  { to: '/tutorials', icon: GraduationCap, label: 'Tutorial', roles: ['admin', 'member'] },
 ];
 
 export default function DashboardLayout() {
@@ -42,6 +44,8 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (!isCustomer || !user) return;
     if (location.pathname.startsWith('/islamic-loans/')) return;
+    if (location.pathname.startsWith('/tutorials')) return;
+    if (location.pathname.startsWith('/profile')) return;
     (async () => {
       const { data } = await supabase
         .from('islamic_loans')
