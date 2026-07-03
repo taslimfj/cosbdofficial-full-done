@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, Loader2, HandCoins, Check, ChevronRight } from 'lucide-react';
+import { Plus, Loader2, HandCoins, ChevronRight, Users } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateMemberLoansPDF } from '@/lib/pdfGenerator';
 
@@ -23,8 +23,6 @@ export default function MemberLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
   const [requestReason, setRequestReason] = useState('');
-  const [showAllOngoing, setShowAllOngoing] = useState(false);
-  const [showAllPaid, setShowAllPaid] = useState(false);
 
   const processOverdueLoans = async (loanRows: any[]) => {
     if (role !== 'admin') return false;
@@ -60,14 +58,14 @@ export default function MemberLoansPage() {
     const { data } = await supabase
       .from('member_loans')
       .select('*, member:profiles!member_loans_member_id_fkey(*)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
     const loanRows = data || [];
     const changed = await processOverdueLoans(loanRows);
     if (changed) {
       const refetch = await supabase
         .from('member_loans')
         .select('*, member:profiles!member_loans_member_id_fkey(*)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
       setLoans(refetch.data || []);
     } else {
       setLoans(loanRows);
@@ -101,46 +99,25 @@ export default function MemberLoansPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
-  const sortByOldest = (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  const repaidLoans = loans.filter(l => l.status === 'repaid').sort(sortByOldest);
-  const ongoingLoans = loans.filter(l => l.status !== 'repaid').sort(sortByOldest);
-  const visibleOngoing = showAllOngoing ? ongoingLoans : ongoingLoans.slice(0, 5);
-  const visiblePaid = showAllPaid ? repaidLoans : repaidLoans.slice(0, 5);
+  // Group loans by member
+  const byMember = new Map<string, { member: any; loans: any[] }>();
+  loans.forEach(l => {
+    if (!l.member_id) return;
+    if (!byMember.has(l.member_id)) byMember.set(l.member_id, { member: l.member, loans: [] });
+    byMember.get(l.member_id)!.loans.push(l);
+  });
 
-  const renderLoanRow = (loan: any) => {
-    const approved = Number(loan.approved_amount || 0);
-    const repaid = Number(loan.repaid_amount || 0);
-    const remaining = Math.max(0, approved - repaid);
-    return (
-      <button
-        key={loan.id}
-        onClick={() => navigate(`/member-loans/${loan.id}`)}
-        className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-secondary/40 transition-colors"
-      >
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-          {loan.member?.full_name?.charAt(0)?.toUpperCase() || '?'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-foreground truncate">{loan.member?.full_name || 'Unknown'}</p>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-              loan.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-              loan.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-              loan.status === 'repaid' ? 'bg-secondary text-muted-foreground' :
-              'bg-warning/10 text-warning'
-            }`}>{loan.status}</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {approved > 0
-              ? `Approved: ${formatBDT(approved)} · Paid: ${formatBDT(repaid)}${loan.status === 'approved' ? ` · Remaining: ${formatBDT(remaining)}` : ''}`
-              : `Requested: ${formatBDT(Number(loan.requested_amount))}`}
-            {loan.due_date && ` · Due: ${format(new Date(loan.due_date), 'MMM d, yyyy')}`}
-          </p>
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-      </button>
-    );
-  };
+  const memberCards = Array.from(byMember.entries()).map(([memberId, { member, loans: mLoans }]) => {
+    const ongoing = mLoans.filter(l => l.status === 'approved' || l.status === 'pending');
+    const paid = mLoans.filter(l => l.status === 'repaid');
+    const rejected = mLoans.filter(l => l.status === 'rejected');
+    const totalRemaining = ongoing.reduce((s, l) =>
+      s + Math.max(0, Number(l.approved_amount || 0) - Number(l.repaid_amount || 0)), 0);
+    const nextDue = ongoing
+      .filter(l => l.status === 'approved' && l.due_date)
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+    return { memberId, member, mLoans, ongoing, paid, rejected, totalRemaining, nextDue };
+  }).sort((a, b) => (b.ongoing.length - a.ongoing.length) || (b.totalRemaining - a.totalRemaining));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -148,7 +125,9 @@ export default function MemberLoansPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Member Loans</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {role === 'admin' ? 'সব মেম্বারের interest-free loan' : 'আপনার নিজের loan সমূহ'}
+            {role === 'admin'
+              ? 'প্রত্যেক member-এর নিজস্ব loan profile · click করে ভিতরে যান'
+              : 'আপনার নিজের loan profile'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -185,53 +164,67 @@ export default function MemberLoansPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">
-        <div className="px-5 py-3 border-b border-border bg-secondary/30">
-          <h2 className="text-sm font-semibold text-foreground">Ongoing Loans</h2>
-          <p className="text-xs text-muted-foreground">যেগুলো এখনো সম্পূর্ণ পরিশোধ হয়নি · প্রতিটি লোনের profile-এ ঢুকতে click করুন</p>
+      {memberCards.length === 0 ? (
+        <div className="bg-card border border-border rounded-xl p-12 text-center shadow-subtle">
+          <HandCoins className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">এখনো কোনো loan request নেই।</p>
         </div>
-        {ongoingLoans.length === 0 ? (
-          <div className="p-12 text-center">
-            <HandCoins className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">কোনো চলমান লোন নেই।</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {visibleOngoing.map(renderLoanRow)}
-            {ongoingLoans.length > 5 && (
-              <div className="px-5 py-3 text-center">
-                <Button variant="ghost" size="sm" onClick={() => setShowAllOngoing(v => !v)}>
-                  {showAllOngoing ? 'কম দেখুন' : `আরও দেখুন (${ongoingLoans.length - 5}টি)`}
-                </Button>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {memberCards.map(mc => (
+            <button
+              key={mc.memberId}
+              onClick={() => navigate(`/member-loans/m/${mc.memberId}`)}
+              className="text-left bg-card border border-border rounded-xl p-5 shadow-subtle hover:shadow-card hover:border-primary/30 transition-all"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                  {mc.member?.full_name?.charAt(0)?.toUpperCase() || <Users className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{mc.member?.full_name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">{mc.mLoans.length}টি loan মোট</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
               </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-subtle overflow-hidden">
-        <div className="px-5 py-3 border-b border-border bg-secondary/30">
-          <h2 className="text-sm font-semibold text-foreground">Paid / Completed Loans</h2>
-          <p className="text-xs text-muted-foreground">যেগুলো সম্পূর্ণ পরিশোধ হয়ে গেছে</p>
-        </div>
-        {repaidLoans.length === 0 ? (
-          <div className="p-12 text-center">
-            <Check className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">এখনো কোনো লোন সম্পূর্ণ পরিশোধ হয়নি।</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {visiblePaid.map(renderLoanRow)}
-            {repaidLoans.length > 5 && (
-              <div className="px-5 py-3 text-center">
-                <Button variant="ghost" size="sm" onClick={() => setShowAllPaid(v => !v)}>
-                  {showAllPaid ? 'কম দেখুন' : `আরও দেখুন (${repaidLoans.length - 5}টি)`}
-                </Button>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <StatChip label="Ongoing" value={mc.ongoing.length} tone="warning" />
+                <StatChip label="Paid" value={mc.paid.length} tone="success" />
+                <StatChip label="Rejected" value={mc.rejected.length} tone="danger" />
               </div>
-            )}
-          </div>
-        )}
-      </div>
+
+              <div className="pt-3 border-t border-border space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Total Due:</span>
+                  <span className={`font-semibold tabular-nums ${mc.totalRemaining > 0 ? 'text-[hsl(var(--warning))]' : 'text-muted-foreground'}`}>
+                    {formatBDT(mc.totalRemaining)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Next Due:</span>
+                  <span className="font-medium text-foreground">
+                    {mc.nextDue?.due_date ? format(new Date(mc.nextDue.due_date), 'MMM d, yyyy') : '—'}
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatChip({ label, value, tone }: { label: string; value: number; tone: 'success' | 'warning' | 'danger' }) {
+  const cls =
+    tone === 'success' ? 'bg-emerald-50 text-emerald-700' :
+    tone === 'warning' ? 'bg-warning/10 text-[hsl(var(--warning))]' :
+    'bg-destructive/10 text-destructive';
+  return (
+    <div className={`rounded-lg px-2 py-1.5 text-center ${cls}`}>
+      <p className="text-base font-bold leading-tight tabular-nums">{value}</p>
+      <p className="text-[10px] font-medium uppercase tracking-wider opacity-80">{label}</p>
     </div>
   );
 }
