@@ -936,6 +936,39 @@ export type Database = {
           },
         ]
       }
+      tutorials: {
+        Row: {
+          audiences: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          audiences?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          audiences?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
