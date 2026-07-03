@@ -21,7 +21,8 @@ const PREVIEW_LIMIT = 10;
 export default function CashInHandPage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PREVIEW_LIMIT);
+
 
   useEffect(() => {
     fetchAll();
@@ -77,25 +78,33 @@ export default function CashInHandPage() {
       reason: 'Member deposit',
     }));
 
-    // Profit distributions — cash out to members
-    (distRes.data || []).forEach((r: any) => merged.push({
-      id: `dist-${r.id}`,
-      created_at: r.created_at,
-      source: 'Profit',
-      direction: 'in',
-      amount: Number(r.amount || 0),
-      reason: 'Profit distribution',
-    }));
+    // Profit distributions are internal re-allocation of already-received cash
+    // (loan installments already counted below). Excluded to avoid double counting.
 
-    // Fund transactions
-    (fundRes.data || []).forEach((t: any) => merged.push({
-      id: `fund-${t.id}`,
-      created_at: t.created_at,
-      source: 'Fund',
-      direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
-      amount: Number(t.amount || 0),
-      reason: t.reason || 'Fund transaction',
-    }));
+    // Fund transactions — exclude internal/auto entries that mirror cashflow
+    // already recorded elsewhere (loan profit share, project budget reservations, backfills).
+    const isInternalFundReason = (reason: string) => {
+      const r = (reason || '').toLowerCase();
+      return (
+        r.includes('fund profit share') ||
+        r.includes('backfill') ||
+        r.includes('budget reserved') ||
+        r.includes('অব্যবহৃত budget') ||
+        r.includes('unused budget')
+      );
+    };
+    (fundRes.data || []).forEach((t: any) => {
+      if (isInternalFundReason(t.reason)) return;
+      merged.push({
+        id: `fund-${t.id}`,
+        created_at: t.created_at,
+        source: 'Fund',
+        direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
+        amount: Number(t.amount || 0),
+        reason: t.reason || 'Fund transaction',
+      });
+    });
+
 
     // Project transactions
     (projRes.data || []).forEach((t: any) => merged.push({
@@ -175,7 +184,9 @@ export default function CashInHandPage() {
     );
   }
 
-  const visible = showAll ? rows : rows.slice(0, PREVIEW_LIMIT);
+  const visible = rows.slice(0, visibleCount);
+  const hiddenCount = Math.max(0, rows.length - visibleCount);
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -186,7 +197,7 @@ export default function CashInHandPage() {
             Cash in Hand
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Capital + fund balance ± project ± Islamic loan cashflow
+            Actual cash movements — deposits, loan disbursements & repayments, project & fund entries
           </p>
         </div>
         <PdfPeriodButton
@@ -238,19 +249,29 @@ export default function CashInHandPage() {
                 </p>
               </div>
             ))}
-            {rows.length > PREVIEW_LIMIT && (
-              <div className="px-5 py-3">
+            {hiddenCount > 0 && (
+              <div className="px-5 py-3 flex gap-2">
                 <Button
                   variant="ghost"
-                  className="w-full gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowAll(s => !s)}
+                  className="flex-1 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setVisibleCount(c => c + PREVIEW_LIMIT)}
                 >
-                  {showAll ? 'See less' : `See more (${rows.length - PREVIEW_LIMIT})`}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+                  See more ({Math.min(PREVIEW_LIMIT, hiddenCount)} of {hiddenCount})
+                  <ChevronDown className="w-4 h-4" />
                 </Button>
+                {visibleCount > PREVIEW_LIMIT && (
+                  <Button
+                    variant="ghost"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => setVisibleCount(PREVIEW_LIMIT)}
+                  >
+                    See less
+                  </Button>
+                )}
               </div>
             )}
           </div>
+
         )}
       </div>
     </div>

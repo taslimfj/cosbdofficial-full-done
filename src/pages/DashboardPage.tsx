@@ -87,10 +87,29 @@ export default function DashboardPage() {
       .filter((r: any) => r.status === 'approved')
       .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
+    // Cash in Hand = actual cash physically moved in/out (no capital, no profit
+    // distribution — those are bookkeeping re-allocations that would double count).
+    // Fund manual entries excluded when they mirror auto-flows recorded elsewhere.
+    const isInternal = (reason: string) => {
+      const r = (reason || '').toLowerCase();
+      return r.includes('fund profit share') || r.includes('backfill') ||
+             r.includes('budget reserved') || r.includes('অব্যবহৃত budget') ||
+             r.includes('unused budget');
+    };
+    const fundManualIn = fundTxns
+      .filter((t: any) => (t.type === 'in' || t.type === 'income') && !isInternal(t.reason))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const fundManualOut = fundTxns
+      .filter((t: any) => (t.type === 'out' || t.type === 'expense') && !isInternal(t.reason))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const depositsIn = deposits
+      .filter((d: any) => d.status === 'approved')
+      .reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+
     const cashInHand =
-      totalInvestment + availableFund + projectIncome - projectExpense
-      - ilPurchases + ilInstallments
-      - mlDisbursed + mlRepaid;
+      depositsIn + ilInstallments + mlRepaid + projectIncome + fundManualIn
+      - ilPurchases - mlDisbursed - projectExpense - fundManualOut;
+
 
     setStats({
       totalInvestment,
