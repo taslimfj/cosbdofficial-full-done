@@ -58,11 +58,17 @@ async function cleanupStaleUser(admin: any, userId: string) {
   await run("notifications.del", () => admin.from("notifications").delete().eq("user_id", userId));
   await run("user_roles.del", () => admin.from("user_roles").delete().eq("user_id", userId));
   await run("phone_book.del", () => admin.from("phone_book").delete().eq("created_by", userId));
+  await run("assets.del", () => admin.from("assets").delete().eq("created_by", userId));
+  await run("fund_transactions.del", () => admin.from("fund_transactions").delete().eq("created_by", userId));
+  await run("project_transactions.del", () => admin.from("project_transactions").delete().eq("created_by", userId));
+  await run("tutorials.del", () => admin.from("tutorials").delete().eq("created_by", userId));
+  await run("project_fund_requests.decided.null", () => admin.from("project_fund_requests").update({ decided_by: null }).eq("decided_by", userId));
   await run("profiles.del", () => admin.from("profiles").delete().eq("id", userId));
 
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) throw new Error(`deleteUser failed: ${error.message || JSON.stringify(error)}`);
 }
+
 
 
 Deno.serve(async (req) => {
