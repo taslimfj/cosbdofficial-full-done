@@ -354,18 +354,28 @@ export default function IslamicLoansPage() {
           const borrowerName = loan.borrower_name || loan.media_person?.full_name || 'N/A';
           const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
           const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
+          const overdue = isLoanOverdue(loan);
           return (
             <Link
               key={loan.id}
               to={`/islamic-loans/${loan.id}`}
-              className="group bg-card border border-border p-5 rounded-xl hover:border-primary/30 hover:shadow-md transition-all flex flex-col"
+              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border ${
+                overdue
+                  ? 'bg-destructive/10 border-destructive/50 hover:border-destructive'
+                  : 'bg-card border-border hover:border-primary/30'
+              }`}
             >
               <div className="mb-4 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="text-base font-semibold text-foreground truncate">{borrowerName}</h3>
-                  {borrowerPhone && <p className="text-xs text-muted-foreground font-mono mt-0.5">{borrowerPhone}</p>}
+                  <h3 className={`text-base font-semibold truncate ${overdue ? 'text-destructive' : 'text-foreground'}`}>{borrowerName}</h3>
+                  {borrowerPhone && <p className={`text-xs font-mono mt-0.5 ${overdue ? 'text-destructive/80' : 'text-muted-foreground'}`}>{borrowerPhone}</p>}
+                  {overdue && (
+                    <p className="text-[11px] font-semibold text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> এই মাসের টাকা পরিশোধ করেননি
+                    </p>
+                  )}
                 </div>
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${loan.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{loan.status}</span>
+                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${overdue ? 'bg-destructive/20 text-destructive' : loan.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{overdue ? 'overdue' : loan.status}</span>
               </div>
               {phoneDigits && (
                 <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
@@ -374,8 +384,8 @@ export default function IslamicLoansPage() {
                   <a href={`sms:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
                 </div>
               )}
-              <div className="grid grid-cols-3 gap-2 mt-auto pt-4 border-t border-border">
-                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p><p className="font-mono font-bold text-primary tabular-nums text-sm">{formatBDT(remaining)}</p></div>
+              <div className={`grid grid-cols-3 gap-2 mt-auto pt-4 border-t ${overdue ? 'border-destructive/30' : 'border-border'}`}>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p><p className={`font-mono font-bold tabular-nums text-sm ${overdue ? 'text-destructive' : 'text-primary'}`}>{formatBDT(remaining)}</p></div>
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p></div>
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(monthly)}</p></div>
               </div>
