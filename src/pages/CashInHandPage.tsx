@@ -184,7 +184,9 @@ export default function CashInHandPage() {
     );
   }
 
-  const visible = showAll ? rows : rows.slice(0, PREVIEW_LIMIT);
+  const visible = rows.slice(0, visibleCount);
+  const hiddenCount = Math.max(0, rows.length - visibleCount);
+
 
   return (
     <div className="space-y-6 animate-fade-in">
