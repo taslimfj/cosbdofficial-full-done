@@ -431,6 +431,14 @@ export default function IslamicLoanDetailPage() {
             </div>
           </div>
         )}
+        <div className="flex justify-end">
+          <Link
+            to="/tutorials"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+          >
+            📺 Tutorial ভিডিও দেখুন
+          </Link>
+        </div>
         {/* Other active loans for this customer — quick switcher */}
         {siblingLoans.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-4">
