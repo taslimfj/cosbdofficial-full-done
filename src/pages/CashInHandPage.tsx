@@ -78,23 +78,18 @@ export default function CashInHandPage() {
       reason: 'Member deposit',
     }));
 
-    // Profit distributions are internal re-allocation of already-received cash
-    // (loan installments already counted below). Excluded to avoid double counting.
+    // Profit distributions — credited to member capital (IN)
+    (distRes.data || []).forEach((d: any) => merged.push({
+      id: `dist-${d.id}`,
+      created_at: d.created_at,
+      source: 'Profit',
+      direction: 'in',
+      amount: Number(d.amount || 0),
+      reason: `Profit share — ${memberName.get(d.member_id) || 'Member'}`,
+    }));
 
-    // Fund transactions — exclude internal/auto entries that mirror cashflow
-    // already recorded elsewhere (loan profit share, project budget reservations, backfills).
-    const isInternalFundReason = (reason: string) => {
-      const r = (reason || '').toLowerCase();
-      return (
-        r.includes('fund profit share') ||
-        r.includes('backfill') ||
-        r.includes('budget reserved') ||
-        r.includes('অব্যবহৃত budget') ||
-        r.includes('unused budget')
-      );
-    };
+    // Fund transactions — include all (matches Fund Net Balance on dashboard)
     (fundRes.data || []).forEach((t: any) => {
-      if (isInternalFundReason(t.reason)) return;
       merged.push({
         id: `fund-${t.id}`,
         created_at: t.created_at,
