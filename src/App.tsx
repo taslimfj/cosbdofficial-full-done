@@ -11,6 +11,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import MembersPage from "@/pages/MembersPage";
 import MemberDetailPage from "@/pages/MemberDetailPage";
 import FundPage from "@/pages/FundPage";
+import CashInHandPage from "@/pages/CashInHandPage";
 import IslamicLoansPage from "@/pages/IslamicLoansPage";
 import IslamicLoanDetailPage from "@/pages/IslamicLoanDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="members" element={<MembersPage />} />
               <Route path="members/:id" element={<MemberDetailPage />} />
               <Route path="fund" element={<FundPage />} />
+              <Route path="cash-in-hand" element={<CashInHandPage />} />
               <Route path="islamic-loans" element={<IslamicLoansPage />} />
               <Route path="islamic-loans/:id" element={<IslamicLoanDetailPage />} />
               <Route path="projects" element={<ProjectsPage />} />
