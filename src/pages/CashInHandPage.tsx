@@ -33,6 +33,8 @@ export default function CashInHandPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loan_payments' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profit_distributions' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
