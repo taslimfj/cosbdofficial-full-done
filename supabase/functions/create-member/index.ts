@@ -85,6 +85,24 @@ Deno.serve(async (req) => {
         return json({ error: "এই login information দিয়ে একটি active account আছে।" }, 409);
       }
 
+      await admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", existingUserId);
+      await admin.from("projects").update({ manager_id: null }).eq("manager_id", existingUserId);
+      await admin.from("projects").update({ secondary_manager_id: null }).eq("secondary_manager_id", existingUserId);
+      await admin.from("project_member_shares")
+        .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+        .eq("member_id", existingUserId);
+      await admin.from("islamic_loan_member_shares")
+        .update({ member_id: null, member_name: "Deleted Member", is_member_deleted: true })
+        .eq("member_id", existingUserId);
+
+      const { data: staleIslamicLoans } = await admin.from("islamic_loans").select("id").eq("customer_user_id", existingUserId);
+      const staleIslamicLoanIds = (staleIslamicLoans || []).map((loan: any) => loan.id);
+      if (staleIslamicLoanIds.length) {
+        await admin.from("islamic_loan_payments").delete().in("loan_id", staleIslamicLoanIds);
+        await admin.from("islamic_loan_member_shares").delete().in("loan_id", staleIslamicLoanIds);
+        await admin.from("islamic_loans").delete().in("id", staleIslamicLoanIds);
+      }
+
       const { data: staleLoans } = await admin.from("member_loans").select("id").eq("member_id", existingUserId);
       const staleLoanIds = (staleLoans || []).map((loan: any) => loan.id);
       if (staleLoanIds.length) await admin.from("member_loan_repayments").delete().in("loan_id", staleLoanIds);
