@@ -121,8 +121,12 @@ export default function DashboardLayout() {
                 className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-lg hover:bg-secondary px-1 -mx-1 py-1 transition-colors"
                 title="Open profile"
               >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-                  {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Profile photo" className="h-full w-full object-cover" />
+                  ) : (
+                    profile?.full_name?.charAt(0)?.toUpperCase() || 'U'
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || 'User'}</p>

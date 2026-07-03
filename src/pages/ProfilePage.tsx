@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneInput } from '@/components/PhoneInput';
 import { toast } from 'sonner';
-import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard } from 'lucide-react';
+import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile, role } = useAuth();
@@ -20,12 +20,15 @@ export default function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '+880');
       setNid(profile.nid_card || '');
+      setAvatarUrl(profile.avatar_url || '');
     }
     if (user) setEmail(user.email || '');
   }, [profile, user]);
@@ -48,6 +51,44 @@ export default function ProfilePage() {
       toast.success('Profile updated');
       refreshProfile();
     }
+  };
+
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('শুধুমাত্র image file upload করুন');
+      return;
+    }
+    if (file.size > 10 * 1024) {
+      toast.error('ছবির size সর্বোচ্চ 10 KB হতে পারবে');
+      return;
+    }
+
+    setSavingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || '');
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: dataUrl } as any)
+        .eq('id', user.id);
+      setSavingPhoto(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      setAvatarUrl(dataUrl);
+      toast.success('Profile photo updated');
+      refreshProfile();
+    };
+    reader.onerror = () => {
+      setSavingPhoto(false);
+      toast.error('ছবি upload করা যায়নি');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleChangeEmail = async () => {
@@ -100,6 +141,28 @@ export default function ProfilePage() {
           <CardTitle className="flex items-center gap-2 text-base"><UserIcon className="w-4 h-4" /> Personal Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden text-xl font-bold text-primary shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile photo" className="h-full w-full object-cover" />
+              ) : (
+                fullName?.charAt(0)?.toUpperCase() || 'U'
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-photo" className="text-sm font-medium">Profile Photo</Label>
+              <div>
+                <Button type="button" variant="outline" size="sm" disabled={savingPhoto} asChild>
+                  <label htmlFor="profile-photo" className="cursor-pointer">
+                    {savingPhoto ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+                    Upload Photo
+                  </label>
+                </Button>
+                <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              </div>
+              <p className="text-xs text-muted-foreground">Maximum image size: 10 KB.</p>
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Full Name</Label>
             <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />

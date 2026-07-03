@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, Search, Loader2, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
-import { PhoneInput, phoneToDigits, phoneToEmail, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
+import { PhoneInput, phoneToDigits, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
 
 interface MemberContact {
   id: string;
@@ -95,46 +95,16 @@ export default function MembersPage() {
     }
     setAdding(true);
 
-    const syntheticEmail = phoneToEmail(newMember.phone);
     const defaultPassword = DEFAULT_PHONE_PASSWORD;
 
-    // Preserve the current admin session — signUp would otherwise replace it
-    const { data: sessionData } = await supabase.auth.getSession();
-    const currentSession = sessionData.session;
-
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email: syntheticEmail,
-      password: defaultPassword,
-      options: {
-        data: {
-          full_name: newMember.fullName,
-          phone: newMember.phone || null,
-        },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
+    const { data, error } = await supabase.functions.invoke('create-member', {
+      body: { fullName: newMember.fullName.trim(), phone: newMember.phone.trim() },
     });
 
-    if (error) {
+    if (error || (data as any)?.error) {
       setAdding(false);
-      toast.error(error.message);
+      toast.error((data as any)?.error || error?.message || 'Member create failed');
       return;
-    }
-
-    // Restore the admin session so the page does not log us out
-    if (currentSession) {
-      await supabase.auth.setSession({
-        access_token: currentSession.access_token,
-        refresh_token: currentSession.refresh_token,
-      });
-    }
-
-    // Fallback: if the trigger didn't set the phone (e.g. metadata key mismatch),
-    // update the profile directly.
-    if (signUpData?.user?.id && newMember.phone) {
-      await supabase
-        .from('profiles')
-        .update({ phone: newMember.phone })
-        .eq('id', signUpData.user.id);
     }
 
     setAdding(false);
@@ -240,8 +210,12 @@ export default function MembersPage() {
                     <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-                            {member.full_name?.charAt(0)?.toUpperCase() || '?'}
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary overflow-hidden">
+                            {member.avatar_url ? (
+                              <img src={member.avatar_url} alt={`${member.full_name || 'Member'} photo`} className="h-full w-full object-cover" />
+                            ) : (
+                              member.full_name?.charAt(0)?.toUpperCase() || '?'
+                            )}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
