@@ -97,12 +97,15 @@ export default function ProfilePage() {
       return;
     }
     setSavingEmail(true);
-    const { error } = await supabase.auth.updateUser({ email: email.trim() });
+    const { data, error } = await supabase.functions.invoke('update-user-email', {
+      body: { email: email.trim() },
+    });
     setSavingEmail(false);
-    if (error) {
-      toast.error(error.message);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || 'Email update failed');
     } else {
-      toast.success('Confirmation email sent. Please verify to complete the change.');
+      await supabase.auth.refreshSession();
+      toast.success('Email updated successfully');
     }
   };
 
@@ -190,7 +193,7 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <Label>Email</Label>
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-            <p className="text-xs text-muted-foreground">A confirmation link will be sent to the new address.</p>
+            <p className="text-xs text-muted-foreground">Deleted account-এর email হলে সেটি পরিষ্কার করে এই account-এ সেট হবে।</p>
           </div>
           <Button onClick={handleChangeEmail} disabled={savingEmail} variant="outline">
             {savingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Update Email
