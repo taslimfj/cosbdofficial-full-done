@@ -366,6 +366,7 @@ export default function IslamicLoanDetailPage() {
     await (supabase as any).from('customer_payment_requests').update({
       status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
     }).eq('id', req.id);
+    await maybeMarkClosed(Number(req.amount));
     setBusy(false);
     toast.success('Approved & recorded');
     load();
