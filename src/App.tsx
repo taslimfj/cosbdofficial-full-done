@@ -17,6 +17,7 @@ import IslamicLoanDetailPage from "@/pages/IslamicLoanDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import MemberLoansPage from "@/pages/MemberLoansPage";
+import MemberLoansByMemberPage from "@/pages/MemberLoansByMemberPage";
 import MemberLoanDetailPage from "@/pages/MemberLoanDetailPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:id" element={<ProjectDetailPage />} />
               <Route path="member-loans" element={<MemberLoansPage />} />
+              <Route path="member-loans/m/:memberId" element={<MemberLoansByMemberPage />} />
               <Route path="member-loans/:id" element={<MemberLoanDetailPage />} />
               <Route path="phone-book" element={<PhoneBookPage />} />
               <Route path="assets" element={<AssetsPage />} />

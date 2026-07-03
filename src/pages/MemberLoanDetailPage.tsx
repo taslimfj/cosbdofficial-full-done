@@ -34,6 +34,8 @@ export default function MemberLoanDetailPage() {
     txn: '',
   });
 
+  const [loanCode, setLoanCode] = useState<string>('');
+
   const fetchAll = async () => {
     if (!id) return;
     const [loanRes, repsRes] = await Promise.all([
@@ -42,6 +44,17 @@ export default function MemberLoanDetailPage() {
     ]);
     setLoan(loanRes.data);
     setRepayments(repsRes.data || []);
+    // Compute per-member serial for the code
+    if (loanRes.data?.member_id) {
+      const { data: siblings } = await supabase
+        .from('member_loans')
+        .select('id, created_at')
+        .eq('member_id', loanRes.data.member_id)
+        .order('created_at', { ascending: true });
+      const serial = (siblings || []).findIndex(s => s.id === loanRes.data.id) + 1;
+      const { buildMemberLoanCode } = await import('@/lib/memberLoanCode');
+      setLoanCode(buildMemberLoanCode(loanRes.data.member?.full_name, serial, loanRes.data.created_at));
+    }
     setLoading(false);
   };
 
@@ -159,8 +172,8 @@ export default function MemberLoanDetailPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/member-loans')} className="gap-1 -ml-2">
-        <ArrowLeft className="w-4 h-4" /> Member Loans
+      <Button variant="ghost" size="sm" onClick={() => navigate(`/member-loans/m/${loan.member_id}`)} className="gap-1 -ml-2">
+        <ArrowLeft className="w-4 h-4" /> {loan.member?.full_name || 'Member'}-এর Loan Profile
       </Button>
 
       {/* Loan profile header */}
@@ -172,8 +185,11 @@ export default function MemberLoanDetailPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground tracking-tight">{loan.member?.full_name || 'Unknown'}</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Loan #{loan.id.slice(0, 8).toUpperCase()} · Created {format(new Date(loan.created_at), 'MMM d, yyyy')}
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                {loanCode && (
+                  <span className="font-mono font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{loanCode}</span>
+                )}
+                <span>Created {format(new Date(loan.created_at), 'MMM d, yyyy')}</span>
               </p>
             </div>
           </div>
