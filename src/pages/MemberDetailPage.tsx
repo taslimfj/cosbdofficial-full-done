@@ -393,8 +393,12 @@ export default function MemberDetailPage() {
 
       <div className="bg-card border border-border rounded-xl p-6 shadow-subtle space-y-4">
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
-            {member.full_name?.charAt(0)?.toUpperCase() || '?'}
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden text-xl font-bold text-primary shrink-0">
+            {member.avatar_url ? (
+              <img src={member.avatar_url} alt={`${member.full_name || 'Member'} photo`} className="h-full w-full object-cover" />
+            ) : (
+              member.full_name?.charAt(0)?.toUpperCase() || '?'
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-foreground">{member.full_name}</h1>
