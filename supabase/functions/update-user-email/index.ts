@@ -1,6 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { z } from "https://esm.sh/zod@3.24.1";
+import { z } from "npm:zod@3.24.1";
+
 
 const BodySchema = z.object({
   email: z.string().trim().email().max(254),
