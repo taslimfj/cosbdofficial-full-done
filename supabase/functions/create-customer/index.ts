@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        await supabaseAdmin.from("customer_payment_requests").delete().eq("customer_id", foundId);
+        await supabaseAdmin.from("customer_payment_requests").delete().eq("customer_user_id", foundId);
         await supabaseAdmin.from("notifications").delete().eq("user_id", foundId);
         await supabaseAdmin.from("user_roles").delete().eq("user_id", foundId);
         await supabaseAdmin.from("phone_book").delete().eq("user_id", foundId);

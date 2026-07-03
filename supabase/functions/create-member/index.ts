@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       await admin.from("profit_distributions").delete().eq("member_id", existingUserId);
       await admin.from("deposits").delete().eq("member_id", existingUserId);
       await admin.from("member_loans").delete().eq("member_id", existingUserId);
-      await admin.from("customer_payment_requests").delete().eq("customer_id", existingUserId);
+      await admin.from("customer_payment_requests").delete().eq("customer_user_id", existingUserId);
       await admin.from("project_fund_requests").delete().eq("requested_by", existingUserId);
       await admin.from("notifications").delete().eq("user_id", existingUserId);
       await admin.from("user_roles").delete().eq("user_id", existingUserId);
