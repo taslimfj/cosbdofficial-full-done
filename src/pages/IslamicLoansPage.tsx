@@ -19,6 +19,8 @@ import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares } from '@/lib/snapshotShares';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
+import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
+import { AlertCircle, Sparkles, Star } from 'lucide-react';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
