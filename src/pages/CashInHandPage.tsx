@@ -78,25 +78,33 @@ export default function CashInHandPage() {
       reason: 'Member deposit',
     }));
 
-    // Profit distributions — cash out to members
-    (distRes.data || []).forEach((r: any) => merged.push({
-      id: `dist-${r.id}`,
-      created_at: r.created_at,
-      source: 'Profit',
-      direction: 'in',
-      amount: Number(r.amount || 0),
-      reason: 'Profit distribution',
-    }));
+    // Profit distributions are internal re-allocation of already-received cash
+    // (loan installments already counted below). Excluded to avoid double counting.
 
-    // Fund transactions
-    (fundRes.data || []).forEach((t: any) => merged.push({
-      id: `fund-${t.id}`,
-      created_at: t.created_at,
-      source: 'Fund',
-      direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
-      amount: Number(t.amount || 0),
-      reason: t.reason || 'Fund transaction',
-    }));
+    // Fund transactions — exclude internal/auto entries that mirror cashflow
+    // already recorded elsewhere (loan profit share, project budget reservations, backfills).
+    const isInternalFundReason = (reason: string) => {
+      const r = (reason || '').toLowerCase();
+      return (
+        r.includes('fund profit share') ||
+        r.includes('backfill') ||
+        r.includes('budget reserved') ||
+        r.includes('অব্যবহৃত budget') ||
+        r.includes('unused budget')
+      );
+    };
+    (fundRes.data || []).forEach((t: any) => {
+      if (isInternalFundReason(t.reason)) return;
+      merged.push({
+        id: `fund-${t.id}`,
+        created_at: t.created_at,
+        source: 'Fund',
+        direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
+        amount: Number(t.amount || 0),
+        reason: t.reason || 'Fund transaction',
+      });
+    });
+
 
     // Project transactions
     (projRes.data || []).forEach((t: any) => merged.push({
