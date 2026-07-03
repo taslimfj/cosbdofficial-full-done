@@ -287,10 +287,10 @@ export default function IslamicLoanDetailPage() {
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
-    // Credit each (non-deleted) member's profile balance
+    // Adjust each (non-deleted) member's profile balance (+profit / -loss)
     const perMember = new Map<string, number>();
     rows.forEach(r => {
-      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
+      if (r.member_id && r.amount !== 0 && r.distribution_type !== 'deleted_member_to_fund') {
         perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
       }
     });
@@ -305,7 +305,7 @@ export default function IslamicLoanDetailPage() {
     }
 
     setBusy(false);
-    toast.success('Profit distributed');
+    toast.success(isLoss ? 'Loss distributed among members' : 'Profit distributed');
     load();
   };
 
