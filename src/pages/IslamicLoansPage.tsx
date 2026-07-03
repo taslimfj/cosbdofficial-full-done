@@ -109,6 +109,7 @@ export default function IslamicLoansPage() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', yStart);
     const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
+    const usingCredit = phoneHistory?.credit && discountPct > 0 && Math.abs(discountPct - phoneHistory.credit.months) < 0.01;
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
@@ -126,11 +127,19 @@ export default function IslamicLoansPage() {
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
+      discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
       // Auto-populate admin's default payment methods so customer sees them immediately
       payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
     const loanId = inserted.id;
+
+    // Mark the previous loan's discount credit as used (one-shot)
+    if (usingCredit) {
+      await supabase.from('islamic_loans')
+        .update({ discount_credit_used: true } as any)
+        .eq('id', phoneHistory!.credit!.fromLoanId);
+    }
 
     // Snapshot current member shares — locked at creation
     try { await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId }); }
