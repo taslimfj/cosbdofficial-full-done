@@ -214,51 +214,54 @@ export default function IslamicLoanDetailPage() {
 
   const handleDistribute = async () => {
     if (alreadyDistributed) { toast.error('Already distributed'); return; }
-    if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
+    if (profitTotals.net === 0) { toast.error('No profit or loss to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
-    const fundExtras: { amount: number; reason: string }[] = [];
+    const fundExtras: { amount: number; reason: string; type: 'in' | 'out' }[] = [];
+    const isLoss = profitTotals.isLoss;
 
-    if (profitTotals.fund > 0) {
-      rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
-    }
-    if (profitTotals.media > 0 && loan.media_person_id) {
-      rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
-    }
-
-    // Admin pool — split equally among all admins
-    if (profitTotals.admin > 0) {
-      const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
-      const adminRoleIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
-      const { data: adminProfiles } = adminRoleIds.length
-        ? await supabase.from('profiles').select('id').in('id', adminRoleIds)
-        : { data: [] as any[] };
-      const adminIds = (adminProfiles || []).map((p: any) => p.id);
-      if (adminIds.length > 0) {
-        const perAdmin = profitTotals.admin / adminIds.length;
-        const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
-        adminIds.forEach((uid: string) => {
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
-        });
-      } else {
-        // No admins → redirect to Fund
-        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
-        fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ` });
+    // Profit-only pools — Fund %, Media %, Admin % (skipped entirely on loss)
+    if (!isLoss) {
+      if (profitTotals.fund > 0) {
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
+      }
+      if (profitTotals.media > 0 && loan.media_person_id) {
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
+      }
+      if (profitTotals.admin > 0) {
+        const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+        const adminRoleIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
+        const { data: adminProfiles } = adminRoleIds.length
+          ? await supabase.from('profiles').select('id').in('id', adminRoleIds)
+          : { data: [] as any[] };
+        const adminIds = (adminProfiles || []).map((p: any) => p.id);
+        if (adminIds.length > 0) {
+          const perAdmin = profitTotals.admin / adminIds.length;
+          const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
+          adminIds.forEach((uid: string) => {
+            rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+          });
+        } else {
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+          fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ`, type: 'in' });
+        }
       }
     }
 
+    // Member shares — signed (positive = profit credit, negative = loss debit)
     shareRows.forEach(r => {
-      if (r.expected <= 0) return;
+      if (r.expected === 0) return;
       if (r.isDeleted || !r.memberId) {
-        // Deleted member's share goes to Fund
+        // Deleted member's share → Fund absorbs (profit: in / loss: out)
         rows.push({
           source_type: 'islamic_loan', source_id: id, member_id: null,
           amount: r.expected, share_percentage: r.sharePct,
           distribution_type: 'deleted_member_to_fund',
         });
         fundExtras.push({
-          amount: r.expected,
-          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
+          amount: Math.abs(r.expected),
+          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর ${isLoss ? 'loss' : 'অংশ'} Fund ${isLoss ? 'থেকে বিয়োগ' : 'এ যোগ'}`,
+          type: isLoss ? 'out' : 'in',
         });
       } else {
         rows.push({
@@ -274,12 +277,11 @@ export default function IslamicLoanDetailPage() {
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Add fund_transactions for fund (15%) + each deleted-member redirect
     const fundTxRows: any[] = [];
-    if (profitTotals.fund > 0) {
+    if (!isLoss && profitTotals.fund > 0) {
       fundTxRows.push({ type: 'in', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
     }
-    fundExtras.forEach(f => fundTxRows.push({ type: 'in', amount: f.amount, reason: f.reason }));
+    fundExtras.forEach(f => fundTxRows.push({ type: f.type, amount: f.amount, reason: f.reason }));
     if (fundTxRows.length) {
       const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
