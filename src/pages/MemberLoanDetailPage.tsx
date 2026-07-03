@@ -172,8 +172,8 @@ export default function MemberLoanDetailPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/member-loans')} className="gap-1 -ml-2">
-        <ArrowLeft className="w-4 h-4" /> Member Loans
+      <Button variant="ghost" size="sm" onClick={() => navigate(`/member-loans/m/${loan.member_id}`)} className="gap-1 -ml-2">
+        <ArrowLeft className="w-4 h-4" /> {loan.member?.full_name || 'Member'}-এর Loan Profile
       </Button>
 
       {/* Loan profile header */}
@@ -185,8 +185,11 @@ export default function MemberLoanDetailPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground tracking-tight">{loan.member?.full_name || 'Unknown'}</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Loan #{loan.id.slice(0, 8).toUpperCase()} · Created {format(new Date(loan.created_at), 'MMM d, yyyy')}
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                {loanCode && (
+                  <span className="font-mono font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{loanCode}</span>
+                )}
+                <span>Created {format(new Date(loan.created_at), 'MMM d, yyyy')}</span>
               </p>
             </div>
           </div>
