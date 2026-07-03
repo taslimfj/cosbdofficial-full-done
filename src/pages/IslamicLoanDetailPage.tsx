@@ -91,6 +91,17 @@ export default function IslamicLoanDetailPage() {
       setSiblingLoans([]);
     }
 
+    // Fetch full loan history for this phone (for rating computation)
+    if (loan?.borrower_phone) {
+      const { data: hist } = await supabase
+        .from('islamic_loans')
+        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, created_at, closed_at, months_paid_early, borrower_phone')
+        .eq('borrower_phone', loan.borrower_phone);
+      setPhoneHistory(hist || []);
+    } else {
+      setPhoneHistory([]);
+    }
+
     setLoading(false);
   };
 
