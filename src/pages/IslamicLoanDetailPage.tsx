@@ -402,13 +402,23 @@ export default function IslamicLoanDetailPage() {
   const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
+  const overdue = isLoanOverdue(loan);
 
   // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
   if (isCustomer) {
     const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
     const methods: PaymentMethod[] = Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [];
     return (
-      <div className="space-y-6 animate-fade-in max-w-xl">
+      <div className={`space-y-6 animate-fade-in max-w-xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/10 ring-2 ring-destructive/40' : ''}`}>
+        {overdue && (
+          <div className="bg-destructive text-destructive-foreground rounded-xl p-4 flex items-start gap-3 shadow-md">
+            <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-base">আপনি এখনো এই মাসের টাকা পরিশোধ করেননি</p>
+              <p className="text-sm opacity-90 mt-0.5">দয়া করে দ্রুত installment পরিশোধ করুন।</p>
+            </div>
+          </div>
+        )}
         {/* Other active loans for this customer — quick switcher */}
         {siblingLoans.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-4">
