@@ -657,12 +657,25 @@ export default function IslamicLoanDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Total Profit</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.total)}</p></div>
+          <div className={`rounded-lg p-2 ${profitTotals.isLoss ? 'bg-destructive/10' : 'bg-secondary/50'}`}>
+            <p className="text-muted-foreground">{profitTotals.isLoss ? 'Total Loss' : 'Total Profit'}</p>
+            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>{formatBDT(Math.abs(profitTotals.total))}</p>
+          </div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.fund)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.media)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.admin)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Member Pool</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.memberPool)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2">
+            <p className="text-muted-foreground">Member Pool</p>
+            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
+              {profitTotals.isLoss ? '−' : ''}{formatBDT(Math.abs(profitTotals.memberPool))}
+            </p>
+          </div>
         </div>
+        {profitTotals.isLoss && (
+          <p className="text-[11px] text-destructive mb-3 italic">
+            ⚠ Loss — সম্পূর্ণ ক্ষতি শুধুমাত্র members-দের snapshot % অনুযায়ী ভাগ হবে। Admin, Media person ও Fund এর ভাগ নেই।
+          </p>
+        )}
 
         {shareRows.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No member deposits at loan creation time</p>
@@ -672,7 +685,7 @@ export default function IslamicLoanDetailPage() {
               <div className="col-span-5">Member</div>
               <div className="col-span-3 text-right">Deposit</div>
               <div className="col-span-2 text-right">Share</div>
-              <div className="col-span-2 text-right">Profit</div>
+              <div className="col-span-2 text-right">{profitTotals.isLoss ? 'Loss' : 'Profit'}</div>
             </div>
             {shareRows.map(r => (
               <div key={r.id} className={`grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
@@ -682,10 +695,12 @@ export default function IslamicLoanDetailPage() {
                 </div>
                 <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
-                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground line-through' : 'text-emerald-600'}`}>{formatBDT(r.expected)}</div>
+                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground' : (r.expected < 0 ? 'text-destructive' : 'text-emerald-600')}`}>
+                  {r.expected < 0 ? '−' : ''}{formatBDT(Math.abs(r.expected))}
+                </div>
               </div>
             ))}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-এ যোগ হবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-{profitTotals.isLoss ? 'থেকে বিয়োগ' : 'এ যোগ'} হবে।</p>
           </div>
         )}
       </div>
