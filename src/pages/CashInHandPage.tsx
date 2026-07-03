@@ -197,7 +197,7 @@ export default function CashInHandPage() {
             Cash in Hand
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Capital + fund balance ± project ± Islamic loan cashflow
+            Actual cash movements — deposits, loan disbursements & repayments, project & fund entries
           </p>
         </div>
         <PdfPeriodButton
