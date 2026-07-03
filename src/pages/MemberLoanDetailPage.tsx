@@ -34,6 +34,8 @@ export default function MemberLoanDetailPage() {
     txn: '',
   });
 
+  const [loanCode, setLoanCode] = useState<string>('');
+
   const fetchAll = async () => {
     if (!id) return;
     const [loanRes, repsRes] = await Promise.all([
@@ -42,6 +44,17 @@ export default function MemberLoanDetailPage() {
     ]);
     setLoan(loanRes.data);
     setRepayments(repsRes.data || []);
+    // Compute per-member serial for the code
+    if (loanRes.data?.member_id) {
+      const { data: siblings } = await supabase
+        .from('member_loans')
+        .select('id, created_at')
+        .eq('member_id', loanRes.data.member_id)
+        .order('created_at', { ascending: true });
+      const serial = (siblings || []).findIndex(s => s.id === loanRes.data.id) + 1;
+      const { buildMemberLoanCode } = await import('@/lib/memberLoanCode');
+      setLoanCode(buildMemberLoanCode(loanRes.data.member?.full_name, serial, loanRes.data.created_at));
+    }
     setLoading(false);
   };
 
