@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       await admin.from("project_fund_requests").delete().eq("requested_by", existingUserId);
       await admin.from("notifications").delete().eq("user_id", existingUserId);
       await admin.from("user_roles").delete().eq("user_id", existingUserId);
-      await admin.from("phone_book").delete().eq("user_id", existingUserId);
+      await admin.from("phone_book").delete().eq("created_by", existingUserId);
       await admin.from("profiles").delete().eq("id", existingUserId);
 
       const { error: staleDeleteError } = await admin.auth.admin.deleteUser(existingUserId);

@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     await must(admin.from("project_fund_requests").delete().eq("requested_by", memberId));
     await must(admin.from("notifications").delete().eq("user_id", memberId));
     await must(admin.from("user_roles").delete().eq("user_id", memberId));
-    await must(admin.from("phone_book").delete().eq("user_id", memberId));
+    await must(admin.from("phone_book").delete().eq("created_by", memberId));
 
     // Delete the login account. Do not report success unless auth deletion succeeds.
     let { error: delErr } = await admin.auth.admin.deleteUser(memberId);
