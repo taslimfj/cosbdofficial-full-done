@@ -28,6 +28,8 @@ export default function DashboardPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_transactions' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loans' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loan_payments' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
