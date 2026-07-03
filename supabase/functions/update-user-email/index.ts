@@ -56,18 +56,24 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let step = "init";
   try {
+    step = "create-admin-client";
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
+    step = "read-token";
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return json({ error: "Unauthorized" }, 401);
 
+    step = "getUser";
     const { data: callerData, error: callerError } = await admin.auth.getUser(token);
-    if (callerError || !callerData.user) return json({ error: "Unauthorized" }, 401);
+    if (callerError || !callerData.user) return json({ error: "Unauthorized", step, callerError }, 401);
 
+    step = "parse-body";
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: "Valid email required" }, 400);
 
@@ -79,6 +85,7 @@ Deno.serve(async (req) => {
       return json({ success: true, unchanged: true });
     }
 
+    step = "list-users";
     let matchedUser: any | null = null;
     for (let page = 1; page <= 10; page += 1) {
       const { data: usersData, error: listError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
@@ -88,6 +95,7 @@ Deno.serve(async (req) => {
     }
 
     if (matchedUser && matchedUser.id !== currentUserId) {
+      step = "check-profile";
       const { data: profile } = await admin
         .from("profiles")
         .select("id, is_deleted")
@@ -98,9 +106,11 @@ Deno.serve(async (req) => {
         return json({ error: "এই ইমেইলটি অন্য active account-এ ব্যবহার হচ্ছে।" }, 409);
       }
 
+      step = "cleanup-stale";
       await cleanupStaleUser(admin, matchedUser.id);
     }
 
+    step = "update-user";
     const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(currentUserId, {
       email: targetEmail,
       email_confirm: true,
@@ -108,6 +118,7 @@ Deno.serve(async (req) => {
     if (updateError) throw updateError;
 
     return json({ success: true, email: updated.user?.email || targetEmail });
+
   } catch (error: any) {
     console.error("update-user-email error:", error);
     const message =
