@@ -108,6 +108,14 @@ Deno.serve(async (req) => {
 
     return json({ success: true, email: updated.user?.email || targetEmail });
   } catch (error: any) {
-    return json({ error: error?.message ?? String(error) }, 400);
+    console.error("update-user-email error:", error);
+    const message =
+      error?.message ||
+      error?.error_description ||
+      error?.msg ||
+      (typeof error === "string" ? error : null) ||
+      JSON.stringify(error, Object.getOwnPropertyNames(error || {})) ||
+      "Unknown error";
+    return json({ error: message, details: error }, 400);
   }
 });
