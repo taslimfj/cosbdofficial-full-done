@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -35,7 +36,7 @@ export default function MemberDetailPage() {
   const [callMuted, setCallMuted] = useState(false);
   const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [repaymentInput, setRepaymentInput] = useState('');
+  const [loanPaymentConfirmed, setLoanPaymentConfirmed] = useState(false);
   const [depositLimit, setDepositLimit] = useState(3);
   const [distLimit, setDistLimit] = useState(3);
   const [totalAllBalances, setTotalAllBalances] = useState(0);
@@ -194,19 +195,16 @@ export default function MemberDetailPage() {
     if (!member) return;
 
     // Validate: any outstanding personal loans must be settled (Islamic loans NOT considered)
-    if (outstandingTotal > 0) {
-      const repaid = parseFloat(repaymentInput);
-      if (!repaid || repaid < outstandingTotal) {
-        toast.error(`পরিশোধের পরিমাণ কমপক্ষে ৳${outstandingTotal.toLocaleString()} হতে হবে`);
-        return;
-      }
+    if (outstandingTotal > 0 && !loanPaymentConfirmed) {
+      toast.error('পার্সোনাল লোন পরিশোধ হয়েছে কিনা confirm করুন');
+      return;
     }
 
     setDeleting(true);
 
     // Hard-delete via edge function (uses service role to remove auth user + all data)
     const { data, error } = await supabase.functions.invoke('delete-member', {
-      body: { memberId: id! },
+      body: { memberId: id!, loanPaymentConfirmed: outstandingTotal > 0 ? loanPaymentConfirmed : true },
     });
 
     if (error || (data as any)?.error) {
@@ -347,7 +345,7 @@ export default function MemberDetailPage() {
               </Dialog>
 
               {/* Delete Member */}
-              <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setRepaymentInput(''); }}>
+              <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setLoanPaymentConfirmed(false); }}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="destructive" className="gap-2"><Trash2 className="w-4 h-4" /> Delete Member</Button>
                 </DialogTrigger>
@@ -367,18 +365,24 @@ export default function MemberDetailPage() {
                         <div>
                           <p className="font-medium text-destructive">পার্সোনাল লোন বকেয়া আছে</p>
                           <p className="text-xs text-muted-foreground mt-1">মোট বকেয়া: ৳{outstandingTotal.toLocaleString()} ({outstandingLoans.length}টি লোন)</p>
-                          <p className="text-xs text-muted-foreground mt-1">মুছে ফেলার আগে পরিশোধিত পরিমাণ লিখুন।</p>
+                          <p className="text-xs text-muted-foreground mt-1">মুছে ফেলার আগে loan পরিশোধ হয়েছে confirm করুন।</p>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">পরিশোধিত পরিমাণ (৳)</Label>
-                          <Input type="number" value={repaymentInput} onChange={e => setRepaymentInput(e.target.value)} placeholder={String(outstandingTotal)} />
+                        <div className="flex items-start gap-2 rounded-md bg-background/60 p-3">
+                          <Checkbox
+                            id="loan-paid-confirm"
+                            checked={loanPaymentConfirmed}
+                            onCheckedChange={(checked) => setLoanPaymentConfirmed(checked === true)}
+                          />
+                          <Label htmlFor="loan-paid-confirm" className="text-xs leading-5 cursor-pointer">
+                            হ্যাঁ, এই member-এর পার্সোনাল লোন পরিশোধ হয়েছে। এখন permanently delete করা যাবে।
+                          </Label>
                         </div>
                       </div>
                     )}
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" className="flex-1" onClick={() => setShowDeleteDialog(false)}>বাতিল</Button>
                       <Button variant="destructive" className="flex-1" onClick={handleDeleteMember}
-                        disabled={deleting || (outstandingTotal > 0 && (parseFloat(repaymentInput) || 0) < outstandingTotal)}>
+                        disabled={deleting || (outstandingTotal > 0 && !loanPaymentConfirmed)}>
                         {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} হ্যাঁ, মুছে ফেলুন
                       </Button>
                     </div>

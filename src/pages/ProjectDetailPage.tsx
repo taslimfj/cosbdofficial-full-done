@@ -52,7 +52,7 @@ export default function ProjectDetailPage() {
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
       (supabase as any).from('project_fund_requests').select('*').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
-    const members = mRes.data || [];
+    const members = (mRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
     const project = pRes.data ? { ...pRes.data, manager: byId.get(pRes.data.manager_id) || null, secondary_manager: byId.get(pRes.data.secondary_manager_id) || null } : null;
     const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));

@@ -13,7 +13,8 @@ export async function snapshotMemberShares(opts: {
   const { data: members } = await supabase
     .from('profiles')
     .select('id, full_name, deleted_name, total_deposited')
-    .eq('is_deleted', false);
+    .eq('is_deleted', false)
+    .eq('is_customer', false);
 
   const live = (members || []).filter(
     (m) => Number(m.total_deposited || 0) > 0

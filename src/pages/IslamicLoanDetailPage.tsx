@@ -67,7 +67,7 @@ export default function IslamicLoanDetailPage() {
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'islamic_loan'),
       (supabase as any).from('customer_payment_requests').select('*').eq('loan_id', id).order('created_at', { ascending: false }),
     ]);
-    const members = memRes.data || [];
+    const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
     const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null } : null;
     const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
