@@ -83,25 +83,22 @@ export default function CashInHandPage() {
       });
     });
 
-    // Profit distributions — credited to member capital (IN)
-    (distRes.data || []).forEach((d: any) => merged.push({
-      id: `dist-${d.id}`,
-      created_at: d.created_at,
-      source: 'Profit',
-      direction: 'in',
-      amount: Number(d.amount || 0),
-      reason: `Profit share — ${memberName.get(d.member_id) || 'Member'}`,
-    }));
+    // Profit distributions are INTERNAL allocations of cash already counted
+    // via Islamic Loan installments — skipping them prevents double-counting.
 
-    // Fund transactions — include all (matches Fund Net Balance on dashboard)
+    // Fund transactions — skip auto-created "profit share" rows from loan
+    // distributions (they mirror money already counted as IL installments).
     (fundRes.data || []).forEach((t: any) => {
+      const reason: string = t.reason || '';
+      const isProfitInternal = /profit share|Admin share.*Fund/i.test(reason);
+      if (isProfitInternal) return;
       merged.push({
         id: `fund-${t.id}`,
         created_at: t.created_at,
         source: 'Fund',
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
         amount: Number(t.amount || 0),
-        reason: t.reason || 'Fund transaction',
+        reason: reason || 'Fund transaction',
       });
     });
 

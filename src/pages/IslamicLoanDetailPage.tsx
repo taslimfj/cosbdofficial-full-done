@@ -734,7 +734,7 @@ export default function IslamicLoanDetailPage() {
           <div className="bg-secondary/50 rounded-lg p-2">
             <p className="text-muted-foreground">Member Pool</p>
             <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
-              {profitTotals.isLoss ? '−' : ''}{formatBDT(Math.abs(profitTotals.memberPool))}
+              {profitTotals.isLoss ? '−' : ''}{formatBDT(Math.abs(shareRows.reduce((s: number, r: any) => s + Math.round(r.expected), 0)) || Math.abs(profitTotals.memberPool))}
             </p>
           </div>
         </div>

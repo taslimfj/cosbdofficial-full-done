@@ -92,11 +92,19 @@ export default function DashboardPage() {
     //   + Project Income  - Project Expense
     //   - Islamic Loan Purchases + Islamic Loan Installments
     //   - Member Loans Disbursed + Member Loan Repayments
+    // NOTE: Profit distributions are INTERNAL allocations of installment cash
+    // already counted via ilInstallments — subtract them to avoid double count
+    // (they inflate both totalInvestment via members and availableFund via fund share).
+    const distributedProfitTotal = distributions.reduce(
+      (s: number, d: any) => s + Number(d.amount || 0),
+      0
+    );
     const cashInHand =
       totalInvestment + availableFund
       + projectIncome - projectExpense
       - ilPurchases + ilInstallments
-      - mlDisbursed + mlRepaid;
+      - mlDisbursed + mlRepaid
+      - distributedProfitTotal;
 
 
     setStats({
