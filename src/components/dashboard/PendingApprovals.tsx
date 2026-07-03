@@ -113,11 +113,11 @@ export function PendingApprovals() {
                 <p className="text-sm font-medium text-foreground truncate">{d.member_name}</p>
                 <p className="text-xs text-muted-foreground">Deposit · {formatBDT(Number(d.amount))}</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8" onClick={() => approveDeposit(d.id, Number(d.amount), d.member_id)}>
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50" onClick={() => approveDeposit(d.id, Number(d.amount), d.member_id)}>
+                Approve
               </Button>
-              <Button size="sm" variant="outline" className="h-8" onClick={() => rejectDeposit(d.id)}>
-                <XCircle className="w-3.5 h-3.5" />
+              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-medium text-rose-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50" onClick={() => rejectDeposit(d.id)}>
+                Reject
               </Button>
             </div>
           ))}
