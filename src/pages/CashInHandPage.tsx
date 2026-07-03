@@ -68,15 +68,20 @@ export default function CashInHandPage() {
 
     const merged: Row[] = [];
 
-    // Deposits (approved) — cash coming in
-    (depRes.data || []).forEach((d: any) => merged.push({
-      id: `dep-${d.id}`,
-      created_at: d.created_at,
-      source: 'Deposit',
-      direction: 'in',
-      amount: Number(d.amount || 0),
-      reason: 'Member deposit',
-    }));
+    // Deposits (approved) — positive = deposit (IN), negative = withdrawal (OUT)
+    (depRes.data || []).forEach((d: any) => {
+      const amt = Number(d.amount || 0);
+      const isWithdraw = amt < 0;
+      const name = memberName.get(d.member_id) || 'Member';
+      merged.push({
+        id: `dep-${d.id}`,
+        created_at: d.created_at,
+        source: 'Deposit',
+        direction: isWithdraw ? 'out' : 'in',
+        amount: Math.abs(amt),
+        reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
+      });
+    });
 
     // Profit distributions — credited to member capital (IN)
     (distRes.data || []).forEach((d: any) => merged.push({
