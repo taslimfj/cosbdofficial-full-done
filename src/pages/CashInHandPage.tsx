@@ -249,19 +249,29 @@ export default function CashInHandPage() {
                 </p>
               </div>
             ))}
-            {rows.length > PREVIEW_LIMIT && (
-              <div className="px-5 py-3">
+            {hiddenCount > 0 && (
+              <div className="px-5 py-3 flex gap-2">
                 <Button
                   variant="ghost"
-                  className="w-full gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowAll(s => !s)}
+                  className="flex-1 gap-1 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() => setVisibleCount(c => c + PREVIEW_LIMIT)}
                 >
-                  {showAll ? 'See less' : `See more (${rows.length - PREVIEW_LIMIT})`}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+                  See more ({Math.min(PREVIEW_LIMIT, hiddenCount)} of {hiddenCount})
+                  <ChevronDown className="w-4 h-4" />
                 </Button>
+                {visibleCount > PREVIEW_LIMIT && (
+                  <Button
+                    variant="ghost"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => setVisibleCount(PREVIEW_LIMIT)}
+                  >
+                    See less
+                  </Button>
+                )}
               </div>
             )}
           </div>
+
         )}
       </div>
     </div>
