@@ -128,6 +128,6 @@ Deno.serve(async (req) => {
       (typeof error === "string" ? error : null) ||
       JSON.stringify(error, Object.getOwnPropertyNames(error || {})) ||
       "Unknown error";
-    return json({ error: message, details: error }, 400);
+    return json({ error: message, step, details: error }, 400);
   }
 });
