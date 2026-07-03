@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
-  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package,
+  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star,
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import { LoanContractPdf } from '@/components/LoanContractPdf';
+import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/loanStatus';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -47,6 +48,7 @@ export default function IslamicLoanDetailPage() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
+  const [phoneHistory, setPhoneHistory] = useState<any[]>([]);
 
   const [edit, setEdit] = useState<any>(null);
 
@@ -87,6 +89,17 @@ export default function IslamicLoanDetailPage() {
       setSiblingLoans(sibs || []);
     } else {
       setSiblingLoans([]);
+    }
+
+    // Fetch full loan history for this phone (for rating computation)
+    if (loan?.borrower_phone) {
+      const { data: hist } = await supabase
+        .from('islamic_loans')
+        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, created_at, closed_at, months_paid_early, borrower_phone')
+        .eq('borrower_phone', loan.borrower_phone);
+      setPhoneHistory(hist || []);
+    } else {
+      setPhoneHistory([]);
     }
 
     setLoading(false);
@@ -197,10 +210,32 @@ export default function IslamicLoanDetailPage() {
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+    // If this payment fully settled the loan → stamp closed_at + months_paid_early
+    await maybeMarkClosed(amt);
     toast.success('Deposit recorded');
     setShowDeposit(false);
     setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
     load();
+  };
+
+  // After a payment, if remaining reaches 0, freeze closed_at + months_paid_early
+  const maybeMarkClosed = async (justPaid: number) => {
+    if (!loan) return;
+    const currentRemaining = Number(loan.remaining_amount) - justPaid;
+    if (currentRemaining > 0.01) return;
+    if (loan.closed_at) return;
+    const now = new Date();
+    const start = new Date(loan.created_at);
+    const monthsUsed =
+      (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth()) +
+      (now.getDate() >= start.getDate() ? 0 : -1);
+    const monthsEarly = Math.max(0, Number(loan.tenure_months) - Math.max(0, monthsUsed));
+    await supabase.from('islamic_loans').update({
+      closed_at: now.toISOString(),
+      months_paid_early: monthsEarly,
+      status: 'closed',
+    } as any).eq('id', id!);
   };
 
   const handleDelete = async () => {
@@ -343,6 +378,7 @@ export default function IslamicLoanDetailPage() {
     await (supabase as any).from('customer_payment_requests').update({
       status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
     }).eq('id', req.id);
+    await maybeMarkClosed(Number(req.amount));
     setBusy(false);
     toast.success('Approved & recorded');
     load();
@@ -378,13 +414,23 @@ export default function IslamicLoanDetailPage() {
   const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
+  const overdue = isLoanOverdue(loan);
 
   // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
   if (isCustomer) {
     const myRequests = payRequests.filter(r => r.customer_user_id === user?.id);
     const methods: PaymentMethod[] = Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [];
     return (
-      <div className="space-y-6 animate-fade-in max-w-xl">
+      <div className={`space-y-6 animate-fade-in max-w-xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/10 ring-2 ring-destructive/40' : ''}`}>
+        {overdue && (
+          <div className="bg-destructive text-destructive-foreground rounded-xl p-4 flex items-start gap-3 shadow-md">
+            <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-base">আপনি এখনো এই মাসের টাকা পরিশোধ করেননি</p>
+              <p className="text-sm opacity-90 mt-0.5">দয়া করে দ্রুত installment পরিশোধ করুন।</p>
+            </div>
+          </div>
+        )}
         {/* Other active loans for this customer — quick switcher */}
         {siblingLoans.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-4">
@@ -541,8 +587,9 @@ export default function IslamicLoanDetailPage() {
 
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
+  const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
+    <div className={`space-y-6 animate-fade-in max-w-3xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/5 ring-2 ring-destructive/40' : ''}`}>
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
         {isAdmin ? (
@@ -557,6 +604,35 @@ export default function IslamicLoanDetailPage() {
           <LoanContractPdf loan={loan} />
         )}
       </div>
+
+      {overdue && (
+        <div className="bg-destructive text-destructive-foreground rounded-xl p-4 flex items-start gap-3 shadow-md">
+          <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-base">এই মাসের installment এখনো পরিশোধ হয়নি</p>
+            <p className="text-sm opacity-90 mt-0.5">Customer-কে remind করুন — payment হলে এই status স্বয়ংক্রিয়ভাবে সাদা হয়ে যাবে।</p>
+          </div>
+        </div>
+      )}
+
+      {/* Customer rating badge */}
+      {rating.totalLoans > 0 && (
+        <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Customer Rating: {rating.score}/10</p>
+              <p className="text-xs text-muted-foreground">
+                {rating.totalLoans} loan · {rating.closedLoans} closed
+                {rating.totalMonthsEarly > 0 && <span className="text-emerald-600"> · {rating.totalMonthsEarly} মাস early payoff</span>}
+                {rating.overdueActive > 0 && <span className="text-destructive"> · {rating.overdueActive} overdue</span>}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Other active loans for this customer — quick switcher */}
       {siblingLoans.length > 0 && (

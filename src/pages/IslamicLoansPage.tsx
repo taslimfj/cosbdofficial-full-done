@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,8 @@ import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares } from '@/lib/snapshotShares';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
+import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
+import { AlertCircle, Sparkles, Star } from 'lucide-react';
 
 export default function IslamicLoansPage() {
   const { role } = useAuth();
@@ -73,6 +75,27 @@ export default function IslamicLoansPage() {
   const sellPrice = Math.round(baseSellPrice * (1 - discountPct / 100) * 100) / 100;
   const monthlyInstallment = calculateMonthlyInstallment(sellPrice, tenure);
 
+  // Phone-based history lookup → discount credit + customer rating
+  const phoneHistory = useMemo(() => {
+    if (!form.borrowerPhone || form.borrowerPhone.replace(/[^0-9]/g, '').length < 6) return null;
+    const credit = findDiscountCreditForPhone(loans as any, form.borrowerPhone);
+    const rating = computeCustomerRating(loans as any, form.borrowerPhone);
+    return { credit, rating };
+  }, [form.borrowerPhone, loans]);
+
+  // Auto-fill discount when an unused early-payoff credit exists
+  useEffect(() => {
+    if (phoneHistory?.credit && phoneHistory.credit.months > 0) {
+      setForm(p => {
+        // Only auto-fill if user hasn't manually set a different value
+        if (p.discountPct === '0' || p.discountPct === '') {
+          return { ...p, discountPct: String(phoneHistory.credit!.months) };
+        }
+        return p;
+      });
+    }
+  }, [phoneHistory?.credit?.fromLoanId]);
+
   const handleCreate = async () => {
     if (!form.borrowerName.trim()) { toast.error('Enter borrower name'); return; }
     if (!form.borrowerPhone.trim()) { toast.error('Enter borrower phone'); return; }
@@ -86,6 +109,7 @@ export default function IslamicLoansPage() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', yStart);
     const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
+    const usingCredit = phoneHistory?.credit && discountPct > 0 && Math.abs(discountPct - phoneHistory.credit.months) < 0.01;
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
@@ -103,11 +127,19 @@ export default function IslamicLoansPage() {
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
+      discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
       // Auto-populate admin's default payment methods so customer sees them immediately
       payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
     const loanId = inserted.id;
+
+    // Mark the previous loan's discount credit as used (one-shot)
+    if (usingCredit) {
+      await supabase.from('islamic_loans')
+        .update({ discount_credit_used: true } as any)
+        .eq('id', phoneHistory!.credit!.fromLoanId);
+    }
 
     // Snapshot current member shares — locked at creation
     try { await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId }); }
@@ -215,6 +247,37 @@ export default function IslamicLoansPage() {
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
                   </div>
                 </div>
+
+                {/* Phone history reminder: discount credit + customer rating */}
+                {phoneHistory && (phoneHistory.rating.totalLoans > 0) && (
+                  <div className="space-y-2">
+                    {phoneHistory.credit && phoneHistory.credit.months > 0 && (
+                      <div className="border border-emerald-500/30 bg-emerald-500/5 rounded-lg p-3 flex gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <p className="font-semibold text-emerald-700">
+                            পূর্বের loan {phoneHistory.credit.fromLoanCode ? `(${phoneHistory.credit.fromLoanCode})` : ''} {phoneHistory.credit.months} মাস আগে পরিশোধ করা হয়েছিল
+                          </p>
+                          <p className="text-muted-foreground mt-0.5">
+                            এই loan-এ <b className="text-emerald-700">{phoneHistory.credit.months}% discount</b> স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে (এক-বারই ব্যবহারযোগ্য)।
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="border border-border bg-secondary/40 rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <div>
+                          <p className="font-semibold">Customer Rating: {phoneHistory.rating.score}/10</p>
+                          <p className="text-muted-foreground">
+                            {phoneHistory.rating.totalLoans} loan · {phoneHistory.rating.closedLoans} closed
+                            {phoneHistory.rating.overdueActive > 0 && <span className="text-destructive"> · {phoneHistory.rating.overdueActive} overdue</span>}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>পণ্যের নাম / Product Name</Label>
                   <Input value={form.productName} onChange={e => setForm(p => ({ ...p, productName: e.target.value }))} placeholder="যেমন: iPhone 15, Honda CB150R" />
@@ -291,18 +354,28 @@ export default function IslamicLoansPage() {
           const borrowerName = loan.borrower_name || loan.media_person?.full_name || 'N/A';
           const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
           const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
+          const overdue = isLoanOverdue(loan);
           return (
             <Link
               key={loan.id}
               to={`/islamic-loans/${loan.id}`}
-              className="group bg-card border border-border p-5 rounded-xl hover:border-primary/30 hover:shadow-md transition-all flex flex-col"
+              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border ${
+                overdue
+                  ? 'bg-destructive/10 border-destructive/50 hover:border-destructive'
+                  : 'bg-card border-border hover:border-primary/30'
+              }`}
             >
               <div className="mb-4 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="text-base font-semibold text-foreground truncate">{borrowerName}</h3>
-                  {borrowerPhone && <p className="text-xs text-muted-foreground font-mono mt-0.5">{borrowerPhone}</p>}
+                  <h3 className={`text-base font-semibold truncate ${overdue ? 'text-destructive' : 'text-foreground'}`}>{borrowerName}</h3>
+                  {borrowerPhone && <p className={`text-xs font-mono mt-0.5 ${overdue ? 'text-destructive/80' : 'text-muted-foreground'}`}>{borrowerPhone}</p>}
+                  {overdue && (
+                    <p className="text-[11px] font-semibold text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> এই মাসের টাকা পরিশোধ করেননি
+                    </p>
+                  )}
                 </div>
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${loan.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{loan.status}</span>
+                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${overdue ? 'bg-destructive/20 text-destructive' : loan.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{overdue ? 'overdue' : loan.status}</span>
               </div>
               {phoneDigits && (
                 <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
@@ -311,8 +384,8 @@ export default function IslamicLoansPage() {
                   <a href={`sms:${borrowerPhone}`} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-foreground text-xs transition-colors"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
                 </div>
               )}
-              <div className="grid grid-cols-3 gap-2 mt-auto pt-4 border-t border-border">
-                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p><p className="font-mono font-bold text-primary tabular-nums text-sm">{formatBDT(remaining)}</p></div>
+              <div className={`grid grid-cols-3 gap-2 mt-auto pt-4 border-t ${overdue ? 'border-destructive/30' : 'border-border'}`}>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Due</p><p className={`font-mono font-bold tabular-nums text-sm ${overdue ? 'text-destructive' : 'text-primary'}`}>{formatBDT(remaining)}</p></div>
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p></div>
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(monthly)}</p></div>
               </div>

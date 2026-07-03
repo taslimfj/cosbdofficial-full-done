@@ -318,16 +318,20 @@ export type Database = {
           admin_profit_pct: number
           borrower_name: string | null
           borrower_phone: string | null
+          closed_at: string | null
           code: string
           comments: string | null
           created_at: string | null
           customer_user_id: string | null
+          discount_credit_from_loan: string | null
+          discount_credit_used: boolean | null
           discount_pct: number | null
           fund_profit_pct: number | null
           id: string
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
+          months_paid_early: number | null
           payment_methods: Json
           product_name: string | null
           profit_percentage: number | null
@@ -342,16 +346,20 @@ export type Database = {
           admin_profit_pct?: number
           borrower_name?: string | null
           borrower_phone?: string | null
+          closed_at?: string | null
           code: string
           comments?: string | null
           created_at?: string | null
           customer_user_id?: string | null
+          discount_credit_from_loan?: string | null
+          discount_credit_used?: boolean | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          months_paid_early?: number | null
           payment_methods?: Json
           product_name?: string | null
           profit_percentage?: number | null
@@ -366,16 +374,20 @@ export type Database = {
           admin_profit_pct?: number
           borrower_name?: string | null
           borrower_phone?: string | null
+          closed_at?: string | null
           code?: string
           comments?: string | null
           created_at?: string | null
           customer_user_id?: string | null
+          discount_credit_from_loan?: string | null
+          discount_credit_used?: boolean | null
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          months_paid_early?: number | null
           payment_methods?: Json
           product_name?: string | null
           profit_percentage?: number | null
@@ -387,6 +399,20 @@ export type Database = {
           tenure_months?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "islamic_loans_discount_credit_from_loan_fkey"
+            columns: ["discount_credit_from_loan"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_discount_credit_from_loan_fkey"
+            columns: ["discount_credit_from_loan"]
+            isOneToOne: false
+            referencedRelation: "islamic_loans_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "islamic_loans_media_person_id_fkey"
             columns: ["media_person_id"]
