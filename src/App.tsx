@@ -18,6 +18,7 @@ import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import MemberLoansPage from "@/pages/MemberLoansPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
+import TutorialsPage from "@/pages/TutorialsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="member-loans" element={<MemberLoansPage />} />
               <Route path="phone-book" element={<PhoneBookPage />} />
               <Route path="assets" element={<AssetsPage />} />
+              <Route path="tutorials" element={<TutorialsPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
