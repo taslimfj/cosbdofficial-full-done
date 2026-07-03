@@ -40,7 +40,7 @@ export default function CashInHandPage() {
   }, []);
 
   const fetchAll = async () => {
-    const [fundRes, projRes, ilRes, ilPayRes, depRes, distRes, projectsRes] = await Promise.all([
+    const [fundRes, projRes, ilRes, ilPayRes, depRes, distRes, projectsRes, mlRes, mlPayRes, profilesRes] = await Promise.all([
       supabase.from('fund_transactions').select('*'),
       supabase.from('project_transactions').select('*'),
       supabase.from('islamic_loans').select('id, code, product_name, borrower_name, purchase_price, created_at'),
@@ -48,10 +48,19 @@ export default function CashInHandPage() {
       supabase.from('deposits').select('*').eq('status', 'approved'),
       supabase.from('profit_distributions').select('*'),
       supabase.from('projects').select('id, name'),
+      supabase.from('member_loans').select('*'),
+      supabase.from('member_loan_repayments').select('*').eq('status', 'approved'),
+      supabase.from('profiles').select('id, full_name'),
     ]);
 
     const projectName = new Map<string, string>();
     (projectsRes.data || []).forEach((p: any) => projectName.set(p.id, p.name));
+
+    const memberName = new Map<string, string>();
+    (profilesRes.data || []).forEach((p: any) => memberName.set(p.id, p.full_name || 'Member'));
+
+    const mlById = new Map<string, any>();
+    (mlRes.data || []).forEach((l: any) => mlById.set(l.id, l));
 
     const ilById = new Map<string, any>();
     (ilRes.data || []).forEach((l: any) => ilById.set(l.id, l));
