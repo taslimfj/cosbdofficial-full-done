@@ -75,6 +75,27 @@ export default function IslamicLoansPage() {
   const sellPrice = Math.round(baseSellPrice * (1 - discountPct / 100) * 100) / 100;
   const monthlyInstallment = calculateMonthlyInstallment(sellPrice, tenure);
 
+  // Phone-based history lookup → discount credit + customer rating
+  const phoneHistory = useMemo(() => {
+    if (!form.borrowerPhone || form.borrowerPhone.replace(/[^0-9]/g, '').length < 6) return null;
+    const credit = findDiscountCreditForPhone(loans as any, form.borrowerPhone);
+    const rating = computeCustomerRating(loans as any, form.borrowerPhone);
+    return { credit, rating };
+  }, [form.borrowerPhone, loans]);
+
+  // Auto-fill discount when an unused early-payoff credit exists
+  useEffect(() => {
+    if (phoneHistory?.credit && phoneHistory.credit.months > 0) {
+      setForm(p => {
+        // Only auto-fill if user hasn't manually set a different value
+        if (p.discountPct === '0' || p.discountPct === '') {
+          return { ...p, discountPct: String(phoneHistory.credit!.months) };
+        }
+        return p;
+      });
+    }
+  }, [phoneHistory?.credit?.fromLoanId]);
+
   const handleCreate = async () => {
     if (!form.borrowerName.trim()) { toast.error('Enter borrower name'); return; }
     if (!form.borrowerPhone.trim()) { toast.error('Enter borrower phone'); return; }
