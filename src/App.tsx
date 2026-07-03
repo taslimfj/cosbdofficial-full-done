@@ -17,6 +17,7 @@ import IslamicLoanDetailPage from "@/pages/IslamicLoanDetailPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import ProjectDetailPage from "@/pages/ProjectDetailPage";
 import MemberLoansPage from "@/pages/MemberLoansPage";
+import MemberLoanDetailPage from "@/pages/MemberLoanDetailPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
 import TutorialsPage from "@/pages/TutorialsPage";
