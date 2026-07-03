@@ -109,6 +109,15 @@ export default function MemberDetailPage() {
     0,
   );
 
+  const currentDepositSum = deposits
+    .filter(d => Number(d.amount) > 0 && d.status === 'approved')
+    .reduce((s, d) => s + Number(d.amount), 0);
+  const currentWithdrawSum = deposits
+    .filter(d => Number(d.amount) < 0 && d.status === 'approved')
+    .reduce((s, d) => s + Math.abs(Number(d.amount)), 0);
+  const currentProfitSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
+  const currentNetBalance = currentDepositSum + currentProfitSum - currentWithdrawSum;
+
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
@@ -124,10 +133,6 @@ export default function MemberDetailPage() {
     });
 
     if (!error) {
-      await supabase.from('profiles').update({
-        total_deposited: Number(member.total_deposited || 0) + amount,
-      }).eq('id', id!);
-
       toast.success(`৳${amount} deposit recorded`);
       setShowDepositDialog(false);
       setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
@@ -153,10 +158,6 @@ export default function MemberDetailPage() {
     });
 
     if (!error) {
-      await supabase.from('profiles').update({
-        total_deposited: Math.max(0, Number(member.total_deposited || 0) - amount),
-      }).eq('id', id!);
-
       toast.success(`৳${amount} withdrawal recorded`);
       setShowWithdrawDialog(false);
       setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
@@ -170,10 +171,6 @@ export default function MemberDetailPage() {
   const handleDeleteTransaction = async (depositId: string, amount: number) => {
     const { error } = await supabase.from('deposits').delete().eq('id', depositId);
     if (!error) {
-      // Recalculate total from remaining deposits
-      const remaining = deposits.filter(d => d.id !== depositId);
-      const newTotal = remaining.reduce((sum, d) => sum + Number(d.amount), 0);
-      await supabase.from('profiles').update({ total_deposited: Math.max(0, newTotal) }).eq('id', id!);
       toast.success('Transaction deleted');
       fetchData();
     } else {
@@ -355,7 +352,7 @@ export default function MemberDetailPage() {
                   </DialogHeader>
                   <div className="space-y-4 mt-2 text-sm">
                     <p className="text-muted-foreground">
-                      {member.full_name} কে মুছে ফেললে তার মোট জমা ৳{Number(member.total_deposited || 0).toLocaleString()} উত্তোলন হিসেবে গণ্য হবে।
+                      {member.full_name} কে মুছে ফেললে তার বর্তমান net balance {formatBDT(currentNetBalance)} উত্তোলন হিসেবে গণ্য হবে।
                     </p>
                     <p className="text-xs text-muted-foreground">
                       নোট: ইসলামিক লোন সম্পূর্ণ আলাদা প্রজেক্ট — মেম্বার মুছে ফেললেও তা প্রভাবিত হবে না।
@@ -419,10 +416,10 @@ export default function MemberDetailPage() {
         </div>
 
         {(() => {
-          const depositSum = deposits.filter(d => Number(d.amount) > 0 && d.status === 'approved').reduce((s, d) => s + Number(d.amount), 0);
-          const withdrawSum = deposits.filter(d => Number(d.amount) < 0 && d.status === 'approved').reduce((s, d) => s + Math.abs(Number(d.amount)), 0);
-          const profitSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
-          const balance = depositSum + profitSum - withdrawSum;
+          const depositSum = currentDepositSum;
+          const withdrawSum = currentWithdrawSum;
+          const profitSum = currentProfitSum;
+          const balance = currentNetBalance;
           const sharePct = calculateSharePercentage(balance, totalAllBalances);
           return (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border">
