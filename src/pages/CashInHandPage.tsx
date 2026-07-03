@@ -21,7 +21,8 @@ const PREVIEW_LIMIT = 10;
 export default function CashInHandPage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
-  const [showAll, setShowAll] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PREVIEW_LIMIT);
+
 
   useEffect(() => {
     fetchAll();
