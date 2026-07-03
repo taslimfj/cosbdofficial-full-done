@@ -1,9 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -80,6 +76,13 @@ Deno.serve(async (req) => {
 
         if (existingProfile && !existingProfile.is_deleted && existingProfile.is_customer) {
           return new Response(JSON.stringify({ success: true, userId: foundId, reused: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (existingProfile && !existingProfile.is_deleted && !existingProfile.is_customer) {
+          return new Response(JSON.stringify({ error: "এই login information দিয়ে একটি active member account আছে।" }), {
+            status: 409,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }

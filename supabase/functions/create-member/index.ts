@@ -1,10 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.24.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const BodySchema = z.object({
   fullName: z.string().trim().min(1).max(120),
@@ -85,8 +81,8 @@ Deno.serve(async (req) => {
         .eq("id", existingUserId)
         .maybeSingle();
 
-      if (existingProfile && !existingProfile.is_deleted && !existingProfile.is_customer) {
-        return json({ error: "এই login information দিয়ে একটি active member account আছে।" }, 409);
+      if (existingProfile && !existingProfile.is_deleted) {
+        return json({ error: "এই login information দিয়ে একটি active account আছে।" }, 409);
       }
 
       const { data: staleLoans } = await admin.from("member_loans").select("id").eq("member_id", existingUserId);
