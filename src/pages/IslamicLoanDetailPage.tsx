@@ -118,17 +118,24 @@ export default function IslamicLoanDetailPage() {
     }
   }, [loan]);
 
-  // Profit totals computed from loan (purchase/sell)
+  // Profit / Loss = collected (paid) − purchase_price
+  //   Profit → Fund % + Media % + Admin % + Member Pool (snapshot %)
+  //   Loss   → Members bear it fully by snapshot % (Fund/Media/Admin unaffected)
   const profitTotals = useMemo(() => {
-    if (!loan) return { total: 0, fund: 0, media: 0, admin: 0, memberPool: 0 };
-    const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
-    const fund = total * (Number(loan.fund_profit_pct) || 0) / 100;
-    const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
-    const admin = total * (Number((loan as any).admin_profit_pct) || 0) / 100;
-    return { total, fund, media, admin, memberPool: Math.max(0, total - fund - media - admin) };
+    if (!loan) return { total: 0, net: 0, isLoss: false, fund: 0, media: 0, admin: 0, memberPool: 0 };
+    const collected = Number(loan.sell_price) - Number(loan.remaining_amount);
+    const net = collected - Number(loan.purchase_price);
+    if (net >= 0) {
+      const fund = net * (Number(loan.fund_profit_pct) || 0) / 100;
+      const media = net * (Number(loan.media_person_profit_pct) || 0) / 100;
+      const admin = net * (Number((loan as any).admin_profit_pct) || 0) / 100;
+      return { total: net, net, isLoss: false, fund, media, admin, memberPool: Math.max(0, net - fund - media - admin) };
+    }
+    // Loss — negative memberPool, no fund/media/admin
+    return { total: net, net, isLoss: true, fund: 0, media: 0, admin: 0, memberPool: net };
   }, [loan]);
 
-  // Snapshot share rows — frozen at loan creation
+  // Snapshot share rows — frozen at loan creation (signed: negative on loss)
   const shareRows = useMemo(() => {
     if (!loan || !snapshot.length) return [] as any[];
     const pool = profitTotals.memberPool;
