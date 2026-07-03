@@ -36,7 +36,7 @@ export default function DashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    const [profilesRes, fundRes, loansRes, depsRes, distRes, projTxRes, ilRes, ilPayRes] = await Promise.all([
+    const [profilesRes, fundRes, loansRes, depsRes, distRes, projTxRes, ilRes, ilPayRes, mlRes, mlPayRes] = await Promise.all([
       (supabase as any).from('member_directory').select('*'),
       supabase.from('fund_transactions').select('*'),
       (supabase as any).from('islamic_loans_public').select('*').eq('status', 'active'),
@@ -45,6 +45,8 @@ export default function DashboardPage() {
       supabase.from('project_transactions').select('type, amount'),
       supabase.from('islamic_loans').select('purchase_price'),
       supabase.from('islamic_loan_payments').select('amount'),
+      supabase.from('member_loans').select('approved_amount, status'),
+      supabase.from('member_loan_repayments').select('amount, status'),
     ]);
 
     const profiles = profilesRes.data || [];
@@ -55,6 +57,8 @@ export default function DashboardPage() {
     const projTxns = projTxRes.data || [];
     const ilLoans = ilRes.data || [];
     const ilPayments = ilPayRes.data || [];
+    const mLoans = mlRes.data || [];
+    const mRepays = mlPayRes.data || [];
 
     const activeProfileIds = new Set(profiles.filter((p: any) => !p.is_deleted).map((p: any) => p.id));
     const balanceByMember = new Map<string, number>();
@@ -76,9 +80,17 @@ export default function DashboardPage() {
     const projectExpense = projTxns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ilPurchases = ilLoans.reduce((s: number, l: any) => s + Number(l.purchase_price || 0), 0);
     const ilInstallments = ilPayments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+    const mlDisbursed = mLoans
+      .filter((l: any) => l.status === 'approved' || l.status === 'repaid')
+      .reduce((s: number, l: any) => s + Number(l.approved_amount || 0), 0);
+    const mlRepaid = mRepays
+      .filter((r: any) => r.status === 'approved')
+      .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
     const cashInHand =
-      totalInvestment + availableFund + projectIncome - projectExpense - ilPurchases + ilInstallments;
+      totalInvestment + availableFund + projectIncome - projectExpense
+      - ilPurchases + ilInstallments
+      - mlDisbursed + mlRepaid;
 
     setStats({
       totalInvestment,
