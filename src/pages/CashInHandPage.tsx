@@ -10,7 +10,7 @@ import { generateCashInHandPDF } from '@/lib/pdfGenerator';
 type Row = {
   id: string;
   created_at: string | null;
-  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Profit';
+  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Profit' | 'Member Loan';
   direction: 'in' | 'out';
   amount: number;
   reason: string;
@@ -33,12 +33,14 @@ export default function CashInHandPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'islamic_loan_payments' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profit_distributions' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
 
   const fetchAll = async () => {
-    const [fundRes, projRes, ilRes, ilPayRes, depRes, distRes, projectsRes] = await Promise.all([
+    const [fundRes, projRes, ilRes, ilPayRes, depRes, distRes, projectsRes, mlRes, mlPayRes, profilesRes] = await Promise.all([
       supabase.from('fund_transactions').select('*'),
       supabase.from('project_transactions').select('*'),
       supabase.from('islamic_loans').select('id, code, product_name, borrower_name, purchase_price, created_at'),
@@ -46,10 +48,19 @@ export default function CashInHandPage() {
       supabase.from('deposits').select('*').eq('status', 'approved'),
       supabase.from('profit_distributions').select('*'),
       supabase.from('projects').select('id, name'),
+      supabase.from('member_loans').select('*'),
+      supabase.from('member_loan_repayments').select('*').eq('status', 'approved'),
+      supabase.from('profiles').select('id, full_name'),
     ]);
 
     const projectName = new Map<string, string>();
     (projectsRes.data || []).forEach((p: any) => projectName.set(p.id, p.name));
+
+    const memberName = new Map<string, string>();
+    (profilesRes.data || []).forEach((p: any) => memberName.set(p.id, p.full_name || 'Member'));
+
+    const mlById = new Map<string, any>();
+    (mlRes.data || []).forEach((l: any) => mlById.set(l.id, l));
 
     const ilById = new Map<string, any>();
     (ilRes.data || []).forEach((l: any) => ilById.set(l.id, l));
@@ -116,6 +127,32 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(p.amount || 0),
         reason: `${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.product_name || l?.code || 'Loan'}`,
+      });
+    });
+
+    // Member loan disbursements (money OUT) — only approved/repaid loans
+    (mlRes.data || []).forEach((l: any) => {
+      if (l.status !== 'approved' && l.status !== 'repaid') return;
+      merged.push({
+        id: `ml-${l.id}`,
+        created_at: l.approved_at || l.created_at,
+        source: 'Member Loan',
+        direction: 'out',
+        amount: Number(l.approved_amount || 0),
+        reason: `Loan disbursed — ${memberName.get(l.member_id) || 'Member'}`,
+      });
+    });
+
+    // Member loan repayments (money IN)
+    (mlPayRes.data || []).forEach((r: any) => {
+      const l = mlById.get(r.loan_id);
+      merged.push({
+        id: `mlp-${r.id}`,
+        created_at: r.approved_at || r.created_at,
+        source: 'Member Loan',
+        direction: 'in',
+        amount: Number(r.amount || 0),
+        reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
       });
     });
 
