@@ -118,17 +118,24 @@ export default function IslamicLoanDetailPage() {
     }
   }, [loan]);
 
-  // Profit totals computed from loan (purchase/sell)
+  // Profit / Loss = collected (paid) − purchase_price
+  //   Profit → Fund % + Media % + Admin % + Member Pool (snapshot %)
+  //   Loss   → Members bear it fully by snapshot % (Fund/Media/Admin unaffected)
   const profitTotals = useMemo(() => {
-    if (!loan) return { total: 0, fund: 0, media: 0, admin: 0, memberPool: 0 };
-    const total = Math.max(0, Number(loan.sell_price) - Number(loan.purchase_price));
-    const fund = total * (Number(loan.fund_profit_pct) || 0) / 100;
-    const media = total * (Number(loan.media_person_profit_pct) || 0) / 100;
-    const admin = total * (Number((loan as any).admin_profit_pct) || 0) / 100;
-    return { total, fund, media, admin, memberPool: Math.max(0, total - fund - media - admin) };
+    if (!loan) return { total: 0, net: 0, isLoss: false, fund: 0, media: 0, admin: 0, memberPool: 0 };
+    const collected = Number(loan.sell_price) - Number(loan.remaining_amount);
+    const net = collected - Number(loan.purchase_price);
+    if (net >= 0) {
+      const fund = net * (Number(loan.fund_profit_pct) || 0) / 100;
+      const media = net * (Number(loan.media_person_profit_pct) || 0) / 100;
+      const admin = net * (Number((loan as any).admin_profit_pct) || 0) / 100;
+      return { total: net, net, isLoss: false, fund, media, admin, memberPool: Math.max(0, net - fund - media - admin) };
+    }
+    // Loss — negative memberPool, no fund/media/admin
+    return { total: net, net, isLoss: true, fund: 0, media: 0, admin: 0, memberPool: net };
   }, [loan]);
 
-  // Snapshot share rows — frozen at loan creation
+  // Snapshot share rows — frozen at loan creation (signed: negative on loss)
   const shareRows = useMemo(() => {
     if (!loan || !snapshot.length) return [] as any[];
     const pool = profitTotals.memberPool;
@@ -207,51 +214,54 @@ export default function IslamicLoanDetailPage() {
 
   const handleDistribute = async () => {
     if (alreadyDistributed) { toast.error('Already distributed'); return; }
-    if (profitTotals.total <= 0) { toast.error('No profit to distribute'); return; }
+    if (profitTotals.net === 0) { toast.error('No profit or loss to distribute'); return; }
     setBusy(true);
     const rows: any[] = [];
-    const fundExtras: { amount: number; reason: string }[] = [];
+    const fundExtras: { amount: number; reason: string; type: 'in' | 'out' }[] = [];
+    const isLoss = profitTotals.isLoss;
 
-    if (profitTotals.fund > 0) {
-      rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
-    }
-    if (profitTotals.media > 0 && loan.media_person_id) {
-      rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
-    }
-
-    // Admin pool — split equally among all admins
-    if (profitTotals.admin > 0) {
-      const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
-      const adminRoleIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
-      const { data: adminProfiles } = adminRoleIds.length
-        ? await supabase.from('profiles').select('id').in('id', adminRoleIds)
-        : { data: [] as any[] };
-      const adminIds = (adminProfiles || []).map((p: any) => p.id);
-      if (adminIds.length > 0) {
-        const perAdmin = profitTotals.admin / adminIds.length;
-        const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
-        adminIds.forEach((uid: string) => {
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
-        });
-      } else {
-        // No admins → redirect to Fund
-        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
-        fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ` });
+    // Profit-only pools — Fund %, Media %, Admin % (skipped entirely on loss)
+    if (!isLoss) {
+      if (profitTotals.fund > 0) {
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
+      }
+      if (profitTotals.media > 0 && loan.media_person_id) {
+        rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
+      }
+      if (profitTotals.admin > 0) {
+        const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+        const adminRoleIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
+        const { data: adminProfiles } = adminRoleIds.length
+          ? await supabase.from('profiles').select('id').in('id', adminRoleIds)
+          : { data: [] as any[] };
+        const adminIds = (adminProfiles || []).map((p: any) => p.id);
+        if (adminIds.length > 0) {
+          const perAdmin = profitTotals.admin / adminIds.length;
+          const perAdminPct = (Number((loan as any).admin_profit_pct) || 0) / adminIds.length;
+          adminIds.forEach((uid: string) => {
+            rows.push({ source_type: 'islamic_loan', source_id: id, member_id: uid, amount: perAdmin, share_percentage: perAdminPct, distribution_type: 'admin' });
+          });
+        } else {
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((loan as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
+          fundExtras.push({ amount: profitTotals.admin, reason: `Loan ${loan.code} — Admin share (no admin found) Fund-এ যোগ`, type: 'in' });
+        }
       }
     }
 
+    // Member shares — signed (positive = profit credit, negative = loss debit)
     shareRows.forEach(r => {
-      if (r.expected <= 0) return;
+      if (r.expected === 0) return;
       if (r.isDeleted || !r.memberId) {
-        // Deleted member's share goes to Fund
+        // Deleted member's share → Fund absorbs (profit: in / loss: out)
         rows.push({
           source_type: 'islamic_loan', source_id: id, member_id: null,
           amount: r.expected, share_percentage: r.sharePct,
           distribution_type: 'deleted_member_to_fund',
         });
         fundExtras.push({
-          amount: r.expected,
-          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
+          amount: Math.abs(r.expected),
+          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর ${isLoss ? 'loss' : 'অংশ'} Fund ${isLoss ? 'থেকে বিয়োগ' : 'এ যোগ'}`,
+          type: isLoss ? 'out' : 'in',
         });
       } else {
         rows.push({
@@ -267,21 +277,20 @@ export default function IslamicLoanDetailPage() {
     const { error } = await supabase.from('profit_distributions').insert(rows);
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Add fund_transactions for fund (15%) + each deleted-member redirect
     const fundTxRows: any[] = [];
-    if (profitTotals.fund > 0) {
+    if (!isLoss && profitTotals.fund > 0) {
       fundTxRows.push({ type: 'in', amount: profitTotals.fund, reason: `Loan ${loan.code} — Fund profit share (${loan.fund_profit_pct}%)` });
     }
-    fundExtras.forEach(f => fundTxRows.push({ type: 'in', amount: f.amount, reason: f.reason }));
+    fundExtras.forEach(f => fundTxRows.push({ type: f.type, amount: f.amount, reason: f.reason }));
     if (fundTxRows.length) {
       const { error: ftErr } = await supabase.from('fund_transactions').insert(fundTxRows);
       if (ftErr) toast.error('Fund tx: ' + ftErr.message);
     }
 
-    // Credit each (non-deleted) member's profile balance
+    // Adjust each (non-deleted) member's profile balance (+profit / -loss)
     const perMember = new Map<string, number>();
     rows.forEach(r => {
-      if (r.member_id && r.amount > 0 && r.distribution_type !== 'deleted_member_to_fund') {
+      if (r.member_id && r.amount !== 0 && r.distribution_type !== 'deleted_member_to_fund') {
         perMember.set(r.member_id, (perMember.get(r.member_id) || 0) + Number(r.amount));
       }
     });
@@ -296,7 +305,7 @@ export default function IslamicLoanDetailPage() {
     }
 
     setBusy(false);
-    toast.success('Profit distributed');
+    toast.success(isLoss ? 'Loss distributed among members' : 'Profit distributed');
     load();
   };
 
@@ -639,21 +648,34 @@ export default function IslamicLoanDetailPage() {
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
-          {isAdmin && isClosed && !alreadyDistributed && (
-            <Button size="sm" onClick={handleDistribute} disabled={busy}>
-              <Sparkles className="w-4 h-4 mr-1" /> Distribute Profit
+          {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
+            <Button size="sm" variant={profitTotals.isLoss ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
+              <Sparkles className="w-4 h-4 mr-1" /> {profitTotals.isLoss ? 'Distribute Loss' : 'Distribute Profit'}
             </Button>
           )}
           {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Total Profit</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.total)}</p></div>
+          <div className={`rounded-lg p-2 ${profitTotals.isLoss ? 'bg-destructive/10' : 'bg-secondary/50'}`}>
+            <p className="text-muted-foreground">{profitTotals.isLoss ? 'Total Loss' : 'Total Profit'}</p>
+            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>{formatBDT(Math.abs(profitTotals.total))}</p>
+          </div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.fund)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.media)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.admin)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Member Pool</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.memberPool)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2">
+            <p className="text-muted-foreground">Member Pool</p>
+            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
+              {profitTotals.isLoss ? '−' : ''}{formatBDT(Math.abs(profitTotals.memberPool))}
+            </p>
+          </div>
         </div>
+        {profitTotals.isLoss && (
+          <p className="text-[11px] text-destructive mb-3 italic">
+            ⚠ Loss — সম্পূর্ণ ক্ষতি শুধুমাত্র members-দের snapshot % অনুযায়ী ভাগ হবে। Admin, Media person ও Fund এর ভাগ নেই।
+          </p>
+        )}
 
         {shareRows.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No member deposits at loan creation time</p>
@@ -663,7 +685,7 @@ export default function IslamicLoanDetailPage() {
               <div className="col-span-5">Member</div>
               <div className="col-span-3 text-right">Deposit</div>
               <div className="col-span-2 text-right">Share</div>
-              <div className="col-span-2 text-right">Profit</div>
+              <div className="col-span-2 text-right">{profitTotals.isLoss ? 'Loss' : 'Profit'}</div>
             </div>
             {shareRows.map(r => (
               <div key={r.id} className={`grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
@@ -673,10 +695,12 @@ export default function IslamicLoanDetailPage() {
                 </div>
                 <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
-                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground line-through' : 'text-emerald-600'}`}>{formatBDT(r.expected)}</div>
+                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground' : (r.expected < 0 ? 'text-destructive' : 'text-emerald-600')}`}>
+                  {r.expected < 0 ? '−' : ''}{formatBDT(Math.abs(r.expected))}
+                </div>
               </div>
             ))}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-এ যোগ হবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-{profitTotals.isLoss ? 'থেকে বিয়োগ' : 'এ যোগ'} হবে।</p>
           </div>
         )}
       </div>
