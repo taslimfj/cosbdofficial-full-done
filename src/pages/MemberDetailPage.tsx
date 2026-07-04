@@ -118,6 +118,9 @@ export default function MemberDetailPage() {
   const currentProfitSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
   const currentNetBalance = currentDepositSum + currentProfitSum - currentWithdrawSum;
 
+  const isOwnAccount = user?.id === id;
+  const isAdmin = role === 'admin';
+
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
@@ -129,11 +132,11 @@ export default function MemberDetailPage() {
       amount,
       payment_method: depositForm.paymentMethod,
       transaction_number: depositForm.transactionNumber.trim(),
-      status: 'approved',
+      status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
-      toast.success(`৳${amount} deposit recorded`);
+      toast.success(isAdmin ? `৳${amount} deposit recorded` : `৳${amount} deposit request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowDepositDialog(false);
       setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
       fetchData();
@@ -154,11 +157,11 @@ export default function MemberDetailPage() {
       amount: -amount,
       payment_method: withdrawForm.paymentMethod,
       transaction_number: withdrawForm.transactionNumber.trim(),
-      status: 'approved',
+      status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
-      toast.success(`৳${amount} withdrawal recorded`);
+      toast.success(isAdmin ? `৳${amount} withdrawal recorded` : `৳${amount} withdraw request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowWithdrawDialog(false);
       setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
       fetchData();
@@ -267,17 +270,17 @@ export default function MemberDetailPage() {
               {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
             </Button>
           )}
-          {role === 'admin' && (
+          {(role === 'admin' || isOwnAccount) && (
             <>
               {/* Withdraw Dialog */}
               <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="outline" className="gap-2 text-destructive border-destructive/30">
-                    <MinusCircle className="w-4 h-4" /> Withdraw
+                    <MinusCircle className="w-4 h-4" /> {isAdmin ? 'Withdraw' : 'Withdraw Request'}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader><DialogTitle>Record Withdrawal for {member.full_name}</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{isAdmin ? `Record Withdrawal for ${member.full_name}` : 'Send Withdraw Request'}</DialogTitle></DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label>Amount (৳)</Label>
@@ -300,7 +303,7 @@ export default function MemberDetailPage() {
                       <Input value={withdrawForm.transactionNumber} onChange={e => setWithdrawForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
                     <Button className="w-full" variant="destructive" onClick={handleWithdraw} disabled={submitting}>
-                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Record Withdrawal
+                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Withdrawal' : 'Send Request'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -309,10 +312,10 @@ export default function MemberDetailPage() {
               {/* Deposit Dialog */}
               <Dialog open={showDepositDialog} onOpenChange={setShowDepositDialog}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2"><Plus className="w-4 h-4" /> Deposit</Button>
+                  <Button size="sm" className="gap-2"><Plus className="w-4 h-4" /> {isAdmin ? 'Deposit' : 'Deposit Request'}</Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader><DialogTitle>Record Deposit for {member.full_name}</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{isAdmin ? `Record Deposit for ${member.full_name}` : 'Send Deposit Request'}</DialogTitle></DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label>Amount (৳)</Label>
@@ -335,13 +338,14 @@ export default function MemberDetailPage() {
                       <Input value={depositForm.transactionNumber} onChange={e => setDepositForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
                     <Button className="w-full" onClick={handleAddDeposit} disabled={submitting}>
-                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Record Deposit
+                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Deposit' : 'Send Request'}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
 
-              {/* Delete Member */}
+              {/* Delete Member — admin only */}
+              {isAdmin && (
               <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setLoanPaymentConfirmed(false); }}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="destructive" className="gap-2"><Trash2 className="w-4 h-4" /> Delete Member</Button>
@@ -386,6 +390,7 @@ export default function MemberDetailPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </>
           )}
         </div>
