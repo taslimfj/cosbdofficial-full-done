@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { MonthlyReminders } from '@/components/MonthlyReminders';
+import { BackButton } from '@/components/BackButton';
 import {
   LayoutDashboard,
   Users,
@@ -39,13 +40,14 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [customerLoanId, setCustomerLoanId] = useState<string | null>(null);
 
-  // Customer redirect: send to their loan page
+  // Fetch customer's own loan id (used both for redirect and sidebar nav)
   useEffect(() => {
-    if (!isCustomer || !user) return;
-    if (location.pathname.startsWith('/islamic-loans/')) return;
-    if (location.pathname.startsWith('/tutorials')) return;
-    if (location.pathname.startsWith('/profile')) return;
+    if (!isCustomer || !user) {
+      setCustomerLoanId(null);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from('islamic_loans')
@@ -53,16 +55,34 @@ export default function DashboardLayout() {
         .eq('customer_user_id', user.id)
         .limit(1)
         .maybeSingle();
-      if (data?.id) navigate(`/islamic-loans/${data.id}`, { replace: true });
+      if (data?.id) setCustomerLoanId(data.id);
     })();
-  }, [isCustomer, user, location.pathname, navigate]);
+  }, [isCustomer, user]);
+
+  // Customer redirect: send to their loan page on first landing
+  useEffect(() => {
+    if (!isCustomer || !user) return;
+    if (location.pathname.startsWith('/islamic-loans/')) return;
+    if (location.pathname.startsWith('/tutorials')) return;
+    if (location.pathname.startsWith('/profile')) return;
+    if (customerLoanId) navigate(`/islamic-loans/${customerLoanId}`, { replace: true });
+  }, [isCustomer, user, location.pathname, navigate, customerLoanId]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
 
-  const filteredNav = isCustomer ? [] : navItems.filter(item => role && item.roles.includes(role));
+  const customerNav = [
+    ...(customerLoanId
+      ? [{ to: `/islamic-loans/${customerLoanId}`, icon: Landmark, label: 'My Loan' }]
+      : []),
+    { to: '/tutorials', icon: GraduationCap, label: 'Tutorial' },
+  ];
+
+  const filteredNav = isCustomer
+    ? customerNav
+    : navItems.filter(item => role && item.roles.includes(role));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -144,10 +164,11 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6 shrink-0">
+        <header className="h-14 border-b border-border bg-card flex items-center gap-2 px-4 lg:px-6 shrink-0">
           <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
+          <BackButton />
           <div className="flex-1" />
           <div className="flex items-center gap-2">
             {role === 'admin' && (
