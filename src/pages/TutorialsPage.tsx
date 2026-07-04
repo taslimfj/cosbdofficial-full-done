@@ -55,7 +55,7 @@ export default function TutorialsPage() {
     audiences: [] as string[],
   });
 
-  const { data: tutorials = [], isLoading } = useQuery({
+  const { data: allTutorials = [], isLoading } = useQuery({
     queryKey: ['tutorials'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -65,6 +65,14 @@ export default function TutorialsPage() {
       if (error) throw error;
       return (data || []) as Tutorial[];
     },
+  });
+
+  const tutorials = allTutorials.filter(t => {
+    const aud = t.audiences || [];
+    if (isAdmin) return true;
+    if (isCustomer) return aud.includes('all') || aud.includes('customer');
+    // member
+    return aud.includes('all') || aud.includes('member') || aud.includes('customer');
   });
 
   const addMutation = useMutation({
