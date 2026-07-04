@@ -69,9 +69,7 @@ export default function MemberLoanDetailPage() {
   );
 
   const isBorrower = loan.member_id === user?.id;
-  if (!(isBorrower || role === 'admin')) {
-    return <div className="text-center py-16 text-muted-foreground">এই লোন দেখার অনুমতি নেই।</div>;
-  }
+  const canManage = isBorrower || role === 'admin';
 
   const approved = Number(loan.approved_amount || 0);
   const repaid = Number(loan.repaid_amount || 0);
