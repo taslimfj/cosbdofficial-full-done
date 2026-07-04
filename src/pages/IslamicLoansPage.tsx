@@ -23,7 +23,7 @@ import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
 
 export default function IslamicLoansPage() {
-  const { role } = useAuth();
+  const { role, isCustomer, user } = useAuth();
   const [loans, setLoans] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -225,7 +225,7 @@ export default function IslamicLoansPage() {
             </SheetContent>
           </Sheet>
         )}
-        {(role === 'admin' || role === 'member') && (
+        {!!user && !isCustomer && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Loan</Button>
