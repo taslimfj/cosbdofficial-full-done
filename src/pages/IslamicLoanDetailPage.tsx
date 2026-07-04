@@ -581,22 +581,25 @@ export default function IslamicLoanDetailPage() {
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
   const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
+  const isMediaPerson = !!user?.id && loan?.media_person_id === user.id;
+  const canManage = isAdmin || isMediaPerson;
   return (
     <div className={`space-y-6 animate-fade-in max-w-3xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/5 ring-2 ring-destructive/40' : ''}`}>
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        {isAdmin ? (
+        {canManage ? (
           <div className="flex gap-2 flex-wrap">
             <LoanContractPdf loan={loan} />
             <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
             <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
-            <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
+            {isAdmin && <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>}
           </div>
         ) : (
-          // Member (non-customer) — only download contract
+          // Member (non-customer, non-media-person) — only download contract
           <LoanContractPdf loan={loan} />
         )}
       </div>
+
 
       {overdue && (
         <div className="bg-destructive text-destructive-foreground rounded-xl p-4 flex items-start gap-3 shadow-md">
