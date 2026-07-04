@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
-  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star,
+  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers,
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
