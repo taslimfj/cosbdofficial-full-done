@@ -164,10 +164,11 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6 shrink-0">
+        <header className="h-14 border-b border-border bg-card flex items-center gap-2 px-4 lg:px-6 shrink-0">
           <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
+          <BackButton />
           <div className="flex-1" />
           <div className="flex items-center gap-2">
             {role === 'admin' && (
