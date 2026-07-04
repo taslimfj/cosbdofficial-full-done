@@ -303,7 +303,7 @@ export default function MemberDetailPage() {
                       <Input value={withdrawForm.transactionNumber} onChange={e => setWithdrawForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
                     <Button className="w-full" variant="destructive" onClick={handleWithdraw} disabled={submitting}>
-                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Record Withdrawal
+                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Withdrawal' : 'Send Request'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -312,10 +312,10 @@ export default function MemberDetailPage() {
               {/* Deposit Dialog */}
               <Dialog open={showDepositDialog} onOpenChange={setShowDepositDialog}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2"><Plus className="w-4 h-4" /> Deposit</Button>
+                  <Button size="sm" className="gap-2"><Plus className="w-4 h-4" /> {isAdmin ? 'Deposit' : 'Deposit Request'}</Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader><DialogTitle>Record Deposit for {member.full_name}</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{isAdmin ? `Record Deposit for ${member.full_name}` : 'Send Deposit Request'}</DialogTitle></DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label>Amount (৳)</Label>
