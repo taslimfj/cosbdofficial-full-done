@@ -60,9 +60,7 @@ export default function MemberLoansByMemberPage() {
   );
 
   const isSelf = memberId === user?.id;
-  if (!(isSelf || role === 'admin')) {
-    return <div className="text-center py-16 text-muted-foreground">এই profile দেখার অনুমতি নেই।</div>;
-  }
+  const canManage = isSelf || role === 'admin';
 
   // Attach unique code (per-member serial by creation order)
   const withCode = loans.map((l, idx) => ({
