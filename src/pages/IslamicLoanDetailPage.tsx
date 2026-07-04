@@ -26,6 +26,8 @@ export default function IslamicLoanDetailPage() {
   const navigate = useNavigate();
   const { role, user, isCustomer } = useAuth();
   const isAdmin = role === 'admin';
+  // Media person of this loan gets admin-like powers (edit + record deposit) — computed after loan loads
+
 
   const [loan, setLoan] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);

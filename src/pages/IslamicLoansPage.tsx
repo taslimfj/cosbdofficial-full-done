@@ -225,7 +225,7 @@ export default function IslamicLoansPage() {
             </SheetContent>
           </Sheet>
         )}
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'member') && (
           <Sheet open={showSheet} onOpenChange={setShowSheet}>
             <SheetTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Loan</Button>
