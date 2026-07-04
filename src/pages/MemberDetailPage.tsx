@@ -270,17 +270,17 @@ export default function MemberDetailPage() {
               {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
             </Button>
           )}
-          {role === 'admin' && (
+          {(role === 'admin' || isOwnAccount) && (
             <>
               {/* Withdraw Dialog */}
               <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="outline" className="gap-2 text-destructive border-destructive/30">
-                    <MinusCircle className="w-4 h-4" /> Withdraw
+                    <MinusCircle className="w-4 h-4" /> {isAdmin ? 'Withdraw' : 'Withdraw Request'}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader><DialogTitle>Record Withdrawal for {member.full_name}</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{isAdmin ? `Record Withdrawal for ${member.full_name}` : 'Send Withdraw Request'}</DialogTitle></DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2">
                       <Label>Amount (৳)</Label>
