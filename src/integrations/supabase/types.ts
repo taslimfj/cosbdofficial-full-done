@@ -1016,8 +1016,8 @@ export type Database = {
         }
         Insert: {
           admin_profit_pct?: number | null
-          borrower_name?: never
-          borrower_phone?: never
+          borrower_name?: string | null
+          borrower_phone?: string | null
           code?: string | null
           comments?: string | null
           created_at?: string | null
@@ -1032,7 +1032,7 @@ export type Database = {
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
-          relative_phone?: never
+          relative_phone?: string | null
           remaining_amount?: number | null
           sell_price?: number | null
           status?: string | null
@@ -1040,8 +1040,8 @@ export type Database = {
         }
         Update: {
           admin_profit_pct?: number | null
-          borrower_name?: never
-          borrower_phone?: never
+          borrower_name?: string | null
+          borrower_phone?: string | null
           code?: string | null
           comments?: string | null
           created_at?: string | null
@@ -1056,7 +1056,7 @@ export type Database = {
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
-          relative_phone?: never
+          relative_phone?: string | null
           remaining_amount?: number | null
           sell_price?: number | null
           status?: string | null
