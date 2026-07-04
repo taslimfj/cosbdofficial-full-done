@@ -632,10 +632,10 @@ export default function IslamicLoanDetailPage() {
 
       {/* Other active loans for this customer — quick switcher */}
       {siblingLoans.length > 0 && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 shadow-sm">
+        <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Layers className="w-4 h-4 text-primary" />
-            <p className="text-sm font-semibold text-primary">
+            <Layers className="w-4 h-4 text-warning" />
+            <p className="text-sm font-semibold text-warning">
               একই customer-এর অন্য Islamic Loan ({siblingLoans.length})
             </p>
           </div>
@@ -644,10 +644,10 @@ export default function IslamicLoanDetailPage() {
               <Link
                 key={s.id}
                 to={`/islamic-loans/${s.id}`}
-                className="flex-1 min-w-[180px] bg-background border border-border rounded-lg p-3 hover:border-primary/30 hover:bg-primary/5 transition-colors shadow-subtle"
+                className="flex-1 min-w-[180px] bg-background border border-warning/20 rounded-lg p-3 hover:border-warning/40 hover:bg-warning/5 transition-colors shadow-subtle"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded">{s.code}</span>
+                  <span className="text-[10px] font-mono bg-warning/10 text-warning px-1.5 py-0.5 rounded">{s.code}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{s.status}</span>
                 </div>
                 {s.product_name && <p className="text-xs font-medium mt-1.5 truncate text-foreground">{s.product_name}</p>}
