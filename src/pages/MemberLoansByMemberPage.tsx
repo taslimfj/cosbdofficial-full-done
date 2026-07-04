@@ -177,7 +177,7 @@ export default function MemberLoansByMemberPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Member Loan Profile · মোট {loans.length}টি loan</p>
             </div>
           </div>
-          {(isSelf || role === 'admin') && (
+          {canManage && (
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
               <DialogTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" /> নতুন Loan Request</Button>
