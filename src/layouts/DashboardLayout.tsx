@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { MonthlyReminders } from '@/components/MonthlyReminders';
+import { BackButton } from '@/components/BackButton';
 import {
   LayoutDashboard,
   Users,
