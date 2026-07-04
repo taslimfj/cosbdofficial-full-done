@@ -20,7 +20,7 @@ import {
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isAdmin = role === 'admin';
 
   const [project, setProject] = useState<any>(null);
