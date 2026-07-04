@@ -118,6 +118,9 @@ export default function MemberDetailPage() {
   const currentProfitSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
   const currentNetBalance = currentDepositSum + currentProfitSum - currentWithdrawSum;
 
+  const isOwnAccount = user?.id === id;
+  const isAdmin = role === 'admin';
+
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
@@ -129,11 +132,11 @@ export default function MemberDetailPage() {
       amount,
       payment_method: depositForm.paymentMethod,
       transaction_number: depositForm.transactionNumber.trim(),
-      status: 'approved',
+      status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
-      toast.success(`৳${amount} deposit recorded`);
+      toast.success(isAdmin ? `৳${amount} deposit recorded` : `৳${amount} deposit request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowDepositDialog(false);
       setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
       fetchData();
@@ -154,11 +157,11 @@ export default function MemberDetailPage() {
       amount: -amount,
       payment_method: withdrawForm.paymentMethod,
       transaction_number: withdrawForm.transactionNumber.trim(),
-      status: 'approved',
+      status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
-      toast.success(`৳${amount} withdrawal recorded`);
+      toast.success(isAdmin ? `৳${amount} withdrawal recorded` : `৳${amount} withdraw request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowWithdrawDialog(false);
       setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
       fetchData();
