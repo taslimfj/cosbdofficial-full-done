@@ -323,13 +323,23 @@ export default function ProjectDetailPage() {
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div className="flex items-center justify-between">
         <Link to="/projects"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        {isAdmin && (
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-            <Button size="sm" variant="outline" onClick={() => setShowTx(true)}><Plus className="w-4 h-4 mr-1" /> Transaction</Button>
-            <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
-          </div>
-        )}
+        {(() => {
+          const isManager = !!user && (project.manager_id === user.id || project.secondary_manager_id === user.id);
+          if (!isAdmin && !isManager) return null;
+          return (
+            <div className="flex gap-2 flex-wrap">
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
+              )}
+              {(isAdmin || isManager) && (
+                <Button size="sm" variant="outline" onClick={() => setShowTx(true)}><Plus className="w-4 h-4 mr-1" /> Transaction</Button>
+              )}
+              {isAdmin && (
+                <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Header */}
