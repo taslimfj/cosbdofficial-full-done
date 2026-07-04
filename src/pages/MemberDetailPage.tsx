@@ -338,13 +338,14 @@ export default function MemberDetailPage() {
                       <Input value={depositForm.transactionNumber} onChange={e => setDepositForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
                     <Button className="w-full" onClick={handleAddDeposit} disabled={submitting}>
-                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Record Deposit
+                      {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Deposit' : 'Send Request'}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
 
-              {/* Delete Member */}
+              {/* Delete Member — admin only */}
+              {isAdmin && (
               <Dialog open={showDeleteDialog} onOpenChange={(o) => { setShowDeleteDialog(o); if (!o) setLoanPaymentConfirmed(false); }}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="destructive" className="gap-2"><Trash2 className="w-4 h-4" /> Delete Member</Button>
