@@ -390,6 +390,7 @@ export default function MemberDetailPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </>
           )}
         </div>
