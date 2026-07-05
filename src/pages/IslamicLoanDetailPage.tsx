@@ -14,12 +14,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
-  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers,
+  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers, Download,
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import { LoanContractPdf } from '@/components/LoanContractPdf';
 import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/loanStatus';
+import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -35,6 +36,7 @@ export default function IslamicLoanDetailPage() {
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
   const [payRequests, setPayRequests] = useState<any[]>([]);
+  const [approvers, setApprovers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [payLimit, setPayLimit] = useState(3);
 
@@ -79,6 +81,17 @@ export default function IslamicLoanDetailPage() {
     setSnapshot(snapRes.data || []);
     setDistributions(distributions);
     setPayRequests(reqRes.data || []);
+
+    // Fetch approver names for payments
+    const approverIds = Array.from(new Set((payRes.data || []).map((p: any) => p.approved_by).filter(Boolean)));
+    if (approverIds.length) {
+      const { data: appProfiles } = await supabase.from('profiles').select('id, full_name').in('id', approverIds as string[]);
+      const map: Record<string, string> = {};
+      (appProfiles || []).forEach((p: any) => { map[p.id] = p.full_name || 'Admin'; });
+      setApprovers(map);
+    } else {
+      setApprovers({});
+    }
 
     // Fetch sibling loans (same customer, different loan, still active)
     if (loan?.customer_user_id) {
@@ -814,16 +827,51 @@ export default function IslamicLoanDetailPage() {
           <p className="text-sm text-muted-foreground text-center py-6">No transactions yet</p>
         ) : (
           <div className="space-y-2">
-            {payments.slice(0, payLimit).map(p => (
-              <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
-                  <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy · hh:mm a')}</p>
-                  {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
+            {payments.slice(0, payLimit).map((p, idx) => {
+              const installmentNumber = payments.length - idx;
+              const approverName = p.approved_by ? approvers[p.approved_by] : null;
+              const canDownload = !!p.approved_by;
+              return (
+                <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy · hh:mm a')}</p>
+                    {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
+                    {approverName && (
+                      <p className="text-[11px] text-emerald-600 mt-0.5">✓ Approved by {approverName}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
+                    {canDownload ? (
+                      <button
+                        onClick={() => generatePaymentReceiptPDF({
+                          loan: {
+                            id: loan.id, code: loan.code, borrower_name: loan.borrower_name,
+                            borrower_phone: loan.borrower_phone, product_name: (loan as any).product_name,
+                            tenure_months: loan.tenure_months, sell_price: loan.sell_price,
+                            monthly_installment: loan.monthly_installment, remaining_amount: loan.remaining_amount,
+                          },
+                          payment: {
+                            id: p.id, amount: Number(p.amount), payment_type: p.payment_type,
+                            payment_method: p.payment_method, transaction_id: p.transaction_id,
+                            created_at: p.created_at, approved_at: p.approved_at,
+                          },
+                          installmentNumber,
+                          totalInstallments: loan.tenure_months || payments.length,
+                          approverName,
+                        })}
+                        className="flex items-center gap-1 text-[11px] font-medium text-primary hover:bg-primary/10 px-2 py-1 rounded-md border border-primary/20"
+                      >
+                        <Download className="w-3 h-3" /> Receipt
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">Pending approval</span>
+                    )}
+                  </div>
                 </div>
-                <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
-              </div>
-            ))}
+              );
+            })}
             {payments.length > payLimit && (
               <button
                 onClick={() => setPayLimit(l => l + 10)}
