@@ -83,7 +83,10 @@ export default function IslamicLoanDetailPage() {
     setPayRequests(reqRes.data || []);
 
     // Fetch approver names for payments
-    const approverIds = Array.from(new Set((payRes.data || []).map((p: any) => p.approved_by).filter(Boolean)));
+    const approverIds = Array.from(new Set([
+      ...(payRes.data || []).map((p: any) => p.approved_by).filter(Boolean),
+      ...(reqRes.data || []).map((r: any) => r.reviewed_by).filter(Boolean),
+    ]));
     if (approverIds.length) {
       const { data: appProfiles } = await supabase.from('profiles').select('id, full_name').in('id', approverIds as string[]);
       const map: Record<string, string> = {};
@@ -413,6 +416,33 @@ export default function IslamicLoanDetailPage() {
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
   const overdue = isLoanOverdue(loan);
+  const getMatchedApprovedRequest = (payment: any) => payRequests.find((request: any) =>
+    request.status === 'approved' &&
+    Number(request.amount) === Number(payment.amount) &&
+    (request.transaction_id || null) === (payment.transaction_id || null)
+  );
+  const getPaymentApproval = (payment: any) => {
+    const matchedRequest = getMatchedApprovedRequest(payment);
+    const approvedBy = payment.approved_by || matchedRequest?.reviewed_by || null;
+    const approvedAt = payment.approved_at || matchedRequest?.reviewed_at || null;
+    return { approvedBy, approvedAt, approverName: approvedBy ? (approvers[approvedBy] || 'Admin') : null };
+  };
+  const downloadPaymentReceipt = (payment: any, installmentNumber: number, approverName?: string | null, approvedAt?: string | null) => generatePaymentReceiptPDF({
+    loan: {
+      id: loan.id, code: loan.code, borrower_name: loan.borrower_name,
+      borrower_phone: loan.borrower_phone, product_name: (loan as any).product_name,
+      tenure_months: loan.tenure_months, sell_price: loan.sell_price,
+      monthly_installment: loan.monthly_installment, remaining_amount: loan.remaining_amount,
+    },
+    payment: {
+      id: payment.id, amount: Number(payment.amount), payment_type: payment.payment_type,
+      payment_method: payment.payment_method, transaction_id: payment.transaction_id,
+      created_at: payment.created_at, approved_at: approvedAt || payment.approved_at,
+    },
+    installmentNumber,
+    totalInstallments: loan.tenure_months || payments.length,
+    approverName,
+  });
 
   // ───────── Customer view (loan recipient): NO profit/percentages, only payment info ─────────
   if (isCustomer) {
@@ -518,16 +548,34 @@ export default function IslamicLoanDetailPage() {
             <p className="text-sm text-muted-foreground text-center py-4">এখনো কোন payment নেই</p>
           ) : (
             <div className="space-y-2">
-              {payments.slice(0, payLimit).map(p => (
-                <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
-                    {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
+              {payments.slice(0, payLimit).map((p, idx) => {
+                const installmentNumber = payments.length - idx;
+                const { approvedBy, approvedAt, approverName } = getPaymentApproval(p);
+                const canDownload = !!approvedBy || !!approvedAt;
+                return (
+                  <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
+                      {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
+                      {approverName && <p className="text-[11px] text-emerald-600 mt-0.5">✓ Approved by {approverName}</p>}
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
+                      {canDownload ? (
+                        <button
+                          onClick={() => downloadPaymentReceipt(p, installmentNumber, approverName, approvedAt)}
+                          className="flex items-center gap-1 text-[11px] font-medium text-primary hover:bg-primary/10 px-2 py-1 rounded-md border border-primary/20"
+                        >
+                          <Download className="w-3 h-3" /> Receipt
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground italic">Pending approval</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
-                </div>
-              ))}
+                );
+              })}
               {payments.length > payLimit && (
                 <button onClick={() => setPayLimit(l => l + 10)} className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg">
                   See more ({payments.length - payLimit} বাকি)
@@ -829,8 +877,8 @@ export default function IslamicLoanDetailPage() {
           <div className="space-y-2">
             {payments.slice(0, payLimit).map((p, idx) => {
               const installmentNumber = payments.length - idx;
-              const approverName = p.approved_by ? approvers[p.approved_by] : null;
-              const canDownload = !!p.approved_by;
+              const { approvedBy, approvedAt, approverName } = getPaymentApproval(p);
+              const canDownload = !!approvedBy || !!approvedAt;
               return (
                 <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg gap-3">
                   <div className="min-w-0 flex-1">
@@ -845,22 +893,7 @@ export default function IslamicLoanDetailPage() {
                     <p className="font-mono font-bold text-emerald-600 tabular-nums">{formatBDT(Number(p.amount))}</p>
                     {canDownload ? (
                       <button
-                        onClick={() => generatePaymentReceiptPDF({
-                          loan: {
-                            id: loan.id, code: loan.code, borrower_name: loan.borrower_name,
-                            borrower_phone: loan.borrower_phone, product_name: (loan as any).product_name,
-                            tenure_months: loan.tenure_months, sell_price: loan.sell_price,
-                            monthly_installment: loan.monthly_installment, remaining_amount: loan.remaining_amount,
-                          },
-                          payment: {
-                            id: p.id, amount: Number(p.amount), payment_type: p.payment_type,
-                            payment_method: p.payment_method, transaction_id: p.transaction_id,
-                            created_at: p.created_at, approved_at: p.approved_at,
-                          },
-                          installmentNumber,
-                          totalInstallments: loan.tenure_months || payments.length,
-                          approverName,
-                        })}
+                        onClick={() => downloadPaymentReceipt(p, installmentNumber, approverName, approvedAt)}
                         className="flex items-center gap-1 text-[11px] font-medium text-primary hover:bg-primary/10 px-2 py-1 rounded-md border border-primary/20"
                       >
                         <Download className="w-3 h-3" /> Receipt
