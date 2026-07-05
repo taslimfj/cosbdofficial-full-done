@@ -82,6 +82,17 @@ export default function IslamicLoanDetailPage() {
     setDistributions(distributions);
     setPayRequests(reqRes.data || []);
 
+    // Fetch approver names for payments
+    const approverIds = Array.from(new Set((payRes.data || []).map((p: any) => p.approved_by).filter(Boolean)));
+    if (approverIds.length) {
+      const { data: appProfiles } = await supabase.from('profiles').select('id, full_name').in('id', approverIds as string[]);
+      const map: Record<string, string> = {};
+      (appProfiles || []).forEach((p: any) => { map[p.id] = p.full_name || 'Admin'; });
+      setApprovers(map);
+    } else {
+      setApprovers({});
+    }
+
     // Fetch sibling loans (same customer, different loan, still active)
     if (loan?.customer_user_id) {
       const { data: sibs } = await supabase
