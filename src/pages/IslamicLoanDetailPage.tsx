@@ -14,12 +14,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
-  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers,
+  Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers, Download,
 } from 'lucide-react';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import { LoanContractPdf } from '@/components/LoanContractPdf';
 import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/loanStatus';
+import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
