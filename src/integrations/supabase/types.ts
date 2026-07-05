@@ -271,6 +271,8 @@ export type Database = {
       islamic_loan_payments: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           id: string
           loan_id: string
@@ -280,6 +282,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           id?: string
           loan_id: string
@@ -289,6 +293,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           id?: string
           loan_id?: string
