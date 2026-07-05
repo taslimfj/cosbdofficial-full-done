@@ -83,7 +83,10 @@ export default function IslamicLoanDetailPage() {
     setPayRequests(reqRes.data || []);
 
     // Fetch approver names for payments
-    const approverIds = Array.from(new Set((payRes.data || []).map((p: any) => p.approved_by).filter(Boolean)));
+    const approverIds = Array.from(new Set([
+      ...(payRes.data || []).map((p: any) => p.approved_by).filter(Boolean),
+      ...(reqRes.data || []).map((r: any) => r.reviewed_by).filter(Boolean),
+    ]));
     if (approverIds.length) {
       const { data: appProfiles } = await supabase.from('profiles').select('id, full_name').in('id', approverIds as string[]);
       const map: Record<string, string> = {};
