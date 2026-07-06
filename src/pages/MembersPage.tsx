@@ -115,14 +115,8 @@ export default function MembersPage() {
     window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
   };
 
-  const handleInAppCall = (member: MemberContact) => {
-    setCallSeconds(0);
-    setCallMuted(false);
-    setInAppCall(member);
-  };
 
-  const fmtDuration = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
 
   const filtered = members.filter(m =>
     m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
