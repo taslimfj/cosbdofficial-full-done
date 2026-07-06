@@ -72,9 +72,9 @@ const tableStyle = {
 
 
 // ---------- Member individual ----------
-export function generateMemberPDF(member: any, deposits: any[], distributions: any[]) {
+export async function generateMemberPDF(member: any, deposits: any[], distributions: any[]) {
   const doc = new jsPDF();
-  header(doc, `Member Report: ${member.full_name || 'Unnamed'}`);
+  await header(doc, `Member Report: ${member.full_name || 'Unnamed'}`);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`Phone: ${member.phone || 'N/A'}`, 14, 43);
@@ -120,13 +120,13 @@ export function generateMemberPDF(member: any, deposits: any[], distributions: a
 }
 
 // ---------- Fund ----------
-export function generateFundSummaryPDF(allTransactions: any[], stats: { totalIn: number; totalOut: number }, period?: ReportPeriod) {
+export async function generateFundSummaryPDF(allTransactions: any[], stats: { totalIn: number; totalOut: number }, period?: ReportPeriod) {
   const doc = new jsPDF();
   const transactions = period ? filterByPeriod(allTransactions, period) : allTransactions;
   const totalIn = transactions.filter(t => t.type === 'in').reduce((s, t) => s + Number(t.amount), 0);
   const totalOut = transactions.filter(t => t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
 
-  header(doc, 'Fund Summary Report', period);
+  await header(doc, 'Fund Summary Report', period);
   doc.setFontSize(10); doc.setFont('helvetica', 'normal');
   const y = period ? 50 : 43;
   doc.text(`Total Fund In: ${formatAmount(totalIn)}`, 14, y);
@@ -149,10 +149,10 @@ export function generateFundSummaryPDF(allTransactions: any[], stats: { totalIn:
 }
 
 // ---------- Member Loans (personal) ----------
-export function generateMemberLoansPDF(allLoans: any[], period: ReportPeriod) {
+export async function generateMemberLoansPDF(allLoans: any[], period: ReportPeriod) {
   const doc = new jsPDF();
   const loans = filterByPeriod(allLoans, period);
-  header(doc, 'Personal Loans Report', period);
+  await header(doc, 'Personal Loans Report', period);
   autoTable(doc, {
     startY: 50,
     head: [['Date', 'Member', 'Requested', 'Approved', 'Repaid', 'Status', 'Due']],
@@ -172,11 +172,11 @@ export function generateMemberLoansPDF(allLoans: any[], period: ReportPeriod) {
 }
 
 // ---------- Islamic Loans (independent project) ----------
-export function generateIslamicLoansPDF(allLoans: any[], allPayments: any[], period: ReportPeriod) {
+export async function generateIslamicLoansPDF(allLoans: any[], allPayments: any[], period: ReportPeriod) {
   const doc = new jsPDF();
   const loans = filterByPeriod(allLoans, period);
   const payments = filterByPeriod(allPayments, period);
-  header(doc, 'Islamic Loans Report', period);
+  await header(doc, 'Islamic Loans Report', period);
   doc.setFontSize(10); doc.setFont('helvetica', 'normal');
   doc.text(`Loans created in period: ${loans.length}`, 14, 50);
   doc.text(`Payments received in period: ${payments.length}`, 14, 57);
@@ -217,10 +217,10 @@ export function generateIslamicLoansPDF(allLoans: any[], allPayments: any[], per
 }
 
 // ---------- Assets ----------
-export function generateAssetsPDF(allAssets: any[], period: ReportPeriod) {
+export async function generateAssetsPDF(allAssets: any[], period: ReportPeriod) {
   const doc = new jsPDF();
   const assets = filterByPeriod(allAssets, period);
-  header(doc, 'Assets Report', period);
+  await header(doc, 'Assets Report', period);
   const active = assets.filter(a => a.status === 'active');
   const removed = assets.filter(a => a.status === 'deleted');
   const totalSpent = assets.reduce((s, a) => s + Number(a.purchase_price || 0), 0);
@@ -249,10 +249,10 @@ export function generateAssetsPDF(allAssets: any[], period: ReportPeriod) {
 }
 
 // ---------- Projects ----------
-export function generateProjectsPDF(projects: any[], allTransactions: any[], period: ReportPeriod) {
+export async function generateProjectsPDF(projects: any[], allTransactions: any[], period: ReportPeriod) {
   const doc = new jsPDF();
   const txns = filterByPeriod(allTransactions, period);
-  header(doc, 'Projects Report', period);
+  await header(doc, 'Projects Report', period);
   doc.setFontSize(10); doc.setFont('helvetica', 'normal');
   doc.text(`Projects: ${projects.length} · Transactions in period: ${txns.length}`, 14, 50);
 
@@ -298,7 +298,7 @@ export interface DashboardPDFData {
   distributions: any[];
 }
 
-export function generateDashboardPDF(data: DashboardPDFData, period: ReportPeriod) {
+export async function generateDashboardPDF(data: DashboardPDFData, period: ReportPeriod) {
   const doc = new jsPDF();
   const fundTxns = filterByPeriod(data.fundTxns, period);
   const deposits = filterByPeriod(data.deposits, period);
@@ -317,7 +317,7 @@ export function generateDashboardPDF(data: DashboardPDFData, period: ReportPerio
   const assetsCost = assets.reduce((s, a) => s + Number(a.purchase_price || 0), 0);
   const distSum = distributions.reduce((s, d) => s + Number(d.amount || 0), 0);
 
-  header(doc, 'Overall Summary Report', period);
+  await header(doc, 'Overall Summary Report', period);
 
   autoTable(doc, {
     startY: 50,
@@ -359,7 +359,7 @@ export function generateDashboardPDF(data: DashboardPDFData, period: ReportPerio
 }
 
 // ---------- Cash in Hand ----------
-export function generateCashInHandPDF(
+export async function generateCashInHandPDF(
   allRows: Array<{ created_at: string | null; source: string; direction: 'in' | 'out'; amount: number; reason: string }>,
   period?: ReportPeriod
 ) {
@@ -368,7 +368,7 @@ export function generateCashInHandPDF(
   const inn = rows.filter(r => r.direction === 'in').reduce((s, r) => s + r.amount, 0);
   const out = rows.filter(r => r.direction === 'out').reduce((s, r) => s + r.amount, 0);
 
-  header(doc, 'Cash in Hand Report', period);
+  await header(doc, 'Cash in Hand Report', period);
   doc.setFontSize(10); doc.setFont('helvetica', 'normal');
   const y = period ? 50 : 43;
   doc.text(`Total In: ${formatAmount(inn)}`, 14, y);
