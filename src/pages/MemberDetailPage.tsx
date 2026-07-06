@@ -452,31 +452,6 @@ export default function MemberDetailPage() {
       </div>
 
 
-      <Dialog open={inAppCall} onOpenChange={(o) => !o && setInAppCall(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-center">In-App Call</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold">{member.full_name}</p>
-              <p className="text-sm text-muted-foreground">{member.phone}</p>
-              <p className="text-xs text-muted-foreground mt-2">Connected · {fmtTime(callSeconds)}</p>
-            </div>
-            <div className="flex gap-3">
-              <Button size="lg" variant="outline" onClick={() => setCallMuted(m => !m)} className="rounded-full w-12 h-12 p-0">
-                {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-              </Button>
-              <Button size="lg" variant="destructive" onClick={() => setInAppCall(false)} className="rounded-full w-12 h-12 p-0">
-                <PhoneOff className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transaction History */}
