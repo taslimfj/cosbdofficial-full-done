@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { BRAND } from '@/lib/brand';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'member'] },
@@ -101,11 +102,12 @@ export default function DashboardLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-14 px-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <Shield className="w-4 h-4 text-primary-foreground" />
+            <div className="flex items-center gap-2 min-w-0">
+              <img src={BRAND.logoUrl} alt={`${BRAND.name} logo`} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+              <div className="flex flex-col leading-tight min-w-0">
+                <span className="font-semibold text-foreground tracking-tight text-sm truncate">{BRAND.name}</span>
+                <span className="text-[10px] text-muted-foreground tracking-widest">{BRAND.short}</span>
               </div>
-              <span className="font-semibold text-foreground tracking-tight">ShareeFund</span>
             </div>
             <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
