@@ -30,10 +30,10 @@ export function RecentActivity() {
         supabase.from('fund_transactions').select('id, amount, type, reason, created_at').order('created_at', { ascending: false }).limit(20),
         supabase.from('deposits').select('id, amount, status, created_at, member:profiles!deposits_member_id_fkey(full_name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(20),
         supabase.from('profit_distributions').select('id, amount, distribution_type, created_at, member:profiles!profit_distributions_member_id_fkey(full_name)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('project_transactions').select('id, amount, type, reason, created_at, project:projects(name, project_code)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('islamic_loan_payments').select('id, amount, payment_type, created_at, loan:islamic_loans(customer_name, loan_code)').order('created_at', { ascending: false }).limit(20),
+        supabase.from('project_transactions').select('id, amount, type, reason, created_at, project:projects(name, code)').order('created_at', { ascending: false }).limit(20),
+        supabase.from('islamic_loan_payments').select('id, amount, payment_type, created_at, loan:islamic_loans(borrower_name, code)').order('created_at', { ascending: false }).limit(20),
         supabase.from('member_loan_repayments').select('id, amount, status, created_at, loan:member_loans(member:profiles!member_loans_member_id_fkey(full_name))').eq('status', 'approved').order('created_at', { ascending: false }).limit(20),
-        supabase.from('customer_payment_requests').select('id, amount, status, created_at, loan:islamic_loans(customer_name, loan_code)').eq('status', 'approved').order('created_at', { ascending: false }).limit(20),
+        supabase.from('customer_payment_requests').select('id, amount, status, created_at, loan:islamic_loans(borrower_name, code)').eq('status', 'approved').order('created_at', { ascending: false }).limit(20),
       ]);
 
       const all: UnifiedTx[] = [];
@@ -70,7 +70,7 @@ export function RecentActivity() {
         date: r.created_at,
         amount: Number(r.amount || 0),
         direction: r.type === 'income' ? 'in' : 'out',
-        label: `Project ${r.project?.project_code || r.project?.name || ''} – ${r.reason || r.type}`,
+        label: `Project ${r.project?.code || r.project?.name || ''} – ${r.reason || r.type}`,
         category: 'Project',
       }));
 
@@ -79,7 +79,7 @@ export function RecentActivity() {
         date: r.created_at,
         amount: Number(r.amount || 0),
         direction: 'in',
-        label: `${r.loan?.customer_name || 'Customer'} – Loan Payment${r.loan?.loan_code ? ` (${r.loan.loan_code})` : ''}`,
+        label: `${r.loan?.borrower_name || 'Customer'} – Loan Payment${r.loan?.loan_code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Loan',
       }));
 
@@ -97,7 +97,7 @@ export function RecentActivity() {
         date: r.created_at,
         amount: Number(r.amount || 0),
         direction: 'in',
-        label: `${r.loan?.customer_name || 'Customer'} – Payment${r.loan?.loan_code ? ` (${r.loan.loan_code})` : ''}`,
+        label: `${r.loan?.borrower_name || 'Customer'} – Payment${r.loan?.loan_code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Payment',
       }));
 
