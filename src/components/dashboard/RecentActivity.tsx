@@ -79,7 +79,7 @@ export function RecentActivity() {
         date: r.created_at,
         amount: Number(r.amount || 0),
         direction: 'in',
-        label: `${r.loan?.borrower_name || 'Customer'} – Loan Payment${r.loan?.loan_code ? ` (${r.loan.code})` : ''}`,
+        label: `${r.loan?.borrower_name || 'Customer'} – Loan Payment${r.loan?.code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Loan',
       }));
 
@@ -97,7 +97,7 @@ export function RecentActivity() {
         date: r.created_at,
         amount: Number(r.amount || 0),
         direction: 'in',
-        label: `${r.loan?.borrower_name || 'Customer'} – Payment${r.loan?.loan_code ? ` (${r.loan.code})` : ''}`,
+        label: `${r.loan?.borrower_name || 'Customer'} – Payment${r.loan?.code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Payment',
       }));
 
