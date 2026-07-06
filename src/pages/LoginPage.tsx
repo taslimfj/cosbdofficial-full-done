@@ -86,9 +86,14 @@ export default function LoginPage() {
     sessionStorage.removeItem('postLoginRedirect');
 
     setLoading(true);
-    const { error } = await signIn(loginIdentifier, password);
-    setLoading(false);
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      email: loginIdentifier,
+      password,
+    });
+
     if (error) {
+      setLoading(false);
       sessionStorage.removeItem('postLoginRedirect');
       const message = error.message || 'Login failed';
       if (message.toLowerCase().includes('email not confirmed')) {
@@ -98,9 +103,49 @@ export default function LoginPage() {
       } else {
         toast.error(message);
       }
-    } else {
-      toast.success('Welcome back!');
+      return;
     }
+
+    // Validate that the signed-in user matches the selected login section.
+    const userId = signInData.user?.id;
+    if (!userId) {
+      setLoading(false);
+      await supabase.auth.signOut();
+      toast.error('লগইন সম্পন্ন হয়নি। আবার চেষ্টা করুন।');
+      return;
+    }
+
+    const [roleRes, profileRes] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      supabase.from('profiles').select('is_customer').eq('id', userId).maybeSingle(),
+    ]);
+    const actualRole = roleRes.data?.role as 'admin' | 'member' | undefined;
+    const isCustomer = !!profileRes.data?.is_customer;
+
+    // Determine which section this user actually belongs to
+    const actualSection: LoginType = isCustomer
+      ? 'customer'
+      : actualRole === 'admin'
+      ? 'admin'
+      : 'member';
+
+    if (actualSection !== loginType) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      const sectionLabelBn: Record<LoginType, string> = {
+        admin: 'এডমিন',
+        member: 'মেম্বার',
+        customer: 'কাস্টমার',
+      };
+      toast.error(
+        `এই একাউন্টটি ${sectionLabelBn[actualSection]} একাউন্ট। অনুগ্রহ করে "${typeMeta[actualSection].label}" সেকশন থেকে লগ ইন করুন।`
+      );
+      return;
+    }
+
+    setLoading(false);
+    toast.success('Welcome back!');
+
   };
 
   const typeMeta: Record<LoginType, { label: string; desc: string }> = {
