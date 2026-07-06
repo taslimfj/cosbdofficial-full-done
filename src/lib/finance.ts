@@ -49,9 +49,20 @@ export const calculateSellPrice = (purchasePrice: number, profitPct: number): nu
   return purchasePrice * (1 + profitPct / 100);
 };
 
+// Monthly installment — ভগ্নাংশ বাদ দিয়ে integer নেওয়া হয় (যেমন 209.88 → 209)।
+// তাই কার্যকর বিক্রয়মূল্য = monthly × tenure (একটু কমে যায়)।
 export const calculateMonthlyInstallment = (sellPrice: number, tenureMonths: number): number => {
-  return sellPrice / tenureMonths;
+  if (!tenureMonths) return 0;
+  return Math.floor(sellPrice / tenureMonths);
 };
+
+// Effective sell price = monthly installment × tenure (drops fractional bit)
+export const calculateEffectiveSellPrice = (sellPrice: number, tenureMonths: number): number => {
+  return calculateMonthlyInstallment(sellPrice, tenureMonths) * (tenureMonths || 0);
+};
+
+// Round to 2 decimals — used for profit/loss distribution amounts
+export const round2 = (n: number): number => Math.round((Number(n) || 0) * 100) / 100;
 
 export const calculateSharePercentage = (memberDeposit: number, totalInvestment: number): number => {
   if (totalInvestment === 0) return 0;

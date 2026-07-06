@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBDT, calculateProfitPercentage, calculateSellPrice, calculateMonthlyInstallment } from '@/lib/finance';
+import { formatBDT, formatBDTDecimal, round2, calculateProfitPercentage, calculateSellPrice, calculateMonthlyInstallment } from '@/lib/finance';
 import { format, addMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,14 +155,13 @@ export default function IslamicLoanDetailPage() {
   const profitTotals = useMemo(() => {
     if (!loan) return { total: 0, net: 0, isLoss: false, fund: 0, media: 0, admin: 0, memberPool: 0 };
     const collected = Number(loan.sell_price) - Number(loan.remaining_amount);
-    const net = collected - Number(loan.purchase_price);
+    const net = round2(collected - Number(loan.purchase_price));
     if (net >= 0) {
-      const fund = net * (Number(loan.fund_profit_pct) || 0) / 100;
-      const media = net * (Number(loan.media_person_profit_pct) || 0) / 100;
-      const admin = net * (Number((loan as any).admin_profit_pct) || 0) / 100;
-      return { total: net, net, isLoss: false, fund, media, admin, memberPool: Math.max(0, net - fund - media - admin) };
+      const fund = round2(net * (Number(loan.fund_profit_pct) || 0) / 100);
+      const media = round2(net * (Number(loan.media_person_profit_pct) || 0) / 100);
+      const admin = round2(net * (Number((loan as any).admin_profit_pct) || 0) / 100);
+      return { total: net, net, isLoss: false, fund, media, admin, memberPool: round2(Math.max(0, net - fund - media - admin)) };
     }
-    // Loss — negative memberPool, no fund/media/admin
     return { total: net, net, isLoss: true, fund: 0, media: 0, admin: 0, memberPool: net };
   }, [loan]);
 
@@ -177,7 +176,7 @@ export default function IslamicLoanDetailPage() {
         name: s.member_name,
         deposit: Number(s.deposit_snapshot),
         sharePct: Number(s.share_percentage),
-        expected: pool * Number(s.share_percentage) / 100,
+        expected: round2(pool * Number(s.share_percentage) / 100),
         isDeleted: !!s.is_member_deleted || !s.member_id,
       }))
       .sort((a, b) => b.sharePct - a.sharePct);
@@ -798,15 +797,15 @@ export default function IslamicLoanDetailPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
           <div className={`rounded-lg p-2 ${profitTotals.isLoss ? 'bg-destructive/10' : 'bg-secondary/50'}`}>
             <p className="text-muted-foreground">{profitTotals.isLoss ? 'Total Loss' : 'Total Profit'}</p>
-            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>{formatBDT(Math.abs(profitTotals.total))}</p>
+            <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>{formatBDTDecimal(Math.abs(profitTotals.total))}</p>
           </div>
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.fund)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.media)}</p></div>
-          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDT(profitTotals.admin)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Fund ({loan.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.fund)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.media)}</p></div>
+          <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.admin)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2">
             <p className="text-muted-foreground">Member Pool</p>
             <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
-              {profitTotals.isLoss ? '−' : ''}{formatBDT(Math.abs(shareRows.reduce((s: number, r: any) => s + Math.round(r.expected), 0)) || Math.abs(profitTotals.memberPool))}
+              {profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(shareRows.reduce((s: number, r: any) => s + r.expected, 0)) || Math.abs(profitTotals.memberPool))}
             </p>
           </div>
         </div>
@@ -835,7 +834,7 @@ export default function IslamicLoanDetailPage() {
                 <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
                 <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground' : (r.expected < 0 ? 'text-destructive' : 'text-emerald-600')}`}>
-                  {r.expected < 0 ? '−' : ''}{formatBDT(Math.abs(r.expected))}
+                  {r.expected < 0 ? '−' : ''}{formatBDTDecimal(Math.abs(r.expected))}
                 </div>
               </div>
             ))}

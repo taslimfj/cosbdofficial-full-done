@@ -72,8 +72,9 @@ export default function IslamicLoansPage() {
   const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
   const profitPct = calculateProfitPercentage(tenure);
   const baseSellPrice = calculateSellPrice(purchasePrice, profitPct);
-  const sellPrice = Math.round(baseSellPrice * (1 - discountPct / 100) * 100) / 100;
-  const monthlyInstallment = calculateMonthlyInstallment(sellPrice, tenure);
+  const rawSellPrice = baseSellPrice * (1 - discountPct / 100);
+  const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
+  const sellPrice = monthlyInstallment * (tenure || 0); // effective (ভগ্নাংশ বাদ)
 
   // Phone-based history lookup → discount credit + customer rating
   const phoneHistory = useMemo(() => {
