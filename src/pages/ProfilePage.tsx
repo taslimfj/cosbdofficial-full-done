@@ -91,6 +91,24 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleDeletePhoto = async () => {
+    if (!user || !avatarUrl) return;
+    if (!confirm('Profile photo delete করতে চান?')) return;
+    setSavingPhoto(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null } as any)
+      .eq('id', user.id);
+    setSavingPhoto(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setAvatarUrl('');
+    toast.success('Profile photo deleted');
+    refreshProfile();
+  };
+
   const handleChangeEmail = async () => {
     if (!email.trim()) {
       toast.error('Enter a valid email');
