@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Phone, MessageCircle, Plus, Trash2, Search, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Phone, MessageCircle, Plus, Trash2, Search } from 'lucide-react';
 import { PhoneInput } from '@/components/PhoneInput';
 import { toast } from 'sonner';
 
@@ -26,9 +26,6 @@ export default function PhoneBookPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({ name: '', phone_number: '', description: '' });
-  const [inAppCall, setInAppCall] = useState<PhoneEntry | null>(null);
-  const [callMuted, setCallMuted] = useState(false);
-  const [callSeconds, setCallSeconds] = useState(0);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['phone_book'],
@@ -86,21 +83,6 @@ export default function PhoneBookPage() {
     const cleaned = number.replace(/[^0-9+]/g, '');
     window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
   };
-
-  const handleInAppCall = (entry: PhoneEntry) => {
-    setCallSeconds(0);
-    setCallMuted(false);
-    setInAppCall(entry);
-  };
-
-  useEffect(() => {
-    if (!inAppCall) return;
-    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [inAppCall]);
-
-  const fmtDuration = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div className="space-y-6">
@@ -192,23 +174,14 @@ export default function PhoneBookPage() {
                 {entry.description && (
                   <p className="text-xs text-muted-foreground">{entry.description}</p>
                 )}
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-primary border-primary/30 hover:bg-primary/10"
-                    onClick={() => handleInAppCall(entry)}
-                    title="In-App Call"
-                  >
-                    <PhoneCall className="w-3.5 h-3.5" />
-                  </Button>
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleCall(entry.phone_number)}
                     title="Phone Call"
                   >
-                    <Phone className="w-3.5 h-3.5" />
+                    <Phone className="w-3.5 h-3.5 mr-1" /> Call
                   </Button>
                   <Button
                     size="sm"
@@ -217,7 +190,7 @@ export default function PhoneBookPage() {
                     onClick={() => handleWhatsApp(entry.phone_number)}
                     title="WhatsApp"
                   >
-                    <MessageCircle className="w-3.5 h-3.5" />
+                    <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp
                   </Button>
                 </div>
               </CardContent>
@@ -225,48 +198,6 @@ export default function PhoneBookPage() {
           ))}
         </div>
       )}
-
-      <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>In-App Call</DialogTitle>
-          </DialogHeader>
-          {inAppCall && (
-            <div className="flex flex-col items-center text-center py-4 space-y-4">
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold">{inAppCall.name}</p>
-                <p className="text-sm text-muted-foreground">{inAppCall.phone_number}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Connecting via app · {fmtDuration(callSeconds)}
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-12 w-12"
-                  onClick={() => setCallMuted(m => !m)}
-                  title={callMuted ? 'Unmute' : 'Mute'}
-                >
-                  {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full h-12 w-12"
-                  onClick={() => setInAppCall(null)}
-                  title="End"
-                >
-                  <PhoneOff className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
