@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Phone, MessageCircle, Search, Loader2, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Plus, Phone, MessageCircle, Search, Loader2 } from 'lucide-react';
 import { PhoneInput, phoneToDigits, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
 
 interface MemberContact {
