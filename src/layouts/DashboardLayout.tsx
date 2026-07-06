@@ -106,7 +106,7 @@ export default function DashboardLayout() {
               <img src={BRAND.logoUrl} alt={`${BRAND.name} logo`} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
               <div className="flex flex-col leading-tight min-w-0">
                 <span className="font-semibold text-foreground tracking-tight text-sm truncate">{BRAND.name}</span>
-                <span className="text-[10px] text-muted-foreground tracking-widest">{BRAND.short}</span>
+                <span className="text-[10px] text-muted-foreground italic truncate">{BRAND.slogan}</span>
               </div>
             </div>
             <button className="lg:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>

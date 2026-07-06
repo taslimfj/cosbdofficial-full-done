@@ -60,7 +60,7 @@ function footer(doc: jsPDF) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`${BRAND.name} (${BRAND.short}) — ${BRAND.slogan}  ·  Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`${BRAND.name} — ${BRAND.slogan}  ·  Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
   }
 }
 
