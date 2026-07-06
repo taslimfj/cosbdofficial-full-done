@@ -111,10 +111,26 @@ export default function LoginPage() {
 
     setLoading(true);
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({
-      email: loginIdentifier,
-      password,
-    });
+
+    // For phone-based logins, try all common variants (with/without country code).
+    const identifiersToTry = isEmail
+      ? [loginIdentifier]
+      : buildPhoneVariants(raw).map((d) => `${d}@sharee.local`);
+
+    let signInData: any = null;
+    let error: any = null;
+    for (const identifier of identifiersToTry) {
+      const res = await supabase.auth.signInWithPassword({ email: identifier, password });
+      if (!res.error) {
+        signInData = res.data;
+        error = null;
+        break;
+      }
+      error = res.error;
+      // If the failure is not just "invalid credentials", stop early
+      const msg = (res.error.message || '').toLowerCase();
+      if (!msg.includes('invalid login credentials')) break;
+    }
 
     if (error) {
       setLoading(false);
