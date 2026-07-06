@@ -62,8 +62,8 @@ export default function ProfilePage() {
       toast.error('শুধুমাত্র image file upload করুন');
       return;
     }
-    if (file.size > 10 * 1024) {
-      toast.error('ছবির size সর্বোচ্চ 10 KB হতে পারবে');
+    if (file.size > 50 * 1024) {
+      toast.error('ছবির size সর্বোচ্চ 50 KB হতে পারবে');
       return;
     }
 
