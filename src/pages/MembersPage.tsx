@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, Phone, MessageCircle, Search, Loader2, PhoneCall, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Plus, Phone, MessageCircle, Search, Loader2 } from 'lucide-react';
 import { PhoneInput, phoneToDigits, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
 
 interface MemberContact {
@@ -31,17 +31,8 @@ export default function MembersPage() {
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
 
-  const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
-  const [callMuted, setCallMuted] = useState(false);
-  const [callSeconds, setCallSeconds] = useState(0);
-
   useEffect(() => { fetchMembers(); }, []);
 
-  useEffect(() => {
-    if (!inAppCall) return;
-    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [inAppCall]);
 
   const fetchMembers = async () => {
     const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
@@ -124,14 +115,8 @@ export default function MembersPage() {
     window.open(`https://wa.me/${cleaned.startsWith('+') ? cleaned.slice(1) : cleaned}`, '_blank');
   };
 
-  const handleInAppCall = (member: MemberContact) => {
-    setCallSeconds(0);
-    setCallMuted(false);
-    setInAppCall(member);
-  };
 
-  const fmtDuration = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
 
   const filtered = members.filter(m =>
     m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -237,15 +222,6 @@ export default function MembersPage() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-7 w-7 rounded-full text-primary hover:bg-primary/10"
-                                onClick={() => handleInAppCall({ id: member.id, full_name: member.full_name, phone: member.phone })}
-                                title="In-App Call"
-                              >
-                                <PhoneCall className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
                                 className="h-7 w-7 rounded-full hover:bg-secondary"
                                 onClick={() => handlePhoneCall(member.phone)}
                                 title="Phone Call"
@@ -282,48 +258,6 @@ export default function MembersPage() {
         )}
       </div>
 
-
-      <Dialog open={!!inAppCall} onOpenChange={(o) => !o && setInAppCall(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>In-App Call</DialogTitle>
-          </DialogHeader>
-          {inAppCall && (
-            <div className="flex flex-col items-center text-center py-4 space-y-4">
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <PhoneCall className="w-10 h-10 text-primary animate-pulse" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold">{inAppCall.full_name}</p>
-                <p className="text-sm text-muted-foreground">{inAppCall.phone}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Connecting via app · {fmtDuration(callSeconds)}
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-12 w-12"
-                  onClick={() => setCallMuted(m => !m)}
-                  title={callMuted ? 'Unmute' : 'Mute'}
-                >
-                  {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full h-12 w-12"
-                  onClick={() => setInAppCall(null)}
-                  title="End"
-                >
-                  <PhoneOff className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
