@@ -23,7 +23,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', budget: '' });
+  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
 
   useEffect(() => {
     Promise.all([
@@ -42,27 +42,8 @@ export default function ProjectsPage() {
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error('Project name দিন'); return; }
     if (!form.managerId) { toast.error('Manager select করুন'); return; }
-    const budget = parseFloat(form.budget);
-    if (!budget || budget <= 0) { toast.error('আনুমানিক budget দিন'); return; }
 
     setSubmitting(true);
-
-    // Check Available Balance = total capital + fund income - fund expense
-    const [{ data: deps }, { data: dists }, { data: fundTxs }] = await Promise.all([
-      supabase.from('deposits').select('member_id, amount, status').eq('status', 'approved'),
-      supabase.from('profit_distributions').select('member_id, amount'),
-      supabase.from('fund_transactions').select('type, amount'),
-    ]);
-    const totalCapital = (deps || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
-      + (dists || []).filter((d: any) => d.member_id).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
-    const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
-      s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
-    const availableBalance = totalCapital + fundDelta;
-    if (budget > availableBalance) {
-      setSubmitting(false);
-      toast.error(`Available Balance-এ পর্যাপ্ত টাকা নেই। Available: ৳${availableBalance.toFixed(0)}`);
-      return;
-    }
 
     const now = new Date();
     const yStart = new Date(now.getFullYear(), 0, 1).toISOString();
@@ -75,24 +56,17 @@ export default function ProjectsPage() {
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
-      budget_amount: budget,
     }).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
-
-    // Reserve budget from Available Balance (ledger via fund_transactions)
-    await supabase.from('fund_transactions').insert({
-      type: 'out', amount: budget,
-      reason: `Project ${code} — Budget reserved (${form.name.trim()})`,
-    });
 
     // Snapshot member shares — locked at creation
     try { await snapshotMemberShares({ type: 'project', sourceId: inserted.id }); }
     catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
 
     setSubmitting(false);
-    toast.success(`Project ${code} created — ৳${budget} Available Balance থেকে assign হলো`);
+    toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', budget: '' });
+    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };
@@ -127,11 +101,9 @@ export default function ProjectsPage() {
                     <SelectContent>{members.map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>আনুমানিক Budget (৳)</Label>
-                  <Input type="number" value={form.budget} onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} placeholder="যেমন 50000" />
-                  <p className="text-[11px] text-muted-foreground">এই টাকা Available Balance থেকে কেটে project-এ assign হবে। close করার সময় অব্যবহৃত টাকা + profit Available Balance-এ ফেরত যাবে।</p>
-                </div>
+                <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded px-2 py-1">
+                  Project-এর সব খরচ সরাসরি Cash in Hand থেকে হবে — কোনো budget আগে থেকে reserve করা লাগবে না।
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
                   <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} /></div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBDT } from '@/lib/finance';
+import { formatBDT, formatBDTDecimal, round2 } from '@/lib/finance';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,29 +28,25 @@ export default function ProjectDetailPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [snapshot, setSnapshot] = useState<any[]>([]);
   const [distributions, setDistributions] = useState<any[]>([]);
-  const [fundRequests, setFundRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showTx, setShowTx] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [showFundReq, setShowFundReq] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [edit, setEdit] = useState<any>(null);
   const [tx, setTx] = useState({ type: 'income', amount: '', reason: '', comments: '' });
-  const [fundReq, setFundReq] = useState({ amount: '', reason: '' });
 
   const load = async () => {
     if (!id) return;
-    const [pRes, tRes, mRes, snapRes, distRes, frRes] = await Promise.all([
+    const [pRes, tRes, mRes, snapRes, distRes] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('project_transactions').select('*').eq('project_id', id).order('created_at', { ascending: false }),
       (supabase as any).from('member_directory').select('*'),
       (supabase as any).from('project_member_shares').select('*').eq('project_id', id),
       supabase.from('profit_distributions').select('*').eq('source_id', id).eq('source_type', 'project'),
-      (supabase as any).from('project_fund_requests').select('*').eq('project_id', id).order('created_at', { ascending: false }),
     ]);
     const members = (mRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
@@ -61,7 +57,6 @@ export default function ProjectDetailPage() {
     setMembers(members);
     setSnapshot(snapRes.data || []);
     setDistributions(distributions);
-    setFundRequests(frRes.data || []);
     setLoading(false);
   };
 
@@ -91,10 +86,10 @@ export default function ProjectDetailPage() {
   // Snapshot shares — locked at project creation
   const profitTotalsPre = useMemo(() => {
     if (!project) return { total: 0, manager: 0, fund: 0, admin: 0, memberPool: 0 };
-    const mgr = totals.profit * (Number(project.manager_profit_pct) || 0) / 100;
-    const fund = totals.profit * (Number(project.fund_profit_pct) || 0) / 100;
-    const admin = totals.profit * (Number((project as any).admin_profit_pct) || 0) / 100;
-    return { total: totals.profit, manager: mgr, fund, admin, memberPool: Math.max(0, totals.profit - mgr - fund - admin) };
+    const mgr = round2(totals.profit * (Number(project.manager_profit_pct) || 0) / 100);
+    const fund = round2(totals.profit * (Number(project.fund_profit_pct) || 0) / 100);
+    const admin = round2(totals.profit * (Number((project as any).admin_profit_pct) || 0) / 100);
+    return { total: round2(totals.profit), manager: mgr, fund, admin, memberPool: round2(Math.max(0, totals.profit - mgr - fund - admin)) };
   }, [project, totals]);
 
   const shareRows = useMemo(() => {
@@ -107,8 +102,8 @@ export default function ProjectDetailPage() {
       name: s.member_name,
       deposit: Number(s.deposit_snapshot),
       sharePct: Number(s.share_percentage),
-      expected: pool * Number(s.share_percentage) / 100,
-      lossShare: lossPool * Number(s.share_percentage) / 100,
+      expected: round2(pool * Number(s.share_percentage) / 100),
+      lossShare: round2(lossPool * Number(s.share_percentage) / 100),
       isDeleted: !!s.is_member_deleted || !s.member_id,
     })).sort((a, b) => b.sharePct - a.sharePct);
   }, [project, snapshot, profitTotalsPre, totals.loss]);
@@ -118,12 +113,8 @@ export default function ProjectDetailPage() {
   const alreadyDistributed = distributions.length > 0;
 
 
-  const budgetAssigned = Number(project?.budget_amount || 0) + Number(project?.extra_funds_approved || 0);
-  const budgetRemaining = Math.max(0, budgetAssigned - totals.out);
-
   const handleEditSave = async () => {
     setBusy(true);
-    const becomingClosed = edit.status === 'closed' && project.status !== 'closed';
     const payload: any = {
       name: edit.name.trim(),
       manager_id: edit.manager_id || null,
@@ -135,75 +126,15 @@ export default function ProjectDetailPage() {
       closed_at: edit.status === 'closed' && !project.closed_at ? new Date().toISOString() : project.closed_at,
     };
 
-    // On close: refund leftover budget to Available Balance
-    if (becomingClosed && budgetRemaining > 0 && Number(project.budget_returned || 0) === 0) {
-      await supabase.from('fund_transactions').insert({
-        type: 'in', amount: budgetRemaining,
-        reason: `Project ${project.code} — অব্যবহৃত budget Available Balance-এ ফেরত`,
-      });
-      payload.budget_returned = budgetRemaining;
-    }
-
     const { error } = await supabase.from('projects').update(payload).eq('id', id!);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(becomingClosed && budgetRemaining > 0
-      ? `Project closed — ৳${budgetRemaining.toFixed(0)} Available Balance-এ ফেরত`
-      : 'Project updated');
+    toast.success('Project updated');
     setShowEdit(false);
     load();
   };
 
-  const handleFundRequest = async () => {
-    const amt = parseFloat(fundReq.amount);
-    if (!amt || amt <= 0) { toast.error('Valid amount দিন'); return; }
-    setBusy(true);
-    const { error } = await (supabase as any).from('project_fund_requests').insert({
-      project_id: id, amount: amt, reason: fundReq.reason || null,
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Fund request পাঠানো হয়েছে');
-    setShowFundReq(false);
-    setFundReq({ amount: '', reason: '' });
-    load();
-  };
 
-  const handleFundDecision = async (req: any, decision: 'approved' | 'rejected', note?: string) => {
-    setBusy(true);
-    if (decision === 'approved') {
-      // Check Available Balance
-      const [{ data: deps }, { data: dists }, { data: fundTxs }] = await Promise.all([
-        supabase.from('deposits').select('member_id, amount, status').eq('status', 'approved'),
-        supabase.from('profit_distributions').select('member_id, amount'),
-        supabase.from('fund_transactions').select('type, amount'),
-      ]);
-      const totalCapital = (deps || []).reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
-        + (dists || []).filter((d: any) => d.member_id).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
-      const fundDelta = (fundTxs || []).reduce((s: number, t: any) =>
-        s + ((t.type === 'income' || t.type === 'in') ? Number(t.amount) : -Number(t.amount)), 0);
-      const availableBalance = totalCapital + fundDelta;
-      if (Number(req.amount) > availableBalance) {
-        setBusy(false);
-        toast.error(`Available Balance-এ পর্যাপ্ত টাকা নেই। Available: ৳${availableBalance.toFixed(0)}`);
-        return;
-      }
-      // Debit Available Balance + bump project's extra_funds_approved
-      await supabase.from('fund_transactions').insert({
-        type: 'out', amount: Number(req.amount),
-        reason: `Project ${project.code} — অতিরিক্ত fund approved`,
-      });
-      await supabase.from('projects').update({
-        extra_funds_approved: Number(project.extra_funds_approved || 0) + Number(req.amount),
-      }).eq('id', id!);
-    }
-    await (supabase as any).from('project_fund_requests').update({
-      status: decision, admin_note: note || null, decided_at: new Date().toISOString(),
-    }).eq('id', req.id);
-    setBusy(false);
-    toast.success(decision === 'approved' ? 'Approved & project budget বেড়েছে' : 'Rejected');
-    load();
-  };
 
 
   const handleAddTx = async () => {
@@ -382,32 +313,6 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {budgetAssigned > 0 && (
-          <div className="mt-4 border-t border-border pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">Project Budget</span>
-              <span className="text-[10px] text-muted-foreground">{Number(project.budget_returned) > 0 ? `Returned ৳${Number(project.budget_returned).toFixed(0)}` : ''}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="bg-primary/5 rounded-lg p-2">
-                <p className="text-muted-foreground">Assigned</p>
-                <p className="font-mono font-bold tabular-nums">{formatBDT(budgetAssigned)}</p>
-                {Number(project.extra_funds_approved) > 0 && (
-                  <p className="text-[10px] text-muted-foreground">+ ৳{Number(project.extra_funds_approved).toFixed(0)} extra</p>
-                )}
-              </div>
-              <div className="bg-destructive/5 rounded-lg p-2">
-                <p className="text-muted-foreground">Spent</p>
-                <p className="font-mono font-bold tabular-nums">{formatBDT(totals.out)}</p>
-              </div>
-              <div className="bg-emerald-500/5 rounded-lg p-2">
-                <p className="text-muted-foreground">Remaining</p>
-                <p className="font-mono font-bold tabular-nums">{formatBDT(budgetRemaining)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="mt-4 flex gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <span>Manager: {project.manager_profit_pct}%</span>
           <span>Fund: {project.fund_profit_pct}%</span>
@@ -416,45 +321,7 @@ export default function ProjectDetailPage() {
         {project.comments && <p className="text-sm text-muted-foreground mt-3 whitespace-pre-wrap">{project.comments}</p>}
       </div>
 
-      {/* Fund Requests */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="font-semibold">অতিরিক্ত Fund Requests</h2>
-            <p className="text-[11px] text-muted-foreground">Manager admin বরাবর extra budget চাইতে পারে।</p>
-          </div>
-          {!isClosed && (
-            <Button size="sm" variant="outline" onClick={() => setShowFundReq(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Request
-            </Button>
-          )}
-        </div>
-        {fundRequests.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">কোন request নেই।</p>
-        ) : (
-          <div className="space-y-2">
-            {fundRequests.map((r: any) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-secondary/30">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold tabular-nums text-sm">{formatBDT(Number(r.amount))}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                      r.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600' :
-                      r.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-                      'bg-amber-500/10 text-amber-600'
-                    }`}>{r.status}</span>
-                  </div>
-                  {r.reason && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.reason}</p>}
-                  <p className="text-[10px] text-muted-foreground">{format(new Date(r.created_at), 'PPp')}</p>
-                </div>
-                {isAdmin && r.status === 'pending' && (
-                  <span className="text-[11px] px-2 py-1 rounded-full bg-warning/10 text-warning shrink-0">Dashboard-এ approve/reject</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+
 
 
       {/* Profit / Loss Distribution */}
@@ -477,10 +344,10 @@ export default function ProjectDetailPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.manager)}</p></div>
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.fund)}</p></div>
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Admins ({(project as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.admin)}</p></div>
-            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(profitTotals.memberPool)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Manager ({project.manager_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDTDecimal(profitTotals.manager)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Fund ({project.fund_profit_pct}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDTDecimal(profitTotals.fund)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Admins ({(project as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDTDecimal(profitTotals.admin)}</p></div>
+            <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDTDecimal(profitTotals.memberPool)}</p></div>
           </div>
         )}
         {shareRows.length === 0 ? (
@@ -499,7 +366,7 @@ export default function ProjectDetailPage() {
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-muted-foreground">{r.sharePct.toFixed(2)}%</span>
                     <span className={`font-mono font-bold tabular-nums ${r.isDeleted ? 'line-through text-muted-foreground' : isLoss ? 'text-destructive' : ''}`}>
-                      {isLoss ? '−' : ''}{formatBDT(amount)}
+                      {isLoss ? '−' : ''}{formatBDTDecimal(amount)}
                     </span>
                   </div>
                 </div>
@@ -629,20 +496,6 @@ export default function ProjectDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Fund Request */}
-      <Dialog open={showFundReq} onOpenChange={setShowFundReq}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>অতিরিক্ত Fund Request</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>কত টাকা দরকার (৳)</Label><Input type="number" value={fundReq.amount} onChange={e => setFundReq({ ...fundReq, amount: e.target.value })} /></div>
-            <div><Label>কারণ</Label><Textarea value={fundReq.reason} onChange={e => setFundReq({ ...fundReq, reason: e.target.value })} rows={3} placeholder="কেন প্রয়োজন বিস্তারিত লিখুন" /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFundReq(false)}>Cancel</Button>
-            <Button onClick={handleFundRequest} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

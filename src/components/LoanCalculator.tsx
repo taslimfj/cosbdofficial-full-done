@@ -25,11 +25,13 @@ export function LoanCalculator() {
     const adv = Math.max(0, Math.min(p, parseFloat(advance) || 0));
     const financed = Math.max(0, p - adv);
     const pctNum = Math.max(0, parseFloat(pct) || 0);
-    const profit = financed * pctNum / 100;
-    const sellFinanced = financed + profit;
-    const totalSell = sellFinanced + adv;
     const months = parseInt(tenure) || 1;
-    const monthly = calculateMonthlyInstallment(sellFinanced, months);
+    const rawSell = financed + (financed * pctNum / 100);
+    // ভগ্নাংশ বাদ — monthly integer, sell = monthly × months
+    const monthly = calculateMonthlyInstallment(rawSell, months);
+    const sellFinanced = monthly * months;
+    const profit = Math.max(0, sellFinanced - financed);
+    const totalSell = sellFinanced + adv;
     return { p, adv, financed, pctNum, profit, sellFinanced, totalSell, monthly };
   }, [purchase, advance, pct, tenure]);
 
