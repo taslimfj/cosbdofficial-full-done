@@ -410,10 +410,7 @@ export default function MemberDetailPage() {
             <p className="text-sm text-muted-foreground">{member.phone || 'No phone'}</p>
           </div>
           {member.phone && (
-            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-              <Button size="sm" variant="outline" onClick={startInAppCall} className="gap-1 border-green-500/50 text-green-600 hover:bg-green-500/10">
-                <PhoneCall className="w-3.5 h-3.5" /> In-App
-              </Button>
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
               <Button size="sm" variant="outline" onClick={() => window.open(`tel:${member.phone}`, '_self')} className="gap-1">
                 <Phone className="w-3.5 h-3.5" /> Call
               </Button>
