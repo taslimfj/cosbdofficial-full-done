@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneInput } from '@/components/PhoneInput';
 import { toast } from 'sonner';
-import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera } from 'lucide-react';
+import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera, Trash2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile, role } = useAuth();
