@@ -48,6 +48,30 @@ export default function LoginPage() {
     // to the synthetic email used at signup time.
     const raw = email.trim();
     const isEmail = raw.includes('@');
+    // Build a list of phone-based identifiers to try. Users may type the
+    // number with or without country code (e.g. +8801XXXXXXXXX, 8801XXXXXXXXX,
+    // 01XXXXXXXXX, or 1XXXXXXXXX). Try all reasonable variants so login
+    // succeeds regardless of how they entered it.
+    const buildPhoneVariants = (input: string): string[] => {
+      const digits = input.replace(/[^0-9]/g, '');
+      if (!digits) return [];
+      const set = new Set<string>();
+      set.add(digits);
+      // Strip leading zero: 01XXXXXXXXX -> 1XXXXXXXXX
+      if (digits.startsWith('0')) set.add(digits.replace(/^0+/, ''));
+      // Add BD country code prefix
+      if (!digits.startsWith('880')) {
+        const local = digits.replace(/^0+/, '');
+        set.add(`880${local}`);
+      }
+      // Strip 880 country code
+      if (digits.startsWith('880')) {
+        const local = digits.slice(3);
+        set.add(local);
+        set.add(`0${local}`);
+      }
+      return Array.from(set).filter(Boolean);
+    };
     const loginIdentifier = isEmail
       ? raw
       : `${raw.replace(/[^0-9]/g, '')}@sharee.local`;
@@ -87,10 +111,26 @@ export default function LoginPage() {
 
     setLoading(true);
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({
-      email: loginIdentifier,
-      password,
-    });
+
+    // For phone-based logins, try all common variants (with/without country code).
+    const identifiersToTry = isEmail
+      ? [loginIdentifier]
+      : buildPhoneVariants(raw).map((d) => `${d}@sharee.local`);
+
+    let signInData: any = null;
+    let error: any = null;
+    for (const identifier of identifiersToTry) {
+      const res = await supabase.auth.signInWithPassword({ email: identifier, password });
+      if (!res.error) {
+        signInData = res.data;
+        error = null;
+        break;
+      }
+      error = res.error;
+      // If the failure is not just "invalid credentials", stop early
+      const msg = (res.error.message || '').toLowerCase();
+      if (!msg.includes('invalid login credentials')) break;
+    }
 
     if (error) {
       setLoading(false);
