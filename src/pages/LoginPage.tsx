@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, Shield, UserPlus, Users, ShoppingBag } from 'lucide-react';
+import { BRAND } from '@/lib/brand';
 
 type LoginType = 'admin' | 'member' | 'customer';
 
