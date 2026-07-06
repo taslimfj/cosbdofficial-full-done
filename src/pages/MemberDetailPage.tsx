@@ -31,9 +31,6 @@ export default function MemberDetailPage() {
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [inAppCall, setInAppCall] = useState(false);
-  const [callSeconds, setCallSeconds] = useState(0);
-  const [callMuted, setCallMuted] = useState(false);
   const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [loanPaymentConfirmed, setLoanPaymentConfirmed] = useState(false);
@@ -42,17 +39,7 @@ export default function MemberDetailPage() {
   const [totalAllBalances, setTotalAllBalances] = useState(0);
   const [isTargetAdmin, setIsTargetAdmin] = useState(false);
   const [togglingAdmin, setTogglingAdmin] = useState(false);
-  
 
-
-  useEffect(() => {
-    if (!inAppCall) return;
-    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [inAppCall]);
-
-  const startInAppCall = () => { setCallSeconds(0); setCallMuted(false); setInAppCall(true); };
-  const fmtTime = (s: number) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 
   useEffect(() => {
     if (!id) return;
