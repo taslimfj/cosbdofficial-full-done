@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, subMonths } from 'date-fns';
+import { BRAND, loadLogoDataUrl } from './brand';
 
 const formatAmount = (amount: number) => `TK ${new Intl.NumberFormat('en-IN').format(amount)}`;
 
@@ -20,17 +21,25 @@ export const filterByPeriod = <T extends { created_at?: string | null }>(rows: T
 };
 
 // ---------- Shared header / footer ----------
-function header(doc: jsPDF, title: string, period?: ReportPeriod) {
+async function header(doc: jsPDF, title: string, period?: ReportPeriod) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFontSize(18);
+  // Logo
+  try {
+    const logo = await loadLogoDataUrl();
+    doc.addImage(logo, 'PNG', 14, 10, 14, 14);
+  } catch { /* ignore logo failure */ }
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('ShareeFund', 14, 20);
-  doc.setFontSize(10);
+  doc.text(BRAND.name, 32, 17);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(110);
+  doc.text(BRAND.slogan, 32, 22);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
-  doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, pageWidth - 14, 20, { align: 'right' });
+  doc.setFontSize(10);
+  doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, pageWidth - 14, 17, { align: 'right' });
   doc.setDrawColor(200);
-  doc.line(14, 25, pageWidth - 14, 25);
+  doc.line(14, 27, pageWidth - 14, 27);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0);
@@ -51,7 +60,7 @@ function footer(doc: jsPDF) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`ShareeFund Report — Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`${BRAND.name} (${BRAND.short}) — ${BRAND.slogan}  ·  Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
   }
 }
 
@@ -60,6 +69,7 @@ const tableStyle = {
   headStyles: { fillColor: [41, 98, 255] as [number, number, number] },
   alternateRowStyles: { fillColor: [245, 247, 250] as [number, number, number] },
 };
+
 
 // ---------- Member individual ----------
 export function generateMemberPDF(member: any, deposits: any[], distributions: any[]) {
