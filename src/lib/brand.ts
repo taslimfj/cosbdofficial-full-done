@@ -2,7 +2,7 @@ import logoAsset from '@/assets/cos-logo.png.asset.json';
 
 export const BRAND = {
   name: 'Circle of Success',
-  short: 'COS',
+  short: 'Circle of Success',
   slogan: 'Investing together, prospering together.',
   logoUrl: logoAsset.url,
 } as const;

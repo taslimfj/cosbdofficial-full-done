@@ -119,8 +119,7 @@ export default function LoginPage() {
               <img src={BRAND.logoUrl} alt={`${BRAND.name} logo`} className="w-full h-full object-contain" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-primary-foreground mb-2 tracking-tight">{BRAND.name}</h1>
-          <p className="text-primary-foreground/60 text-sm mb-4 tracking-widest">{BRAND.short}</p>
+          <h1 className="text-4xl font-bold text-primary-foreground mb-4 tracking-tight">{BRAND.name}</h1>
           <p className="text-primary-foreground/80 text-lg leading-relaxed italic">
             {BRAND.slogan}
           </p>

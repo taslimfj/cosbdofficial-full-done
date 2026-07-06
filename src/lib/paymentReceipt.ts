@@ -57,7 +57,7 @@ export async function generatePaymentReceiptPDF(data: ReceiptData) {
   doc.setFontSize(9);
   doc.text(`Receipt #: ${data.payment.id.slice(0, 8).toUpperCase()}`, pageWidth - 14, 15, { align: 'right' });
   doc.text(format(new Date(), 'dd MMM yyyy, hh:mm a'), pageWidth - 14, 22, { align: 'right' });
-  doc.text(`(${BRAND.short})`, pageWidth - 14, 29, { align: 'right' });
+  doc.text('Payment Receipt', pageWidth - 14, 29, { align: 'right' });
 
   doc.setTextColor(0);
 
@@ -128,7 +128,7 @@ export async function generatePaymentReceiptPDF(data: ReceiptData) {
   // Footer
   doc.setDrawColor(220); doc.line(14, 283, pageWidth - 14, 283);
   doc.setTextColor(150); doc.setFontSize(8);
-  doc.text(`${BRAND.name} (${BRAND.short}) — ${BRAND.slogan}`, pageWidth / 2, 289, { align: 'center' });
+  doc.text(`${BRAND.name} — ${BRAND.slogan}`, pageWidth / 2, 289, { align: 'center' });
   doc.text('Payment Receipt', pageWidth / 2, 293, { align: 'center' });
 
   doc.save(`receipt-${data.loan.code || data.loan.id.slice(0, 8)}-inst${data.installmentNumber}.pdf`);
