@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneInput } from '@/components/PhoneInput';
 import { toast } from 'sonner';
-import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera } from 'lucide-react';
+import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera, Trash2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile, role } = useAuth();
@@ -62,8 +62,8 @@ export default function ProfilePage() {
       toast.error('শুধুমাত্র image file upload করুন');
       return;
     }
-    if (file.size > 10 * 1024) {
-      toast.error('ছবির size সর্বোচ্চ 10 KB হতে পারবে');
+    if (file.size > 50 * 1024) {
+      toast.error('ছবির size সর্বোচ্চ 50 KB হতে পারবে');
       return;
     }
 
@@ -89,6 +89,24 @@ export default function ProfilePage() {
       toast.error('ছবি upload করা যায়নি');
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!user || !avatarUrl) return;
+    if (!confirm('Profile photo delete করতে চান?')) return;
+    setSavingPhoto(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null } as any)
+      .eq('id', user.id);
+    setSavingPhoto(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setAvatarUrl('');
+    toast.success('Profile photo deleted');
+    refreshProfile();
   };
 
   const handleChangeEmail = async () => {
@@ -154,16 +172,28 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile-photo" className="text-sm font-medium">Profile Photo</Label>
-              <div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" disabled={savingPhoto} asChild>
                   <label htmlFor="profile-photo" className="cursor-pointer">
                     {savingPhoto ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-                    Upload Photo
+                    {avatarUrl ? 'Change Photo' : 'Upload Photo'}
                   </label>
                 </Button>
+                {avatarUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={savingPhoto}
+                    onClick={handleDeletePhoto}
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                  </Button>
+                )}
                 <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </div>
-              <p className="text-xs text-muted-foreground">Maximum image size: 10 KB.</p>
+              <p className="text-xs text-muted-foreground">Maximum image size: 50 KB.</p>
             </div>
           </div>
           <div className="space-y-2">
