@@ -114,16 +114,14 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
         <div className="max-w-md text-center">
           <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-foreground/10 mb-6">
-              <Shield className="w-8 h-8 text-primary-foreground" />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-primary-foreground/10 p-3 mb-6">
+              <img src={BRAND.logoUrl} alt={`${BRAND.name} logo`} className="w-full h-full object-contain" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4 tracking-tight">ShareeFund</h1>
-          <p className="text-primary-foreground/70 text-lg leading-relaxed">
-            Ethical Growth. Community Trust.
-          </p>
-          <p className="text-primary-foreground/50 text-sm mt-4">
-            Islamic community investment management platform
+          <h1 className="text-4xl font-bold text-primary-foreground mb-2 tracking-tight">{BRAND.name}</h1>
+          <p className="text-primary-foreground/60 text-sm mb-4 tracking-widest">{BRAND.short}</p>
+          <p className="text-primary-foreground/80 text-lg leading-relaxed italic">
+            {BRAND.slogan}
           </p>
         </div>
       </div>
@@ -132,8 +130,9 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">ShareeFund</h1>
-            <p className="text-muted-foreground text-sm mt-1">Ethical Growth. Community Trust.</p>
+            <img src={BRAND.logoUrl} alt={`${BRAND.name} logo`} className="w-16 h-16 mx-auto mb-3 rounded-xl" />
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{BRAND.name}</h1>
+            <p className="text-muted-foreground text-xs mt-1 italic">{BRAND.slogan}</p>
           </div>
 
           {mode === 'login' && (
