@@ -172,16 +172,28 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile-photo" className="text-sm font-medium">Profile Photo</Label>
-              <div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" disabled={savingPhoto} asChild>
                   <label htmlFor="profile-photo" className="cursor-pointer">
                     {savingPhoto ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-                    Upload Photo
+                    {avatarUrl ? 'Change Photo' : 'Upload Photo'}
                   </label>
                 </Button>
+                {avatarUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={savingPhoto}
+                    onClick={handleDeletePhoto}
+                    className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                  </Button>
+                )}
                 <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </div>
-              <p className="text-xs text-muted-foreground">Maximum image size: 10 KB.</p>
+              <p className="text-xs text-muted-foreground">Maximum image size: 50 KB.</p>
             </div>
           </div>
           <div className="space-y-2">
