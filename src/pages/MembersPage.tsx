@@ -31,17 +31,8 @@ export default function MembersPage() {
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
 
-  const [inAppCall, setInAppCall] = useState<MemberContact | null>(null);
-  const [callMuted, setCallMuted] = useState(false);
-  const [callSeconds, setCallSeconds] = useState(0);
-
   useEffect(() => { fetchMembers(); }, []);
 
-  useEffect(() => {
-    if (!inAppCall) return;
-    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [inAppCall]);
 
   const fetchMembers = async () => {
     const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
