@@ -43,8 +43,21 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return;
     fetchItems();
-    // Silently reuse an existing permission to keep the subscription alive.
-    silentSyncPush(user.id);
+    // Auto-enable push: request permission automatically (once) so the user
+    // doesn't need to click "Enable". If already granted, this just syncs the
+    // subscription. If previously denied, browser silently keeps it denied.
+    (async () => {
+      if (!pushSupported()) return;
+      const current = Notification.permission;
+      if (current === 'granted') {
+        await silentSyncPush(user.id);
+      } else if (current === 'default') {
+        try {
+          const res = await enablePushForCurrentUser(user.id);
+          setPerm(res === 'unsupported' ? 'unsupported' : (Notification.permission as NotificationPermission));
+        } catch (_) { /* ignore */ }
+      }
+    })();
     const ch = supabase
       .channel(`notif-${user.id}`)
       .on('postgres_changes',
@@ -105,16 +118,6 @@ export function NotificationBell() {
           )}
         </div>
 
-        {perm !== 'granted' && perm !== 'unsupported' && (
-          <div className="px-4 py-3 bg-primary/5 border-b border-border flex items-center gap-3">
-            <BellOff className="w-4 h-4 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium">Push notification চালু করুন</p>
-              <p className="text-[11px] text-muted-foreground">অ্যাপ বন্ধ থাকলেও notification পাবেন</p>
-            </div>
-            <Button size="sm" className="h-7 px-2 text-xs" onClick={enable}>Enable</Button>
-          </div>
-        )}
 
         <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
           {items.length === 0 ? (

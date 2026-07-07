@@ -4,6 +4,10 @@
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
 
+// Minimal fetch handler — required for Chrome/Android "Install app" prompt.
+// Pass-through only; no caching so previews and updates aren't affected.
+self.addEventListener('fetch', () => { /* network default */ });
+
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (_) { data = { title: 'Notification', body: event.data ? event.data.text() : '' }; }
