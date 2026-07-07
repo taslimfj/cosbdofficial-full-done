@@ -82,7 +82,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingProfile && !existingProfile.is_deleted) {
-        return json({ error: "এই login information দিয়ে একটি active account আছে।" }, 409);
+        if (existingProfile.is_customer) {
+          return json({ error: "এই ফোন নম্বর একজন active customer এর সাথে যুক্ত। অন্য ফোন নম্বর দিন অথবা আগে ওই customer account টি delete করুন।" }, 409);
+        }
+        return json({ error: "এই ফোন নম্বরে একটি active member account আছে। অন্য ফোন নম্বর দিন।" }, 409);
       }
 
       await admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", existingUserId);
