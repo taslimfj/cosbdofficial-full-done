@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { MonthlyReminders } from '@/components/MonthlyReminders';
+import { NotificationBell } from '@/components/NotificationBell';
 import { BackButton } from '@/components/BackButton';
 import {
   LayoutDashboard,
@@ -15,7 +16,6 @@ import {
   Menu,
   X,
   Shield,
-  Bell,
   BookUser,
   Package,
   GraduationCap,
@@ -176,9 +176,7 @@ export default function DashboardLayout() {
             {role === 'admin' && (
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-md">Admin</span>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-              <Bell className="w-4 h-4" />
-            </Button>
+            <NotificationBell />
           </div>
         </header>
 

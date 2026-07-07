@@ -559,7 +559,9 @@ export type Database = {
           id: string
           is_read: boolean | null
           message: string | null
+          tag: string | null
           title: string
+          url: string | null
           user_id: string
         }
         Insert: {
@@ -567,7 +569,9 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          tag?: string | null
           title: string
+          url?: string | null
           user_id: string
         }
         Update: {
@@ -575,7 +579,9 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          tag?: string | null
           title?: string
+          url?: string | null
           user_id?: string
         }
         Relationships: []
@@ -909,6 +915,36 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tutorials: {
         Row: {
           audiences: string[]
@@ -1099,6 +1135,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_admins: {
+        Args: { _message: string; _tag?: string; _title: string; _url?: string }
+        Returns: undefined
       }
       record_islamic_loan_payment: {
         Args: {
