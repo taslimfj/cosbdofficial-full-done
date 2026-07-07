@@ -40,7 +40,7 @@ export default function MembersPage() {
     const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_deleted', false).eq('is_customer', false),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
-      supabase.from('deposits').select('member_id, amount').eq('status', 'approved'),
+      supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
       supabase.from('profit_distributions').select('member_id, amount'),
     ]);
     const profiles = profRes.data || [];
