@@ -236,8 +236,20 @@ export default function MemberDetailPage() {
   if (loading || authLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!member) return <div className="text-center py-12"><p className="text-muted-foreground">Member not found</p></div>;
 
+  const installmentStatus = member ? computeMissedInstallments(deposits, member.created_at) : { missed: 0, level: 'normal' as const, message: null };
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {installmentStatus.message && (
+        <div className={`border rounded-lg px-4 py-3 text-sm ${statusBannerClass(installmentStatus.level)}`}>
+          <p className="font-semibold mb-1">
+            {installmentStatus.level === 'warn' ? '⚠️ সতর্কতা' :
+             installmentStatus.level === 'alert' ? '⚠️ গুরুত্বপূর্ণ সতর্কতা' :
+             '🚨 জরুরি সতর্কতা'}
+          </p>
+          <p>{installmentStatus.message}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/members')} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
