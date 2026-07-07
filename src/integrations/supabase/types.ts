@@ -1000,74 +1000,41 @@ export type Database = {
     Views: {
       islamic_loans_public: {
         Row: {
-          admin_profit_pct: number | null
-          borrower_name: string | null
-          borrower_phone: string | null
+          closed_at: string | null
           code: string | null
-          comments: string | null
           created_at: string | null
           customer_user_id: string | null
-          discount_pct: number | null
-          fund_profit_pct: number | null
           id: string | null
           media_person_id: string | null
-          media_person_profit_pct: number | null
           monthly_installment: number | null
-          payment_methods: Json | null
           product_name: string | null
-          profit_percentage: number | null
-          purchase_price: number | null
-          relative_phone: string | null
-          remaining_amount: number | null
-          sell_price: number | null
+          secondary_media_person_id: string | null
           status: string | null
           tenure_months: number | null
         }
         Insert: {
-          admin_profit_pct?: number | null
-          borrower_name?: string | null
-          borrower_phone?: string | null
+          closed_at?: string | null
           code?: string | null
-          comments?: string | null
           created_at?: string | null
           customer_user_id?: string | null
-          discount_pct?: number | null
-          fund_profit_pct?: number | null
           id?: string | null
           media_person_id?: string | null
-          media_person_profit_pct?: number | null
           monthly_installment?: number | null
-          payment_methods?: Json | null
           product_name?: string | null
-          profit_percentage?: number | null
-          purchase_price?: number | null
-          relative_phone?: string | null
-          remaining_amount?: number | null
-          sell_price?: number | null
+          secondary_media_person_id?: string | null
           status?: string | null
           tenure_months?: number | null
         }
         Update: {
-          admin_profit_pct?: number | null
-          borrower_name?: string | null
-          borrower_phone?: string | null
+          closed_at?: string | null
           code?: string | null
-          comments?: string | null
           created_at?: string | null
           customer_user_id?: string | null
-          discount_pct?: number | null
-          fund_profit_pct?: number | null
           id?: string | null
           media_person_id?: string | null
-          media_person_profit_pct?: number | null
           monthly_installment?: number | null
-          payment_methods?: Json | null
           product_name?: string | null
-          profit_percentage?: number | null
-          purchase_price?: number | null
-          relative_phone?: string | null
-          remaining_amount?: number | null
-          sell_price?: number | null
+          secondary_media_person_id?: string | null
           status?: string | null
           tenure_months?: number | null
         }
@@ -1086,6 +1053,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       member_directory: {
@@ -1097,7 +1078,6 @@ export type Database = {
           id: string | null
           is_customer: boolean | null
           is_deleted: boolean | null
-          phone: string | null
           total_deposited: number | null
           updated_at: string | null
         }
@@ -1109,7 +1089,6 @@ export type Database = {
           id?: string | null
           is_customer?: boolean | null
           is_deleted?: boolean | null
-          phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
         }
@@ -1121,7 +1100,6 @@ export type Database = {
           id?: string | null
           is_customer?: boolean | null
           is_deleted?: boolean | null
-          phone?: string | null
           total_deposited?: number | null
           updated_at?: string | null
         }
