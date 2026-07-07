@@ -73,7 +73,7 @@ export default function IslamicLoanDetailPage() {
     ]);
     const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
-    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null } : null;
+    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null, secondary_media_person: byId.get((loanRes.data as any).secondary_media_person_id) || null } : null;
     const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
     setLoan(loan);
     setPayments(payRes.data || []);
