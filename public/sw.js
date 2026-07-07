@@ -8,12 +8,13 @@ self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (_) { data = { title: 'Notification', body: event.data ? event.data.text() : '' }; }
 
+  const LOGO = '/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png';
   const title = data.title || 'Circle of Success';
   const options = {
     body: data.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/badge-72.png',
-    image: data.image || '/icons/notification-hero.png',
+    icon: LOGO,
+    badge: LOGO,
+    image: data.image || LOGO,
     data: { url: data.url || '/' },
     tag: data.tag || undefined,
     renotify: !!data.tag,
