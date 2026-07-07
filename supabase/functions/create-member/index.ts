@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const digits = phone.replace(/[^0-9]/g, "");
     if (digits.length < 4) return json({ error: "Invalid phone number" }, 400);
 
-    const email = `${digits}@sharee.local`;
+    const email = `m${digits}@sharee.local`;
 
     const { data: activeProfile } = await admin
       .from("profiles")
