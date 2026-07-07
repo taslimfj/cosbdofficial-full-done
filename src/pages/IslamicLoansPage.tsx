@@ -123,6 +123,7 @@ export default function IslamicLoansPage() {
       profit_percentage: profitPct,
       discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
+      secondary_media_person_id: (form as any).secondaryMediaPersonId || null,
       media_person_profit_pct: parseFloat(form.mediaPersonProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
       remaining_amount: sellPrice,
