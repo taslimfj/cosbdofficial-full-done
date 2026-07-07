@@ -30,6 +30,12 @@ export function computeMissedInstallments(
     paidMonths.add(ymKey(dt));
   }
 
+  // If the member has paid THIS month, they are fully current — no warning.
+  const currentKey = ymKey(now);
+  if (paidMonths.has(currentKey)) {
+    return { missed: 0, level: 'normal', message: null };
+  }
+
   const joined = memberJoinedAt ? new Date(memberJoinedAt) : null;
   const cursor = new Date(now.getFullYear(), now.getMonth() - 1, 1); // start at previous month
   let missed = 0;
