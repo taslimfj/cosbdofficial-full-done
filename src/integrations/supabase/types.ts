@@ -344,6 +344,7 @@ export type Database = {
           purchase_price: number
           relative_phone: string | null
           remaining_amount: number | null
+          secondary_media_person_id: string | null
           sell_price: number
           status: string | null
           tenure_months: number
@@ -372,6 +373,7 @@ export type Database = {
           purchase_price: number
           relative_phone?: string | null
           remaining_amount?: number | null
+          secondary_media_person_id?: string | null
           sell_price: number
           status?: string | null
           tenure_months: number
@@ -400,6 +402,7 @@ export type Database = {
           purchase_price?: number
           relative_phone?: string | null
           remaining_amount?: number | null
+          secondary_media_person_id?: string | null
           sell_price?: number
           status?: string | null
           tenure_months?: number
@@ -429,6 +432,20 @@ export type Database = {
           {
             foreignKeyName: "islamic_loans_media_person_id_fkey"
             columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
