@@ -199,6 +199,7 @@ export default function IslamicLoanDetailPage() {
       profit_percentage: parseFloat(edit.profit_percentage) || 0,
       discount_pct: parseFloat(edit.discount_pct) || 0,
       media_person_id: edit.media_person_id || null,
+      secondary_media_person_id: edit.secondary_media_person_id || null,
       media_person_profit_pct: parseFloat(edit.media_person_profit_pct) || 0,
       fund_profit_pct: parseFloat(edit.fund_profit_pct) || 0,
       monthly_installment: parseFloat(edit.monthly_installment) || 0,
