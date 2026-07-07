@@ -205,8 +205,9 @@ export default function MembersPage() {
                   const balance = memberBalances.get(member.id) || 0;
                   const share = calculateSharePercentage(balance, totalInvestment);
                   const isAdmin = adminIds.has(member.id);
+                  const status = memberStatuses.get(member.id) || { missed: 0, level: 'normal' as const, message: null };
                   return (
-                    <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
+                    <tr key={member.id} className={`${statusRowClass(status.level)} transition-colors cursor-pointer`} onClick={() => navigate(`/members/${member.id}`)} title={status.message || undefined}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary overflow-hidden">
