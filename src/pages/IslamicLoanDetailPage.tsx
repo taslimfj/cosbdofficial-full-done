@@ -280,11 +280,20 @@ export default function IslamicLoanDetailPage() {
         rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
       }
       if (profitTotals.media > 0) {
+        const mediaPct = Number(loan.media_person_profit_pct) || 0;
+        const secondaryId = (loan as any).secondary_media_person_id || null;
         if (loan.media_person_id) {
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: mediaPct, distribution_type: 'media_person' });
+        } else if (secondaryId) {
+          // Primary media deleted, secondary exists → half to secondary, half to Fund
+          const half = round2(profitTotals.media / 2);
+          const other = round2(profitTotals.media - half);
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: secondaryId, amount: half, share_percentage: mediaPct / 2, distribution_type: 'secondary_media_person' });
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: other, share_percentage: mediaPct / 2, distribution_type: 'media_deleted_to_fund' });
+          fundExtras.push({ amount: other, reason: `Loan ${loan.code} — Deleted primary media (অর্ধেক) Fund-এ যোগ`, type: 'in' });
         } else {
-          // Media person was deleted → entire media share → Fund
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_deleted_to_fund' });
+          // Both deleted → entire media share → Fund
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.media, share_percentage: mediaPct, distribution_type: 'media_deleted_to_fund' });
           fundExtras.push({ amount: profitTotals.media, reason: `Loan ${loan.code} — Deleted media person share Fund-এ যোগ`, type: 'in' });
         }
       }
