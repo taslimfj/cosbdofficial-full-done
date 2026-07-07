@@ -1,0 +1,33 @@
+{
+  "name": "Circle of Success",
+  "short_name": "CoS",
+  "description": "Community investment platform — deposits, Islamic loans, projects, and profit sharing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#114d3a",
+  "background_color": "#f9fafb",
+  "lang": "bn",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
