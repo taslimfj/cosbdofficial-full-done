@@ -113,9 +113,14 @@ export default function LoginPage() {
     const { supabase } = await import('@/integrations/supabase/client');
 
     // For phone-based logins, try all common variants (with/without country code).
+    // Scope identifiers by selected section so customer/member accounts never cross-match.
     const identifiersToTry = isEmail
       ? [loginIdentifier]
-      : buildPhoneVariants(raw).flatMap((d) => [`${d}@sharee.local`, `m${d}@sharee.local`]);
+      : loginType === 'member'
+        ? buildPhoneVariants(raw).map((d) => `m${d}@sharee.local`)
+        : loginType === 'customer'
+          ? buildPhoneVariants(raw).map((d) => `${d}@sharee.local`)
+          : buildPhoneVariants(raw).flatMap((d) => [`${d}@sharee.local`, `m${d}@sharee.local`]);
 
     let signInData: any = null;
     let error: any = null;
