@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, Search, Loader2 } from 'lucide-react';
 import { PhoneInput, phoneToDigits, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
+import { computeMissedInstallments, statusRowClass, type MissedStatus } from '@/lib/memberStatus';
 
 interface MemberContact {
   id: string;
