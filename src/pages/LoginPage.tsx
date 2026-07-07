@@ -115,7 +115,7 @@ export default function LoginPage() {
     // For phone-based logins, try all common variants (with/without country code).
     const identifiersToTry = isEmail
       ? [loginIdentifier]
-      : buildPhoneVariants(raw).map((d) => `${d}@sharee.local`);
+      : buildPhoneVariants(raw).flatMap((d) => [`${d}@sharee.local`, `m${d}@sharee.local`]);
 
     let signInData: any = null;
     let error: any = null;
