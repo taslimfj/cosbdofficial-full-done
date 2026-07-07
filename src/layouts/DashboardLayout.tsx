@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MonthlyReminders } from '@/components/MonthlyReminders';
 import { NotificationBell } from '@/components/NotificationBell';
 import { BackButton } from '@/components/BackButton';
+import { InstallAppButton } from '@/components/InstallAppButton';
 import {
   LayoutDashboard,
   Users,
@@ -173,6 +174,7 @@ export default function DashboardLayout() {
           <BackButton />
           <div className="flex-1" />
           <div className="flex items-center gap-2">
+            <InstallAppButton />
             {role === 'admin' && (
               <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-md">Admin</span>
             )}
