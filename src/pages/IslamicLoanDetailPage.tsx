@@ -994,6 +994,16 @@ export default function IslamicLoanDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Secondary Media Person <span className="text-xs text-muted-foreground">(optional — primary delete হলে অর্ধেক পাবে)</span></Label>
+                <Select value={edit.secondary_media_person_id || 'none'} onValueChange={v => setEdit({ ...edit, secondary_media_person_id: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {members.filter(m => m.id !== edit.media_person_id).map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Media Person %</Label><Input type="number" value={edit.media_person_profit_pct} onChange={e => setEdit({ ...edit, media_person_profit_pct: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={edit.fund_profit_pct} onChange={e => setEdit({ ...edit, fund_profit_pct: e.target.value })} /></div>
