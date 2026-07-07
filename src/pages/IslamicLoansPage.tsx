@@ -41,6 +41,7 @@ export default function IslamicLoansPage() {
     purchasePrice: '',
     tenure: '3',
     mediaPersonId: '',
+    secondaryMediaPersonId: '',
     comments: '',
     mediaPersonProfitPct: '10',
     fundProfitPct: '5',
