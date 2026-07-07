@@ -53,12 +53,24 @@ export default function MembersPage() {
       depositMap.set(p.id, 0);
       profitMap.set(p.id, 0);
     }
+    const depositsByMember = new Map<string, any[]>();
     (depositsRes.data || []).forEach((d: any) => {
-      depositMap.set(d.member_id, (depositMap.get(d.member_id) || 0) + Number(d.amount || 0));
+      if (d.status === 'approved') {
+        depositMap.set(d.member_id, (depositMap.get(d.member_id) || 0) + Number(d.amount || 0));
+      }
+      const arr = depositsByMember.get(d.member_id) || [];
+      arr.push(d);
+      depositsByMember.set(d.member_id, arr);
     });
     (distRes.data || []).forEach((d: any) => {
       profitMap.set(d.member_id, (profitMap.get(d.member_id) || 0) + Number(d.amount || 0));
     });
+
+    const statusMap = new Map<string, MissedStatus>();
+    for (const p of profiles) {
+      statusMap.set(p.id, computeMissedInstallments(depositsByMember.get(p.id) || [], p.created_at));
+    }
+    setMemberStatuses(statusMap);
 
     const balanceMap = new Map<string, number>();
     let total = 0;
