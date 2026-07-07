@@ -138,6 +138,7 @@ export default function IslamicLoanDetailPage() {
         profit_percentage: String(loan.profit_percentage ?? ''),
         discount_pct: String(loan.discount_pct ?? '0'),
         media_person_id: loan.media_person_id || '',
+        secondary_media_person_id: (loan as any).secondary_media_person_id || '',
         media_person_profit_pct: String(loan.media_person_profit_pct ?? '10'),
         fund_profit_pct: String(loan.fund_profit_pct ?? '5'),
         monthly_installment: String(loan.monthly_installment ?? ''),
