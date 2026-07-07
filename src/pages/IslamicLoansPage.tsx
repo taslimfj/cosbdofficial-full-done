@@ -326,6 +326,16 @@ export default function IslamicLoansPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Secondary Media Person <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Select value={(form as any).secondaryMediaPersonId || 'none'} onValueChange={v => setForm(p => ({ ...p, secondaryMediaPersonId: v === 'none' ? '' : v } as any))}>
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {members.filter(m => m.id !== form.mediaPersonId).map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Media Person %</Label>
