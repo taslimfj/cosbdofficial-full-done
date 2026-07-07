@@ -31,6 +31,7 @@ export default function MembersPage() {
   const [visibleCount, setVisibleCount] = useState(5);
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
+  const [memberStatuses, setMemberStatuses] = useState<Map<string, MissedStatus>>(new Map());
 
   useEffect(() => { fetchMembers(); }, []);
 
