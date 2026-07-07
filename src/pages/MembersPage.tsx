@@ -218,9 +218,18 @@ export default function MembersPage() {
                             )}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
                               {isAdmin && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">ADMIN</span>}
+                              {status.missed > 0 && (
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                  status.level === 'warn' ? 'bg-yellow-200 text-yellow-900' :
+                                  status.level === 'alert' ? 'bg-pink-200 text-pink-900' :
+                                  'bg-red-200 text-red-900'
+                                }`}>
+                                  {status.missed}+ মাস বকেয়া
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">{member.phone || 'No phone'}</p>
                           </div>
