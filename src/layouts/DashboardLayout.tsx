@@ -15,7 +15,6 @@ import {
   Menu,
   X,
   Shield,
-  Bell,
   BookUser,
   Package,
   GraduationCap,
