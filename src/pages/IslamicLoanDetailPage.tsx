@@ -73,7 +73,7 @@ export default function IslamicLoanDetailPage() {
     ]);
     const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
-    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null } : null;
+    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null, secondary_media_person: byId.get((loanRes.data as any).secondary_media_person_id) || null } : null;
     const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
     setLoan(loan);
     setPayments(payRes.data || []);
@@ -138,6 +138,7 @@ export default function IslamicLoanDetailPage() {
         profit_percentage: String(loan.profit_percentage ?? ''),
         discount_pct: String(loan.discount_pct ?? '0'),
         media_person_id: loan.media_person_id || '',
+        secondary_media_person_id: (loan as any).secondary_media_person_id || '',
         media_person_profit_pct: String(loan.media_person_profit_pct ?? '10'),
         fund_profit_pct: String(loan.fund_profit_pct ?? '5'),
         monthly_installment: String(loan.monthly_installment ?? ''),
@@ -198,6 +199,7 @@ export default function IslamicLoanDetailPage() {
       profit_percentage: parseFloat(edit.profit_percentage) || 0,
       discount_pct: parseFloat(edit.discount_pct) || 0,
       media_person_id: edit.media_person_id || null,
+      secondary_media_person_id: edit.secondary_media_person_id || null,
       media_person_profit_pct: parseFloat(edit.media_person_profit_pct) || 0,
       fund_profit_pct: parseFloat(edit.fund_profit_pct) || 0,
       monthly_installment: parseFloat(edit.monthly_installment) || 0,
@@ -278,11 +280,20 @@ export default function IslamicLoanDetailPage() {
         rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.fund, share_percentage: Number(loan.fund_profit_pct), distribution_type: 'fund' });
       }
       if (profitTotals.media > 0) {
+        const mediaPct = Number(loan.media_person_profit_pct) || 0;
+        const secondaryId = (loan as any).secondary_media_person_id || null;
         if (loan.media_person_id) {
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_person' });
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: loan.media_person_id, amount: profitTotals.media, share_percentage: mediaPct, distribution_type: 'media_person' });
+        } else if (secondaryId) {
+          // Primary media deleted, secondary exists → half to secondary, half to Fund
+          const half = round2(profitTotals.media / 2);
+          const other = round2(profitTotals.media - half);
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: secondaryId, amount: half, share_percentage: mediaPct / 2, distribution_type: 'secondary_media_person' });
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: other, share_percentage: mediaPct / 2, distribution_type: 'media_deleted_to_fund' });
+          fundExtras.push({ amount: other, reason: `Loan ${loan.code} — Deleted primary media (অর্ধেক) Fund-এ যোগ`, type: 'in' });
         } else {
-          // Media person was deleted → entire media share → Fund
-          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.media, share_percentage: Number(loan.media_person_profit_pct), distribution_type: 'media_deleted_to_fund' });
+          // Both deleted → entire media share → Fund
+          rows.push({ source_type: 'islamic_loan', source_id: id, member_id: null, amount: profitTotals.media, share_percentage: mediaPct, distribution_type: 'media_deleted_to_fund' });
           fundExtras.push({ amount: profitTotals.media, reason: `Loan ${loan.code} — Deleted media person share Fund-এ যোগ`, type: 'in' });
         }
       }
@@ -980,6 +991,16 @@ export default function IslamicLoanDetailPage() {
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {members.map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Secondary Media Person <span className="text-xs text-muted-foreground">(optional — primary delete হলে অর্ধেক পাবে)</span></Label>
+                <Select value={edit.secondary_media_person_id || 'none'} onValueChange={v => setEdit({ ...edit, secondary_media_person_id: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {members.filter(m => m.id !== edit.media_person_id).map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

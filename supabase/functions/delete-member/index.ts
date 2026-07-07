@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
 
     // Null-out FKs that don't cascade
     await must(admin.from("islamic_loans").update({ media_person_id: null }).eq("media_person_id", memberId));
+    await must(admin.from("islamic_loans").update({ secondary_media_person_id: null }).eq("secondary_media_person_id", memberId));
     await must(admin.from("projects").update({ manager_id: null }).eq("manager_id", memberId));
     await must(admin.from("projects").update({ secondary_manager_id: null }).eq("secondary_manager_id", memberId));
     await must(admin.from("project_member_shares")

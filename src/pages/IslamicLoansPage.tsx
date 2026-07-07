@@ -41,6 +41,7 @@ export default function IslamicLoansPage() {
     purchasePrice: '',
     tenure: '3',
     mediaPersonId: '',
+    secondaryMediaPersonId: '',
     comments: '',
     mediaPersonProfitPct: '10',
     fundProfitPct: '5',
@@ -123,6 +124,7 @@ export default function IslamicLoansPage() {
       profit_percentage: profitPct,
       discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
+      secondary_media_person_id: (form as any).secondaryMediaPersonId || null,
       media_person_profit_pct: parseFloat(form.mediaPersonProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
       remaining_amount: sellPrice,
@@ -163,7 +165,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' });
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' } as any);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
   };
@@ -321,6 +323,16 @@ export default function IslamicLoansPage() {
                     <SelectTrigger><SelectValue placeholder="Select member" /></SelectTrigger>
                     <SelectContent>
                       {members.map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Secondary Media Person <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Select value={(form as any).secondaryMediaPersonId || 'none'} onValueChange={v => setForm(p => ({ ...p, secondaryMediaPersonId: v === 'none' ? '' : v } as any))}>
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {members.filter(m => m.id !== form.mediaPersonId).map(m => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
