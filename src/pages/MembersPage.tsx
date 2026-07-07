@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, Search, Loader2 } from 'lucide-react';
 import { PhoneInput, phoneToDigits, DEFAULT_PHONE_PASSWORD } from '@/components/PhoneInput';
+import { computeMissedInstallments, statusRowClass, type MissedStatus } from '@/lib/memberStatus';
 
 interface MemberContact {
   id: string;
@@ -30,6 +31,7 @@ export default function MembersPage() {
   const [visibleCount, setVisibleCount] = useState(5);
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
+  const [memberStatuses, setMemberStatuses] = useState<Map<string, MissedStatus>>(new Map());
 
   useEffect(() => { fetchMembers(); }, []);
 
@@ -38,7 +40,7 @@ export default function MembersPage() {
     const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_deleted', false).eq('is_customer', false),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
-      supabase.from('deposits').select('member_id, amount').eq('status', 'approved'),
+      supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
       supabase.from('profit_distributions').select('member_id, amount'),
     ]);
     const profiles = profRes.data || [];
@@ -51,12 +53,24 @@ export default function MembersPage() {
       depositMap.set(p.id, 0);
       profitMap.set(p.id, 0);
     }
+    const depositsByMember = new Map<string, any[]>();
     (depositsRes.data || []).forEach((d: any) => {
-      depositMap.set(d.member_id, (depositMap.get(d.member_id) || 0) + Number(d.amount || 0));
+      if (d.status === 'approved') {
+        depositMap.set(d.member_id, (depositMap.get(d.member_id) || 0) + Number(d.amount || 0));
+      }
+      const arr = depositsByMember.get(d.member_id) || [];
+      arr.push(d);
+      depositsByMember.set(d.member_id, arr);
     });
     (distRes.data || []).forEach((d: any) => {
       profitMap.set(d.member_id, (profitMap.get(d.member_id) || 0) + Number(d.amount || 0));
     });
+
+    const statusMap = new Map<string, MissedStatus>();
+    for (const p of profiles) {
+      statusMap.set(p.id, computeMissedInstallments(depositsByMember.get(p.id) || [], p.created_at));
+    }
+    setMemberStatuses(statusMap);
 
     const balanceMap = new Map<string, number>();
     let total = 0;
@@ -191,8 +205,9 @@ export default function MembersPage() {
                   const balance = memberBalances.get(member.id) || 0;
                   const share = calculateSharePercentage(balance, totalInvestment);
                   const isAdmin = adminIds.has(member.id);
+                  const status = memberStatuses.get(member.id) || { missed: 0, level: 'normal' as const, message: null };
                   return (
-                    <tr key={member.id} className="hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/members/${member.id}`)}>
+                    <tr key={member.id} className={`${statusRowClass(status.level)} transition-colors cursor-pointer`} onClick={() => navigate(`/members/${member.id}`)} title={status.message || undefined}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary overflow-hidden">
@@ -203,9 +218,18 @@ export default function MembersPage() {
                             )}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
                               {isAdmin && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">ADMIN</span>}
+                              {status.missed > 0 && (
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                  status.level === 'warn' ? 'bg-yellow-200 text-yellow-900' :
+                                  status.level === 'alert' ? 'bg-pink-200 text-pink-900' :
+                                  'bg-red-200 text-red-900'
+                                }`}>
+                                  {status.missed}+ মাস বকেয়া
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">{member.phone || 'No phone'}</p>
                           </div>
