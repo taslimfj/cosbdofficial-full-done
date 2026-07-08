@@ -84,20 +84,31 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
         {methods.map((m, idx) => (
           <Tooltip key={idx}>
             <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => handleCopy(m, idx)}
-                className="w-full text-left p-3 bg-secondary/50 hover:bg-primary/5 active:bg-primary/10 rounded-lg flex items-center justify-between gap-3 transition-colors group"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{m.label}</p>
-                  <p className="font-mono text-sm font-semibold tabular-nums break-all">{m.value}</p>
-                  {m.note && <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words">{m.note}</p>}
+              <div className="w-full p-3 bg-secondary/50 rounded-lg transition-colors group">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0 overflow-visible">
+                    <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide whitespace-normal break-words overflow-visible">
+                      {m.label}
+                    </div>
+                    <div className="font-mono text-sm font-semibold tabular-nums whitespace-normal break-all overflow-visible">
+                      {m.value}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(m, idx)}
+                    className="shrink-0 w-9 h-9 rounded-md bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary active:bg-primary/10 transition-colors"
+                    aria-label={`${m.label} copy করুন`}
+                  >
+                    {copiedIdx === idx ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                  </button>
                 </div>
-                <span className="shrink-0 w-9 h-9 rounded-md bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary">
-                  {copiedIdx === idx ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                </span>
-              </button>
+                {m.note && (
+                  <div className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-visible">
+                    {m.note}
+                  </div>
+                )}
+              </div>
             </TooltipTrigger>
             <TooltipContent side="top">
               <p>{copiedIdx === idx ? 'Copied' : 'Tap to copy'}</p>
