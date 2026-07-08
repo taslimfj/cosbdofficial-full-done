@@ -40,7 +40,40 @@ export async function registerPWA() {
     return;
   }
   try {
-    await navigator.serviceWorker.register(SW_URL, { scope: '/' });
+    let refreshing = false;
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    const reg = await navigator.serviceWorker.register(SW_URL, {
+      scope: '/',
+      updateViaCache: 'none',
+    });
+
+    const applyWaitingWorker = () => {
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    };
+
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+
+    applyWaitingWorker();
+    await reg.update();
+
+    window.addEventListener('focus', () => { reg.update().then(applyWaitingWorker).catch(() => {}); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().then(applyWaitingWorker).catch(() => {});
+    });
   } catch (e) {
     console.warn('SW registration failed', e);
   }
