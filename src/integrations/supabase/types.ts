@@ -999,6 +999,42 @@ export type Database = {
         }
         Relationships: []
       }
+      welfare_deductions: {
+        Row: {
+          amount_per_member: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          member_count: number | null
+          period_end: string
+          status: string
+          total_amount: number | null
+        }
+        Insert: {
+          amount_per_member?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          member_count?: number | null
+          period_end: string
+          status?: string
+          total_amount?: number | null
+        }
+        Update: {
+          amount_per_member?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          member_count?: number | null
+          period_end?: string
+          status?: string
+          total_amount?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       islamic_loans_public: {
@@ -1110,6 +1146,8 @@ export type Database = {
       }
     }
     Functions: {
+      approve_welfare_deduction: { Args: { _id: string }; Returns: undefined }
+      ensure_current_welfare_cycle: { Args: never; Returns: undefined }
       get_member_deposit_months: {
         Args: never
         Returns: {
@@ -1140,6 +1178,7 @@ export type Database = {
         }
         Returns: string
       }
+      reject_welfare_deduction: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "member"
