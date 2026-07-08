@@ -1,6 +1,7 @@
 import { Copy, Check, CreditCard } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type PaymentMethod = { label: string; value: string; note?: string | null };
 
@@ -19,14 +20,18 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
 
   if (!methods || methods.length === 0) return null;
 
-  const handleCopy = async (value: string, idx: number) => {
+  const handleCopy = async (method: PaymentMethod, idx: number) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(method.value);
       setCopiedIdx(idx);
-      toast.success('Copied!');
+      toast.success('Copied!', {
+        description: `${method.label} কপি হয়েছে`,
+        position: 'bottom-center',
+        duration: 2000,
+      });
       setTimeout(() => setCopiedIdx(null), 1500);
     } catch {
-      toast.error('Copy failed');
+      toast.error('কপি করা যায়নি', { position: 'bottom-center' });
     }
   };
 
