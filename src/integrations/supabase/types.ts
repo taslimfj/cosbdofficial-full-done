@@ -1148,6 +1148,7 @@ export type Database = {
     Functions: {
       approve_welfare_deduction: { Args: { _id: string }; Returns: undefined }
       ensure_current_welfare_cycle: { Args: never; Returns: undefined }
+      get_internal_secret: { Args: { _name: string }; Returns: string }
       get_member_deposit_months: {
         Args: never
         Returns: {
