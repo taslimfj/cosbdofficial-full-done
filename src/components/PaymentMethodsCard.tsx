@@ -20,9 +20,40 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
 
   if (!methods || methods.length === 0) return null;
 
-  const handleCopy = async (method: PaymentMethod, idx: number) => {
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    // Try modern Clipboard API first (requires secure context + permission)
     try {
-      await navigator.clipboard.writeText(method.value);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // fall through to legacy fallback
+    }
+    // Legacy fallback using a hidden textarea + execCommand
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '0';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopy = async (method: PaymentMethod, idx: number) => {
+    const ok = await copyToClipboard(method.value);
+    if (ok) {
       setCopiedIdx(idx);
       toast.success('Copied!', {
         description: `${method.label} কপি হয়েছে`,
@@ -30,8 +61,11 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
         duration: 2000,
       });
       setTimeout(() => setCopiedIdx(null), 1500);
-    } catch {
-      toast.error('কপি করা যায়নি', { position: 'bottom-center' });
+    } else {
+      toast.error('কপি করা যায়নি', {
+        description: 'ম্যানুয়ালি সিলেক্ট করে কপি করুন',
+        position: 'bottom-center',
+      });
     }
   };
 
