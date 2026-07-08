@@ -5,7 +5,7 @@ import { formatBDT } from '@/lib/finance';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
-import { DeletedMembers } from '@/components/dashboard/DeletedMembers';
+import { DefaultPaymentMethods } from '@/components/dashboard/DefaultPaymentMethods';
 import { Loader2 } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateDashboardPDF } from '@/lib/pdfGenerator';
@@ -160,7 +160,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <PendingApprovals />
-          <DeletedMembers />
+          <DefaultPaymentMethods />
         </div>
         <div className="space-y-6">
           <RecentActivity />
