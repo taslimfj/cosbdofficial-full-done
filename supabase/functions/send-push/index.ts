@@ -29,8 +29,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'user_ids[] and title required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: subs, error } = await supabase
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
