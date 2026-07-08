@@ -20,6 +20,7 @@ import {
   BookUser,
   Package,
   GraduationCap,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ const navItems = [
   { to: '/phone-book', icon: BookUser, label: 'Phone Book', roles: ['admin', 'member'] },
   { to: '/assets', icon: Package, label: 'Assets', roles: ['admin', 'member'] },
   { to: '/tutorials', icon: GraduationCap, label: 'Tutorial', roles: ['admin', 'member'] },
+  { to: '/payment-defaults', icon: CreditCard, label: 'Payment Defaults', roles: ['admin'] },
 ];
 
 export default function DashboardLayout() {
