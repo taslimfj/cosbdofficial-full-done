@@ -47,7 +47,7 @@ export function DefaultPaymentMethods() {
     <PaymentMethodsCard
       methods={methods}
       title="Default Payment Methods"
-      subtitle="Islamic Loan installment এর জন্য"
     />
+
   );
 }
