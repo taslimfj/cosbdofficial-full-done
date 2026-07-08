@@ -37,10 +37,11 @@ export default function MembersPage() {
 
 
   const fetchMembers = async () => {
-    const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
+    const [profRes, rolesRes, depositsRes, depMonthsRes, distRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_deleted', false).eq('is_customer', false),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
       supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
+      (supabase as any).rpc('get_member_deposit_months'),
       supabase.from('profit_distributions').select('member_id, amount'),
     ]);
     const profiles = profRes.data || [];
