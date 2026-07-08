@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Kind = 'deposit' | 'member_loan' | 'member_loan_repayment' | 'islamic_payment';
+type Kind = 'deposit' | 'member_loan' | 'member_loan_repayment' | 'islamic_payment' | 'welfare';
 
 interface PendingItem {
   id: string;
@@ -26,7 +26,10 @@ export function PendingApprovals() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [depRes, loanRes, repayRes, custReqRes, profilesRes, memLoansAll, islamicLoansAll] = await Promise.all([
+    // Auto-create the current quarter's welfare cycle if the cutoff has passed
+    try { await (supabase as any).rpc('ensure_current_welfare_cycle'); } catch {}
+
+    const [depRes, loanRes, repayRes, custReqRes, profilesRes, memLoansAll, islamicLoansAll, welfareRes] = await Promise.all([
       supabase.from('deposits').select('id, amount, member_id, created_at').eq('status', 'pending'),
       supabase.from('member_loans').select('id, requested_amount, member_id, created_at').eq('status', 'pending'),
       supabase.from('member_loan_repayments').select('id, amount, loan_id, created_at, payment_method, transaction_number').eq('status', 'pending'),
@@ -34,6 +37,7 @@ export function PendingApprovals() {
       supabase.from('profiles').select('id, full_name'),
       supabase.from('member_loans').select('id, member_id'),
       (supabase as any).from('islamic_loans').select('id, borrower_name, code'),
+      (supabase as any).from('welfare_deductions').select('id, period_end, amount_per_member, created_at').eq('status', 'pending'),
     ]);
 
     const profileMap = new Map((profilesRes.data || []).map((p: any) => [p.id, p.full_name]));
@@ -76,6 +80,14 @@ export function PendingApprovals() {
       });
     });
 
+    (welfareRes.data || []).forEach((w: any) => merged.push({
+      id: w.id, kind: 'welfare', amount: Number(w.amount_per_member),
+      user_id: '',
+      member_name: 'Company Welfare',
+      label: `প্রত্যেক member থেকে ৳${Number(w.amount_per_member).toLocaleString()} withdraw → Fund (${new Date(w.period_end).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})})`,
+      created_at: w.created_at, raw: w,
+    }));
+
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     setItems(merged);
     setLoading(false);
@@ -89,6 +101,7 @@ export function PendingApprovals() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_payment_requests' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'welfare_deductions' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
