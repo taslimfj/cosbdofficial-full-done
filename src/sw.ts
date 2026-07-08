@@ -54,7 +54,17 @@ setCatchHandler(async ({ request }) => {
 
 // --- Lifecycle --------------------------------------------------------------
 self.addEventListener('install', () => { self.skipWaiting(); });
-self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const runtimeCaches = ['html-navigations-v1', 'static-assets-v1', 'lovable-assets-v1'];
+    await Promise.all(runtimeCaches.map((name) => caches.delete(name)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // --- Web Push ---------------------------------------------------------------
 self.addEventListener('push', (event: PushEvent) => {
