@@ -1107,6 +1107,15 @@ export type Database = {
       }
     }
     Functions: {
+      get_member_deposit_months: {
+        Args: never
+        Returns: {
+          created_at: string
+          member_id: string
+          month_year: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

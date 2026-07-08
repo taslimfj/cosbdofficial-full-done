@@ -37,10 +37,11 @@ export default function MembersPage() {
 
 
   const fetchMembers = async () => {
-    const [profRes, rolesRes, depositsRes, distRes] = await Promise.all([
+    const [profRes, rolesRes, depositsRes, depMonthsRes, distRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_deleted', false).eq('is_customer', false),
       supabase.from('user_roles').select('user_id, role').eq('role', 'admin'),
       supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
+      (supabase as any).rpc('get_member_deposit_months'),
       supabase.from('profit_distributions').select('member_id, amount'),
     ]);
     const profiles = profRes.data || [];
@@ -60,6 +61,12 @@ export default function MembersPage() {
       }
       const arr = depositsByMember.get(d.member_id) || [];
       arr.push(d);
+      depositsByMember.set(d.member_id, arr);
+    });
+    // Merge in approved deposit months visible to everyone (from RPC) so status colors show for all members, not just self/admin
+    ((depMonthsRes as any)?.data || []).forEach((d: any) => {
+      const arr = depositsByMember.get(d.member_id) || [];
+      arr.push({ month_year: d.month_year, created_at: d.created_at, status: d.status });
       depositsByMember.set(d.member_id, arr);
     });
     (distRes.data || []).forEach((d: any) => {
