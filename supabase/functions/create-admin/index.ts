@@ -1,13 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -16,35 +19,54 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, password, fullName, role } = await req.json();
+    // Auth: require caller to be admin, unless no admin exists yet (bootstrap).
+    const { count: adminCount } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id", { count: "exact", head: true })
+      .eq("role", "admin");
 
-    // Create user
+    const isBootstrap = !adminCount || adminCount === 0;
+
+    if (!isBootstrap) {
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.replace(/^Bearer\s+/i, "");
+      if (!token) return json({ error: "Unauthorized" }, 401);
+
+      const { data: callerData, error: callerError } = await supabaseAdmin.auth.getUser(token);
+      if (callerError || !callerData.user) return json({ error: "Unauthorized" }, 401);
+
+      const { data: roleRow } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", callerData.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!roleRow) return json({ error: "Admin only" }, 403);
+    }
+
+    const { email, password, fullName, role } = await req.json();
+    if (!email || !password || !fullName) {
+      return json({ error: "email, password, fullName required" }, 400);
+    }
+
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: { full_name: fullName },
     });
-
     if (createError) throw createError;
 
-    // If admin role requested, update the user_roles table
     if (role === "admin" && userData.user) {
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
         .update({ role: "admin" })
         .eq("user_id", userData.user.id);
-
       if (roleError) throw roleError;
     }
 
-    return new Response(JSON.stringify({ success: true, userId: userData.user?.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ success: true, userId: userData.user?.id });
+  } catch (error: any) {
+    return json({ error: error?.message ?? String(error) }, 400);
   }
 });

@@ -33,6 +33,15 @@ async function insertNotifs(sb: any, rows: any[]) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  // Require shared secret (set on the pg_cron http_post header)
+  const expected = Deno.env.get('CRON_SECRET');
+  const provided = req.headers.get('x-cron-secret') || '';
+  if (!expected || provided !== expected) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   try {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const now = bdNow();
