@@ -5,7 +5,7 @@ import { formatBDT } from '@/lib/finance';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
-import { DeletedMembers } from '@/components/dashboard/DeletedMembers';
+import { DefaultPaymentMethods } from '@/components/dashboard/DefaultPaymentMethods';
 import { Loader2 } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateDashboardPDF } from '@/lib/pdfGenerator';
