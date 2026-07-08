@@ -63,6 +63,12 @@ export default function MembersPage() {
       arr.push(d);
       depositsByMember.set(d.member_id, arr);
     });
+    // Merge in approved deposit months visible to everyone (from RPC) so status colors show for all members, not just self/admin
+    ((depMonthsRes as any)?.data || []).forEach((d: any) => {
+      const arr = depositsByMember.get(d.member_id) || [];
+      arr.push({ month_year: d.month_year, created_at: d.created_at, status: d.status });
+      depositsByMember.set(d.member_id, arr);
+    });
     (distRes.data || []).forEach((d: any) => {
       profitMap.set(d.member_id, (profitMap.get(d.member_id) || 0) + Number(d.amount || 0));
     });
