@@ -179,6 +179,12 @@ export function PendingApprovals() {
           `আপনার ৳${item.amount.toLocaleString()} installment ${decision === 'approved' ? 'গৃহীত' : 'বাতিল'} হয়েছে।`);
       }
 
+      else if (item.kind === 'welfare') {
+        const rpcName = decision === 'approved' ? 'approve_welfare_deduction' : 'reject_welfare_deduction';
+        const { error: rpcErr } = await (supabase as any).rpc(rpcName, { _id: item.id });
+        if (rpcErr) throw rpcErr;
+      }
+
       toast.success(decision === 'approved' ? 'Approved' : 'Rejected');
       fetchData();
     } catch (e: any) {
