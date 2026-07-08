@@ -33,8 +33,17 @@ async function insertNotifs(sb: any, rows: any[]) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
   try {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Require shared secret (set on the pg_cron http_post header as x-cron-secret)
+    const { data: expected } = await sb.rpc('get_internal_secret', { _name: 'cron_secret' });
+    const provided = req.headers.get('x-cron-secret') || '';
+    if (!expected || provided !== expected) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     const now = bdNow();
     const dayOfMonth = now.getUTCDate();
     const monthKey = ym(now);

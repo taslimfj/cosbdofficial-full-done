@@ -14,13 +14,21 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Require internal shared secret (set by DB trigger's http_post header)
+    const { data: expected } = await supabase.rpc('get_internal_secret', { _name: 'send_push_secret' });
+    const provided = req.headers.get('x-internal-secret') || '';
+    if (!expected || provided !== expected) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const { user_ids, title, body, url, tag, image } = await req.json();
     if (!Array.isArray(user_ids) || user_ids.length === 0 || !title) {
       return new Response(JSON.stringify({ error: 'user_ids[] and title required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: subs, error } = await supabase
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
