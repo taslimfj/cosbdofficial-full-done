@@ -588,6 +588,7 @@ export type Database = {
       }
       payment_method_defaults: {
         Row: {
+          audience: string
           created_at: string
           id: string
           label: string
@@ -597,6 +598,7 @@ export type Database = {
           value: string
         }
         Insert: {
+          audience?: string
           created_at?: string
           id?: string
           label: string
@@ -606,6 +608,7 @@ export type Database = {
           value: string
         }
         Update: {
+          audience?: string
           created_at?: string
           id?: string
           label?: string

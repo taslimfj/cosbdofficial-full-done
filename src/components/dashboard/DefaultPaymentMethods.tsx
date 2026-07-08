@@ -10,7 +10,8 @@ export function DefaultPaymentMethods() {
   const fetchMethods = async () => {
     const { data } = await (supabase as any)
       .from('payment_method_defaults')
-      .select('label, value, note, sort_order')
+      .select('label, value, note, sort_order, audience')
+      .in('audience', ['member', 'both'])
       .order('sort_order');
     setMethods((data || []).map((r: any) => ({ label: r.label, value: r.value, note: r.note })));
     setLoading(false);
