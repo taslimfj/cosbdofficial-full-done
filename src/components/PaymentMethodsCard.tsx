@@ -48,21 +48,27 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
       </div>
       <div className="space-y-2">
         {methods.map((m, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => handleCopy(m.value, idx)}
-            className="w-full text-left p-3 bg-secondary/50 hover:bg-primary/5 active:bg-primary/10 rounded-lg flex items-center justify-between gap-3 transition-colors group"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{m.label}</p>
-              <p className="font-mono text-sm font-semibold tabular-nums truncate">{m.value}</p>
-              {m.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{m.note}</p>}
-            </div>
-            <span className="shrink-0 w-9 h-9 rounded-md bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary">
-              {copiedIdx === idx ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-            </span>
-          </button>
+          <Tooltip key={idx}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => handleCopy(m, idx)}
+                className="w-full text-left p-3 bg-secondary/50 hover:bg-primary/5 active:bg-primary/10 rounded-lg flex items-center justify-between gap-3 transition-colors group"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{m.label}</p>
+                  <p className="font-mono text-sm font-semibold tabular-nums truncate">{m.value}</p>
+                  {m.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{m.note}</p>}
+                </div>
+                <span className="shrink-0 w-9 h-9 rounded-md bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary">
+                  {copiedIdx === idx ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{copiedIdx === idx ? 'Copied' : 'Tap to copy'}</p>
+            </TooltipContent>
+          </Tooltip>
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground mt-3 text-center">
