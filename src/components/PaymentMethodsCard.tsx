@@ -91,8 +91,8 @@ export function PaymentMethodsCard({ methods, title = 'Payment Methods', subtitl
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{m.label}</p>
-                  <p className="font-mono text-sm font-semibold tabular-nums truncate">{m.value}</p>
-                  {m.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{m.note}</p>}
+                  <p className="font-mono text-sm font-semibold tabular-nums break-all">{m.value}</p>
+                  {m.note && <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words">{m.note}</p>}
                 </div>
                 <span className="shrink-0 w-9 h-9 rounded-md bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-primary">
                   {copiedIdx === idx ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
