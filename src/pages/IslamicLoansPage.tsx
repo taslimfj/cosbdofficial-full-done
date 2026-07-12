@@ -144,8 +144,10 @@ export default function IslamicLoansPage() {
     }
 
     // Snapshot current member shares — locked at creation
-    try { await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId }); }
-    catch (e: any) { console.warn('Snapshot failed:', e?.message); }
+    try {
+      const snap = await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId, excludeMemberIds: excludedMemberIds });
+      await persistExclusions({ type: 'islamic_loan', sourceId: loanId, excluded: snap.excluded });
+    } catch (e: any) { console.warn('Snapshot failed:', e?.message); }
 
     // Create customer login (phone + default password 123456) and link to loan
     try {
