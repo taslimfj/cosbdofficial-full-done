@@ -1,21 +1,28 @@
 import { supabase } from '@/integrations/supabase/client';
 import { computeMissedInstallments } from './memberStatus';
 
+export type ExclusionReason = 'manual' | 'critical';
+export type ExcludedMemberInfo = { id: string; name: string; reason: ExclusionReason };
+
 /**
  * Snapshot live member shares at the moment a Loan or Project is created.
- * Each member's percentage is computed from their current net balance
- * (relative to the org-wide total). These rows are then frozen — future
- * deposits / new members / member deletions do NOT alter the percentages.
  *
- * Members who are currently in "critical" status (missed 3+ consecutive
- * monthly installments) are excluded from the snapshot entirely — their
- * balance is NOT counted in the total, so remaining members' percentages
- * are recalculated to sum to 100% among themselves.
+ * Exclusion rules:
+ *   1. Members whose id is in `excludeMemberIds` are excluded (reason: 'manual').
+ *   2. Members currently in "critical" status (3+ consecutive missed monthly
+ *      installments) are auto-excluded (reason: 'critical').
+ *
+ * The remaining members' percentages are recalculated to sum to 100% among
+ * themselves. Returns the list of excluded members with reasons so the caller
+ * can persist them onto the loan / project row for later display.
  */
 export async function snapshotMemberShares(opts: {
   type: 'islamic_loan' | 'project';
   sourceId: string;
+  excludeMemberIds?: string[];
 }) {
+  const manualExcluded = new Set((opts.excludeMemberIds || []).filter(Boolean));
+
   const [{ data: members }, { data: deposits }, { data: distributions }] = await Promise.all([
     supabase
       .from('profiles')
@@ -40,7 +47,6 @@ export async function snapshotMemberShares(opts: {
     balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount || 0));
   });
 
-  // Group deposits by member for missed-installment check
   const depositsByMember = new Map<string, any[]>();
   (deposits || []).forEach((d: any) => {
     if (!d.member_id) return;
@@ -49,16 +55,26 @@ export async function snapshotMemberShares(opts: {
     depositsByMember.set(d.member_id, arr);
   });
 
-  // Exclude critical-status members (3+ months missed) from snapshot entirely
-  const live = (members || []).filter((m) => {
-    if (Number(balanceByMember.get(m.id) || 0) <= 0) return false;
+  const excluded: ExcludedMemberInfo[] = [];
+  const live: any[] = [];
+
+  (members || []).forEach((m) => {
+    const name = m.full_name || m.deleted_name || 'Unknown';
+    if (Number(balanceByMember.get(m.id) || 0) <= 0) return;
+    if (manualExcluded.has(m.id)) {
+      excluded.push({ id: m.id, name, reason: 'manual' });
+      return;
+    }
     const status = computeMissedInstallments(depositsByMember.get(m.id) || [], m.created_at);
-    if (status.level === 'critical') return false;
-    return true;
+    if (status.level === 'critical') {
+      excluded.push({ id: m.id, name, reason: 'critical' });
+      return;
+    }
+    live.push(m);
   });
 
   const total = live.reduce((s, m) => s + Number(balanceByMember.get(m.id) || 0), 0);
-  if (!live.length || total <= 0) return { count: 0 };
+  if (!live.length || total <= 0) return { count: 0, excluded };
 
   const rows = live.map((m) => ({
     member_id: m.id,
@@ -78,5 +94,21 @@ export async function snapshotMemberShares(opts: {
       .insert(rows.map((r) => ({ ...r, project_id: opts.sourceId })));
     if (error) throw error;
   }
-  return { count: rows.length };
+  return { count: rows.length, excluded };
+}
+
+/** Persist excluded members list onto the source row (loan or project). */
+export async function persistExclusions(opts: {
+  type: 'islamic_loan' | 'project';
+  sourceId: string;
+  excluded: ExcludedMemberInfo[];
+}) {
+  if (!opts.excluded.length) return;
+  const ids = opts.excluded.map((e) => e.id);
+  const reasons: Record<string, ExclusionReason> = {};
+  opts.excluded.forEach((e) => { reasons[e.id] = e.reason; });
+  const table = opts.type === 'islamic_loan' ? 'islamic_loans' : 'projects';
+  await (supabase as any).from(table)
+    .update({ excluded_member_ids: ids, exclusion_reasons: reasons })
+    .eq('id', opts.sourceId);
 }
