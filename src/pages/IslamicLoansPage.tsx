@@ -21,6 +21,7 @@ import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
+import { computeMissedInstallments } from '@/lib/memberStatus';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
