@@ -24,6 +24,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
   const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
 
   useEffect(() => {
