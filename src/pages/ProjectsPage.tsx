@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { Plus, Loader2, FolderKanban } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateProjectsPDF } from '@/lib/pdfGenerator';
-import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
+import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 
 export default function ProjectsPage() {
   const { role, user } = useAuth();
