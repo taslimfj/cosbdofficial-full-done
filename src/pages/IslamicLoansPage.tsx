@@ -81,6 +81,19 @@ export default function IslamicLoansPage() {
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
   const sellPrice = monthlyInstallment * (tenure || 0); // effective (ভগ্নাংশ বাদ)
 
+  const criticalMemberIds = useMemo(() => {
+    const byMember = new Map<string, any[]>();
+    (deposits || []).forEach((d: any) => {
+      if (!d.member_id) return;
+      const arr = byMember.get(d.member_id) || [];
+      arr.push(d);
+      byMember.set(d.member_id, arr);
+    });
+    return members
+      .filter((m: any) => computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
+      .map((m: any) => m.id);
+  }, [members, deposits]);
+
   // Phone-based history lookup → discount credit + customer rating
   const phoneHistory = useMemo(() => {
     if (!form.borrowerPhone || form.borrowerPhone.replace(/[^0-9]/g, '').length < 6) return null;
@@ -88,6 +101,7 @@ export default function IslamicLoansPage() {
     const rating = computeCustomerRating(loans as any, form.borrowerPhone);
     return { credit, rating };
   }, [form.borrowerPhone, loans]);
+
 
   // Auto-fill discount when an unused early-payoff credit exists
   useEffect(() => {
