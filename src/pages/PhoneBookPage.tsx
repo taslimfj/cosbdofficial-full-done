@@ -91,7 +91,7 @@ export default function PhoneBookPage() {
           <h1 className="text-2xl font-bold text-foreground">Phone Book</h1>
           <p className="text-sm text-muted-foreground">Emergency Contact Numbers</p>
         </div>
-        {isAdmin && (
+        {(role === 'admin' || role === 'member') && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="w-4 h-4 mr-2" /> Add New</Button>

@@ -13,12 +13,14 @@ function getActiveLoginMode(): LoginMode | null {
   return value === 'admin' || value === 'member' || value === 'customer' ? value : null;
 }
 
-function resolveActiveRole(roles: AppRole[], isCustomer: boolean): AppRole | null {
+function resolveActiveRole(roles: AppRole[], isCustomer: boolean, hasProfile: boolean): AppRole | null {
   if (isCustomer) return null;
 
   const mode = getActiveLoginMode();
   const isAdminAccount = roles.includes('admin');
-  const isMemberAccount = roles.includes('member') || isAdminAccount;
+  // Defensive fallback: any non-customer profile is at least a member,
+  // even if the user_roles row hasn't propagated yet (avoids empty sidebar on production).
+  const isMemberAccount = roles.includes('member') || isAdminAccount || hasProfile;
 
   if (mode === 'admin') return isAdminAccount ? 'admin' : isMemberAccount ? 'member' : null;
   if (mode === 'member') return isMemberAccount ? 'member' : null;
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const roles = (roleResult.data || []).map((r: any) => r.role as AppRole);
     const nextProfile = profileResult.data || null;
-    setRole(resolveActiveRole(roles, !!nextProfile?.is_customer));
+    setRole(resolveActiveRole(roles, !!nextProfile?.is_customer, !!nextProfile));
     setProfile(nextProfile);
   };
 
