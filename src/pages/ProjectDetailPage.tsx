@@ -16,6 +16,7 @@ import {
   ArrowLeft, Phone, MessageCircle, MessageSquare, Loader2, Pencil, Trash2,
   Plus, TrendingDown, TrendingUp, Sparkles,
 } from 'lucide-react';
+import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
