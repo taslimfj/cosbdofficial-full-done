@@ -28,11 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     const [roleResult, profileResult] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     ]);
 
-    if (roleResult.data) setRole(roleResult.data.role as AppRole);
+    if (roleResult.data && roleResult.data.length > 0) {
+      const roles = roleResult.data.map((r: any) => r.role as AppRole);
+      // admin takes precedence over member
+      setRole(roles.includes('admin') ? 'admin' : (roles[0] ?? null));
+    } else {
+      setRole(null);
+    }
     if (profileResult.data) setProfile(profileResult.data);
   };
 
