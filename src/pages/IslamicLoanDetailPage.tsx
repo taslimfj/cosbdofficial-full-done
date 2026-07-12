@@ -16,6 +16,7 @@ import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
   Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers, Download,
 } from 'lucide-react';
+import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import { LoanContractPdf } from '@/components/LoanContractPdf';
