@@ -28,6 +28,7 @@ export default function IslamicLoansPage() {
   const [loans, setLoans] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,15 +58,18 @@ export default function IslamicLoansPage() {
       loansQuery,
       (supabase as any).from('member_directory').select('*'),
       supabase.from('islamic_loan_payments').select('*').order('created_at', { ascending: false }),
-    ]).then(([loansRes, membersRes, paymentsRes]: any[]) => {
+      supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
+    ]).then(([loansRes, membersRes, paymentsRes, depRes]: any[]) => {
       const allMembers = membersRes.data || [];
       const byId = new Map<string, any>(allMembers.map((m: any) => [m.id, m]));
       const loans = (loansRes.data || []).map((l: any) => ({ ...l, media_person: byId.get(l.media_person_id) || null }));
       setLoans(loans);
       setMembers(allMembers.filter((m: any) => !m.is_deleted && !m.is_customer));
       setPayments(paymentsRes.data || []);
+      setDeposits(depRes.data || []);
       setLoading(false);
     });
+
   }, [role]);
 
   const tenure = parseInt(form.tenure);
