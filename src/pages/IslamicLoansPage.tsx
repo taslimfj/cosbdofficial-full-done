@@ -341,6 +341,8 @@ export default function IslamicLoansPage() {
                     members={members.map(m => ({ id: m.id, name: m.full_name }))}
                     value={excludedMemberIds}
                     onChange={setExcludedMemberIds}
+                    lockedIds={criticalMemberIds}
+                    lockedLabel="৩ মাস বকেয়া — auto exclude"
                     placeholder="কাউকে exclude করতে চাইলে select করুন"
                   />
                   <p className="text-[11px] text-muted-foreground">এখানে যাদের select করা হবে তারা এই loan-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
