@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT, buildEntityCode } from '@/lib/finance';
@@ -16,11 +16,14 @@ import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateProjectsPDF } from '@/lib/pdfGenerator';
 import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
+import { computeMissedInstallments } from '@/lib/memberStatus';
+
 
 export default function ProjectsPage() {
   const { role, user } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -31,15 +34,31 @@ export default function ProjectsPage() {
     Promise.all([
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
       (supabase as any).from('member_directory').select('*'),
-    ]).then(([projRes, memRes]: any[]) => {
+      supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
+    ]).then(([projRes, memRes, depRes]: any[]) => {
       const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
       const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
       const projects = (projRes.data || []).map((p: any) => ({ ...p, manager: byId.get(p.manager_id) || null }));
       setProjects(projects);
       setMembers(members);
+      setDeposits(depRes.data || []);
       setLoading(false);
     });
   }, []);
+
+  const criticalMemberIds = useMemo(() => {
+    const byMember = new Map<string, any[]>();
+    (deposits || []).forEach((d: any) => {
+      if (!d.member_id) return;
+      const arr = byMember.get(d.member_id) || [];
+      arr.push(d);
+      byMember.set(d.member_id, arr);
+    });
+    return members
+      .filter((m: any) => computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
+      .map((m: any) => m.id);
+  }, [members, deposits]);
+
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error('Project name দিন'); return; }
@@ -119,6 +138,8 @@ export default function ProjectsPage() {
                     members={members.map(m => ({ id: m.id, name: m.full_name }))}
                     value={excludedMemberIds}
                     onChange={setExcludedMemberIds}
+                    lockedIds={criticalMemberIds}
+                    lockedLabel="৩ মাস বকেয়া — auto exclude"
                     placeholder="কাউকে exclude করতে চাইলে select করুন"
                   />
                   <p className="text-[11px] text-muted-foreground">Select করা member রা এই project-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>

@@ -21,12 +21,14 @@ import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
+import { computeMissedInstallments } from '@/lib/memberStatus';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
   const [loans, setLoans] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,15 +58,18 @@ export default function IslamicLoansPage() {
       loansQuery,
       (supabase as any).from('member_directory').select('*'),
       supabase.from('islamic_loan_payments').select('*').order('created_at', { ascending: false }),
-    ]).then(([loansRes, membersRes, paymentsRes]: any[]) => {
+      supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
+    ]).then(([loansRes, membersRes, paymentsRes, depRes]: any[]) => {
       const allMembers = membersRes.data || [];
       const byId = new Map<string, any>(allMembers.map((m: any) => [m.id, m]));
       const loans = (loansRes.data || []).map((l: any) => ({ ...l, media_person: byId.get(l.media_person_id) || null }));
       setLoans(loans);
       setMembers(allMembers.filter((m: any) => !m.is_deleted && !m.is_customer));
       setPayments(paymentsRes.data || []);
+      setDeposits(depRes.data || []);
       setLoading(false);
     });
+
   }, [role]);
 
   const tenure = parseInt(form.tenure);
@@ -76,6 +81,19 @@ export default function IslamicLoansPage() {
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
   const sellPrice = monthlyInstallment * (tenure || 0); // effective (ভগ্নাংশ বাদ)
 
+  const criticalMemberIds = useMemo(() => {
+    const byMember = new Map<string, any[]>();
+    (deposits || []).forEach((d: any) => {
+      if (!d.member_id) return;
+      const arr = byMember.get(d.member_id) || [];
+      arr.push(d);
+      byMember.set(d.member_id, arr);
+    });
+    return members
+      .filter((m: any) => computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
+      .map((m: any) => m.id);
+  }, [members, deposits]);
+
   // Phone-based history lookup → discount credit + customer rating
   const phoneHistory = useMemo(() => {
     if (!form.borrowerPhone || form.borrowerPhone.replace(/[^0-9]/g, '').length < 6) return null;
@@ -83,6 +101,7 @@ export default function IslamicLoansPage() {
     const rating = computeCustomerRating(loans as any, form.borrowerPhone);
     return { credit, rating };
   }, [form.borrowerPhone, loans]);
+
 
   // Auto-fill discount when an unused early-payoff credit exists
   useEffect(() => {
@@ -322,6 +341,8 @@ export default function IslamicLoansPage() {
                     members={members.map(m => ({ id: m.id, name: m.full_name }))}
                     value={excludedMemberIds}
                     onChange={setExcludedMemberIds}
+                    lockedIds={criticalMemberIds}
+                    lockedLabel="৩ মাস বকেয়া — auto exclude"
                     placeholder="কাউকে exclude করতে চাইলে select করুন"
                   />
                   <p className="text-[11px] text-muted-foreground">এখানে যাদের select করা হবে তারা এই loan-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
