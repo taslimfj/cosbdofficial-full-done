@@ -62,13 +62,16 @@ export default function ProjectsPage() {
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 
     // Snapshot member shares — locked at creation
-    try { await snapshotMemberShares({ type: 'project', sourceId: inserted.id }); }
-    catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
+    try {
+      const snap = await snapshotMemberShares({ type: 'project', sourceId: inserted.id, excludeMemberIds: excludedMemberIds });
+      await persistExclusions({ type: 'project', sourceId: inserted.id, excluded: snap.excluded });
+    } catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
 
     setSubmitting(false);
     toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
     setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+    setExcludedMemberIds([]);
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };
