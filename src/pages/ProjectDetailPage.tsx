@@ -398,6 +398,13 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
+      <ExcludedMembersCard
+        excludedIds={(project as any).excluded_member_ids || []}
+        reasons={(project as any).exclusion_reasons || {}}
+        memberById={new Map(members.map((m: any) => [m.id, m]))}
+      />
+
+
 
       {/* Transactions */}
       <div className="bg-card border border-border rounded-xl p-5">
