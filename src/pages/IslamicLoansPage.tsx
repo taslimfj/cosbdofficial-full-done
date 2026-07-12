@@ -16,10 +16,11 @@ import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
 import { LoanCalculator } from '@/components/LoanCalculator';
-import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
+import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
