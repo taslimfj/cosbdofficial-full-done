@@ -10,6 +10,7 @@ import { Loader2, Shield, UserPlus, Users, ShoppingBag } from 'lucide-react';
 import { BRAND } from '@/lib/brand';
 
 type LoginType = 'admin' | 'member' | 'customer';
+const ACTIVE_LOGIN_MODE_KEY = 'activeLoginMode';
 
 export default function LoginPage() {
   const { user, signIn, loading: authLoading } = useAuth();
@@ -108,6 +109,7 @@ export default function LoginPage() {
     // Customer redirect is handled inside DashboardLayout (finds their loan).
     // Always send through "/" so the layout can route them appropriately.
     sessionStorage.removeItem('postLoginRedirect');
+    sessionStorage.setItem(ACTIVE_LOGIN_MODE_KEY, loginType);
 
     setLoading(true);
     const { supabase } = await import('@/integrations/supabase/client');
@@ -140,6 +142,7 @@ export default function LoginPage() {
     if (error) {
       setLoading(false);
       sessionStorage.removeItem('postLoginRedirect');
+      sessionStorage.removeItem(ACTIVE_LOGIN_MODE_KEY);
       const message = error.message || 'Login failed';
       if (message.toLowerCase().includes('email not confirmed')) {
         toast.error('আপনার ইমেইল এখনো ভেরিফাই করা হয়নি। ইমেইলের ভেরিফিকেশন লিংকে ক্লিক করে তারপর লগ ইন করুন।');
@@ -156,26 +159,34 @@ export default function LoginPage() {
     if (!userId) {
       setLoading(false);
       await supabase.auth.signOut();
+      sessionStorage.removeItem(ACTIVE_LOGIN_MODE_KEY);
       toast.error('লগইন সম্পন্ন হয়নি। আবার চেষ্টা করুন।');
       return;
     }
 
     const [roleRes, profileRes] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
       supabase.from('profiles').select('is_customer').eq('id', userId).maybeSingle(),
     ]);
-    const actualRole = roleRes.data?.role as 'admin' | 'member' | undefined;
+    const actualRoles = (roleRes.data || []).map((r: any) => r.role as 'admin' | 'member');
+    const hasAdminRole = actualRoles.includes('admin');
+    const hasMemberAccess = actualRoles.includes('member') || hasAdminRole;
     const isCustomer = !!profileRes.data?.is_customer;
 
-    // Determine which section this user actually belongs to
+    // Determine which section this user belongs to for the error message.
+    // Admins are also members, so they may enter through either Admin or Member.
     const actualSection: LoginType = isCustomer
       ? 'customer'
-      : actualRole === 'admin'
+      : hasAdminRole
       ? 'admin'
       : 'member';
+    const canUseSelectedSection = loginType === 'customer'
+      ? isCustomer
+      : !isCustomer && (loginType === 'admin' ? hasAdminRole : hasMemberAccess);
 
-    if (actualSection !== loginType) {
+    if (!canUseSelectedSection) {
       await supabase.auth.signOut();
+      sessionStorage.removeItem(ACTIVE_LOGIN_MODE_KEY);
       setLoading(false);
       const sectionLabelBn: Record<LoginType, string> = {
         admin: 'এডমিন',
