@@ -16,10 +16,11 @@ import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateIslamicLoansPDF } from '@/lib/pdfGenerator';
 import { PhoneInput } from '@/components/PhoneInput';
 import { LoanCalculator } from '@/components/LoanCalculator';
-import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
+import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
@@ -30,6 +31,7 @@ export default function IslamicLoansPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
+  const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     borrowerName: '',
     borrowerPhone: '+880',
@@ -142,8 +144,10 @@ export default function IslamicLoansPage() {
     }
 
     // Snapshot current member shares — locked at creation
-    try { await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId }); }
-    catch (e: any) { console.warn('Snapshot failed:', e?.message); }
+    try {
+      const snap = await snapshotMemberShares({ type: 'islamic_loan', sourceId: loanId, excludeMemberIds: excludedMemberIds });
+      await persistExclusions({ type: 'islamic_loan', sourceId: loanId, excluded: snap.excluded });
+    } catch (e: any) { console.warn('Snapshot failed:', e?.message); }
 
     // Create customer login (phone + default password 123456) and link to loan
     try {
@@ -163,6 +167,7 @@ export default function IslamicLoansPage() {
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
     setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' } as any);
+    setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
   };
@@ -310,6 +315,16 @@ export default function IslamicLoansPage() {
                     <Label>Fund %</Label>
                     <Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই loan এ যাদের অংশ থাকবে না)</span></Label>
+                  <MemberMultiSelect
+                    members={members.map(m => ({ id: m.id, name: m.full_name }))}
+                    value={excludedMemberIds}
+                    onChange={setExcludedMemberIds}
+                    placeholder="কাউকে exclude করতে চাইলে select করুন"
+                  />
+                  <p className="text-[11px] text-muted-foreground">এখানে যাদের select করা হবে তারা এই loan-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Comments</Label>

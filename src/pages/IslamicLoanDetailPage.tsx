@@ -16,6 +16,7 @@ import {
   Phone, MessageCircle, MessageSquare, Loader2, ArrowLeft, Calendar, TrendingDown, TrendingUp,
   Clock, Pencil, Trash2, Plus, Sparkles, Users, Package, AlertCircle, Star, Layers, Download,
 } from 'lucide-react';
+import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 import { PaymentMethodsCard, type PaymentMethod } from '@/components/PaymentMethodsCard';
 import { PaymentMethodsEditor } from '@/components/PaymentMethodsEditor';
 import { LoanContractPdf } from '@/components/LoanContractPdf';
@@ -872,6 +873,14 @@ export default function IslamicLoanDetailPage() {
           </div>
         )}
       </div>
+
+      <ExcludedMembersCard
+        excludedIds={(loan as any).excluded_member_ids || []}
+        reasons={(loan as any).exclusion_reasons || {}}
+        memberById={new Map(members.map((m: any) => [m.id, m]))}
+      />
+
+
 
       {/* Pending payment requests — view-only (approve/reject moved to admin dashboard) */}
       {isAdmin && pendingRequests.length > 0 && (

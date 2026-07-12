@@ -332,6 +332,8 @@ export type Database = {
           discount_credit_from_loan: string | null
           discount_credit_used: boolean | null
           discount_pct: number | null
+          excluded_member_ids: string[]
+          exclusion_reasons: Json
           fund_profit_pct: number | null
           id: string
           media_person_id: string | null
@@ -361,6 +363,8 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
+          excluded_member_ids?: string[]
+          exclusion_reasons?: Json
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
@@ -390,6 +394,8 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
+          excluded_member_ids?: string[]
+          exclusion_reasons?: Json
           fund_profit_pct?: number | null
           id?: string
           media_person_id?: string | null
@@ -844,6 +850,8 @@ export type Database = {
           code: string
           comments: string | null
           created_at: string | null
+          excluded_member_ids: string[]
+          exclusion_reasons: Json
           extra_funds_approved: number
           fund_profit_pct: number | null
           id: string
@@ -861,6 +869,8 @@ export type Database = {
           code: string
           comments?: string | null
           created_at?: string | null
+          excluded_member_ids?: string[]
+          exclusion_reasons?: Json
           extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string
@@ -878,6 +888,8 @@ export type Database = {
           code?: string
           comments?: string | null
           created_at?: string | null
+          excluded_member_ids?: string[]
+          exclusion_reasons?: Json
           extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string

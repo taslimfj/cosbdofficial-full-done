@@ -16,6 +16,7 @@ import {
   ArrowLeft, Phone, MessageCircle, MessageSquare, Loader2, Pencil, Trash2,
   Plus, TrendingDown, TrendingUp, Sparkles,
 } from 'lucide-react';
+import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -396,6 +397,13 @@ export default function ProjectDetailPage() {
           </div>
         )}
       </div>
+
+      <ExcludedMembersCard
+        excludedIds={(project as any).excluded_member_ids || []}
+        reasons={(project as any).exclusion_reasons || {}}
+        memberById={new Map(members.map((m: any) => [m.id, m]))}
+      />
+
 
 
       {/* Transactions */}

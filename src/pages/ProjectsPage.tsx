@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { Plus, Loader2, FolderKanban } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateProjectsPDF } from '@/lib/pdfGenerator';
-import { snapshotMemberShares } from '@/lib/snapshotShares';
+import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
+import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 
 export default function ProjectsPage() {
   const { role, user } = useAuth();
@@ -23,6 +24,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
   const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
 
   useEffect(() => {
@@ -60,13 +62,16 @@ export default function ProjectsPage() {
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 
     // Snapshot member shares — locked at creation
-    try { await snapshotMemberShares({ type: 'project', sourceId: inserted.id }); }
-    catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
+    try {
+      const snap = await snapshotMemberShares({ type: 'project', sourceId: inserted.id, excludeMemberIds: excludedMemberIds });
+      await persistExclusions({ type: 'project', sourceId: inserted.id, excluded: snap.excluded });
+    } catch (e: any) { console.warn('Project snapshot failed:', e?.message); }
 
     setSubmitting(false);
     toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
     setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+    setExcludedMemberIds([]);
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };
@@ -107,6 +112,16 @@ export default function ProjectsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
                   <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} /></div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই project-এ যাদের অংশ থাকবে না)</span></Label>
+                  <MemberMultiSelect
+                    members={members.map(m => ({ id: m.id, name: m.full_name }))}
+                    value={excludedMemberIds}
+                    onChange={setExcludedMemberIds}
+                    placeholder="কাউকে exclude করতে চাইলে select করুন"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Select করা member রা এই project-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
                 </div>
                 <Button className="w-full" onClick={handleCreate} disabled={submitting}>
                   {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Create Project
