@@ -317,6 +317,16 @@ export default function IslamicLoansPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই loan এ যাদের অংশ থাকবে না)</span></Label>
+                  <MemberMultiSelect
+                    members={members.map(m => ({ id: m.id, name: m.full_name }))}
+                    value={excludedMemberIds}
+                    onChange={setExcludedMemberIds}
+                    placeholder="কাউকে exclude করতে চাইলে select করুন"
+                  />
+                  <p className="text-[11px] text-muted-foreground">এখানে যাদের select করা হবে তারা এই loan-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
+                </div>
+                <div className="space-y-2">
                   <Label>Comments</Label>
                   <Textarea value={form.comments} onChange={e => setForm(p => ({ ...p, comments: e.target.value }))} />
                 </div>
