@@ -874,6 +874,14 @@ export default function IslamicLoanDetailPage() {
         )}
       </div>
 
+      <ExcludedMembersCard
+        excludedIds={(loan as any).excluded_member_ids || []}
+        reasons={(loan as any).exclusion_reasons || {}}
+        memberById={new Map(members.map((m: any) => [m.id, m]))}
+      />
+
+
+
       {/* Pending payment requests — view-only (approve/reject moved to admin dashboard) */}
       {isAdmin && pendingRequests.length > 0 && (
         <div className="bg-card border border-amber-500/40 rounded-xl p-5">
