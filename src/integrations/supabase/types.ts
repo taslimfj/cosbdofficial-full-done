@@ -1061,18 +1061,16 @@ export type Database = {
           discount_credit_from_loan: string | null
           discount_credit_used: boolean | null
           discount_pct: number | null
-          excluded_member_ids: string[] | null
-          exclusion_reasons: Json | null
           fund_profit_pct: number | null
           id: string | null
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
+          months_paid_early: number | null
           product_name: string | null
           profit_percentage: number | null
           purchase_price: number | null
           remaining_amount: number | null
-          secondary_media_person_id: string | null
           sell_price: number | null
           status: string | null
           tenure_months: number | null
@@ -1088,18 +1086,16 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
-          excluded_member_ids?: string[] | null
-          exclusion_reasons?: Json | null
           fund_profit_pct?: number | null
           id?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          months_paid_early?: number | null
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
           remaining_amount?: number | null
-          secondary_media_person_id?: string | null
           sell_price?: number | null
           status?: string | null
           tenure_months?: number | null
@@ -1115,18 +1111,16 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
-          excluded_member_ids?: string[] | null
-          exclusion_reasons?: Json | null
           fund_profit_pct?: number | null
           id?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
+          months_paid_early?: number | null
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
           remaining_amount?: number | null
-          secondary_media_person_id?: string | null
           sell_price?: number | null
           status?: string | null
           tenure_months?: number | null
@@ -1156,20 +1150,6 @@ export type Database = {
           {
             foreignKeyName: "islamic_loans_media_person_id_fkey"
             columns: ["media_person_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
-            columns: ["secondary_media_person_id"]
-            isOneToOne: false
-            referencedRelation: "member_directory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
-            columns: ["secondary_media_person_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
