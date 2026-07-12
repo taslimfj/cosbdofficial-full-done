@@ -113,6 +113,16 @@ export default function ProjectsPage() {
                   <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
                   <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} /></div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই project-এ যাদের অংশ থাকবে না)</span></Label>
+                  <MemberMultiSelect
+                    members={members.map(m => ({ id: m.id, name: m.full_name }))}
+                    value={excludedMemberIds}
+                    onChange={setExcludedMemberIds}
+                    placeholder="কাউকে exclude করতে চাইলে select করুন"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Select করা member রা এই project-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>
+                </div>
                 <Button className="w-full" onClick={handleCreate} disabled={submitting}>
                   {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Create Project
                 </Button>
