@@ -3,6 +3,28 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 type AppRole = 'admin' | 'member';
+type LoginMode = 'admin' | 'member' | 'customer';
+
+const ACTIVE_LOGIN_MODE_KEY = 'activeLoginMode';
+
+function getActiveLoginMode(): LoginMode | null {
+  if (typeof window === 'undefined') return null;
+  const value = sessionStorage.getItem(ACTIVE_LOGIN_MODE_KEY);
+  return value === 'admin' || value === 'member' || value === 'customer' ? value : null;
+}
+
+function resolveActiveRole(roles: AppRole[], isCustomer: boolean): AppRole | null {
+  if (isCustomer) return null;
+
+  const mode = getActiveLoginMode();
+  const isAdminAccount = roles.includes('admin');
+  const isMemberAccount = roles.includes('member') || isAdminAccount;
+
+  if (mode === 'admin') return isAdminAccount ? 'admin' : isMemberAccount ? 'member' : null;
+  if (mode === 'member') return isMemberAccount ? 'member' : null;
+
+  return isAdminAccount ? 'admin' : isMemberAccount ? 'member' : null;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -32,14 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     ]);
 
-    if (roleResult.data && roleResult.data.length > 0) {
-      const roles = roleResult.data.map((r: any) => r.role as AppRole);
-      // admin takes precedence over member
-      setRole(roles.includes('admin') ? 'admin' : (roles[0] ?? null));
-    } else {
-      setRole(null);
-    }
-    if (profileResult.data) setProfile(profileResult.data);
+    const roles = (roleResult.data || []).map((r: any) => r.role as AppRole);
+    const nextProfile = profileResult.data || null;
+    setRole(resolveActiveRole(roles, !!nextProfile?.is_customer));
+    setProfile(nextProfile);
   };
 
   const refreshProfile = async () => {
@@ -92,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    sessionStorage.removeItem(ACTIVE_LOGIN_MODE_KEY);
     setUser(null);
     setSession(null);
     setRole(null);
