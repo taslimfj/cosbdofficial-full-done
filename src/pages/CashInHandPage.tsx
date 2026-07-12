@@ -1,11 +1,24 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowDownLeft, ArrowUpRight, ChevronDown, Coins } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { Loader2, ArrowDownLeft, ArrowUpRight, ChevronDown, Coins, Pencil, Trash2 } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateCashInHandPDF } from '@/lib/pdfGenerator';
+
+type EditableTable =
+  | 'fund_transactions'
+  | 'project_transactions'
+  | 'islamic_loan_payments'
+  | 'deposits'
+  | 'member_loan_repayments';
 
 type Row = {
   id: string;
@@ -14,15 +27,31 @@ type Row = {
   direction: 'in' | 'out';
   amount: number;
   reason: string;
+  /** Underlying table + row id, so admin can edit/delete. */
+  editable?: {
+    table: EditableTable;
+    rowId: string;
+    hasReason: boolean;
+    /** Deposits store signed amount (negative = withdrawal); preserve sign on edit. */
+    signed?: boolean;
+  };
 };
 
 const PREVIEW_LIMIT = 10;
 
 export default function CashInHandPage() {
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [visibleCount, setVisibleCount] = useState(PREVIEW_LIMIT);
 
+  const [editRow, setEditRow] = useState<Row | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleteRow, setDeleteRow] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -80,11 +109,9 @@ export default function CashInHandPage() {
         direction: isWithdraw ? 'out' : 'in',
         amount: Math.abs(amt),
         reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
+        editable: { table: 'deposits', rowId: d.id, hasReason: false, signed: true },
       });
     });
-
-    // Profit distributions are INTERNAL allocations of cash already counted
-    // via Islamic Loan installments — skipping them prevents double-counting.
 
     // Fund transactions — skip auto-created "profit share" rows from loan
     // distributions (they mirror money already counted as IL installments).
@@ -99,9 +126,9 @@ export default function CashInHandPage() {
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
         amount: Number(t.amount || 0),
         reason: reason || 'Fund transaction',
+        editable: { table: 'fund_transactions', rowId: t.id, hasReason: true },
       });
     });
-
 
     // Project transactions
     (projRes.data || []).forEach((t: any) => merged.push({
@@ -111,9 +138,10 @@ export default function CashInHandPage() {
       direction: t.type === 'income' ? 'in' : 'out',
       amount: Number(t.amount || 0),
       reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
+      editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
     }));
 
-    // Islamic loan purchases (money OUT)
+    // Islamic loan purchases (money OUT) — NOT editable here (managed on loan page)
     (ilRes.data || []).forEach((l: any) => merged.push({
       id: `il-${l.id}`,
       created_at: l.created_at,
@@ -133,10 +161,11 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(p.amount || 0),
         reason: `${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.product_name || l?.code || 'Loan'}`,
+        editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
     });
 
-    // Member loan disbursements (money OUT) — only approved/repaid loans
+    // Member loan disbursements (money OUT) — NOT editable here
     (mlRes.data || []).forEach((l: any) => {
       if (l.status !== 'approved' && l.status !== 'repaid') return;
       merged.push({
@@ -159,6 +188,7 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(r.amount || 0),
         reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
+        editable: { table: 'member_loan_repayments', rowId: r.id, hasReason: false },
       });
     });
 
@@ -173,6 +203,40 @@ export default function CashInHandPage() {
     return { inn, out, net: inn - out };
   }, [rows]);
 
+  const openEdit = (r: Row) => {
+    setEditRow(r);
+    setEditAmount(String(r.amount));
+    setEditReason(r.reason);
+  };
+
+  const handleSave = async () => {
+    if (!editRow?.editable) return;
+    const amt = parseFloat(editAmount);
+    if (!Number.isFinite(amt) || amt <= 0) { toast.error('সঠিক amount দিন'); return; }
+    setSaving(true);
+    const { table, rowId, hasReason, signed } = editRow.editable;
+    const payload: any = { amount: signed && editRow.direction === 'out' ? -amt : amt };
+    if (hasReason) payload.reason = editReason.trim() || null;
+    const { error } = await (supabase as any).from(table).update(payload).eq('id', rowId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Transaction update হয়েছে');
+    setEditRow(null);
+    fetchAll();
+  };
+
+  const handleDelete = async () => {
+    if (!deleteRow?.editable) return;
+    setDeleting(true);
+    const { table, rowId } = deleteRow.editable;
+    const { error } = await (supabase as any).from(table).delete().eq('id', rowId);
+    setDeleting(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Transaction delete হয়েছে');
+    setDeleteRow(null);
+    fetchAll();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -183,7 +247,6 @@ export default function CashInHandPage() {
 
   const visible = rows.slice(0, visibleCount);
   const hiddenCount = Math.max(0, rows.length - visibleCount);
-
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -244,6 +307,16 @@ export default function CashInHandPage() {
                 }`}>
                   {r.direction === 'in' ? '+' : '-'}{formatBDT(r.amount)}
                 </p>
+                {isAdmin && r.editable && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)} title="Edit">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteRow(r)} title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
             {hiddenCount > 0 && (
@@ -268,9 +341,58 @@ export default function CashInHandPage() {
               </div>
             )}
           </div>
-
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+            <DialogDescription>
+              {editRow?.source} · {editRow?.direction === 'in' ? 'Money In' : 'Money Out'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Amount (৳)</Label>
+              <Input type="number" step="0.01" min="0" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+            </div>
+            {editRow?.editable?.hasReason && (
+              <div className="space-y-2">
+                <Label>Reason</Label>
+                <Input value={editReason} onChange={(e) => setEditReason(e.target.value)} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRow(null)} disabled={saving}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteRow} onOpenChange={(o) => !o && setDeleteRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>এই transaction delete করবেন?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteRow?.reason} — {deleteRow ? formatBDT(deleteRow.amount) : ''} ({deleteRow?.source})
+              <br />
+              এই action-এর সাথে সাথে Cash in Hand-এর calculation update হয়ে যাবে। এটি undo করা যাবে না।
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
