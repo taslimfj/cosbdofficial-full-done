@@ -16,6 +16,8 @@ import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateProjectsPDF } from '@/lib/pdfGenerator';
 import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
+import { computeMissedInstallments } from '@/lib/memberStatus';
+import { useMemo } from 'react';
 
 export default function ProjectsPage() {
   const { role, user } = useAuth();
