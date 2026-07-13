@@ -675,7 +675,10 @@ export default function IslamicLoanDetailPage() {
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
   const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
-  const isMediaPerson = !!user?.id && loan?.media_person_id === user.id;
+  const isMediaPerson = !!user?.id && (
+    loan?.media_person_id === user.id ||
+    (loan as any)?.secondary_media_person_id === user.id
+  );
   const canManage = isAdmin || isMediaPerson;
   return (
     <div className={`space-y-6 animate-fade-in max-w-3xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/5 ring-2 ring-destructive/40' : ''}`}>
