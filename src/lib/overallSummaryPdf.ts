@@ -28,6 +28,7 @@ export interface OverallSummaryData {
   projectTxns: any[]; // {project_id, type, amount, created_at, reason, comments}
   memberLoans: any[]; // {id, member_id, approved_amount, requested_amount, status, created_at}
   memberRepayments: any[]; // {loan_id, amount, status, created_at}
+  distributions?: any[]; // {member_id, amount, created_at}
 }
 
 async function drawHeader(doc: jsPDF, title: string, subtitle: string) {
