@@ -28,6 +28,7 @@ export interface OverallSummaryData {
   projectTxns: any[]; // {project_id, type, amount, created_at, reason, comments}
   memberLoans: any[]; // {id, member_id, approved_amount, requested_amount, status, created_at}
   memberRepayments: any[]; // {loan_id, amount, status, created_at}
+  distributions?: any[]; // {member_id, amount, created_at}
 }
 
 async function drawHeader(doc: jsPDF, title: string, subtitle: string) {
@@ -133,7 +134,7 @@ function renderMonthBlock(
   let y = startY;
   if (showMonthTitle) y = monthTitle(doc, format(start, 'MMMM yyyy'), y);
 
-  // Members deposits/withdraws in month
+  // Members: all active non-customer members, with month deposit/withdraw and cumulative balance up to end of month
   const monthDeposits = data.deposits.filter(d => d.status === 'approved' && inRange(d.created_at, start, end));
   const perMember = new Map<string, { deposit: number; withdraw: number }>();
   for (const d of monthDeposits) {
@@ -143,24 +144,49 @@ function renderMonthBlock(
     else cur.withdraw += Math.abs(amt);
     perMember.set(d.member_id, cur);
   }
-  y = sectionTitle(doc, 'Members — Deposits & Withdrawals', y);
-  if (perMember.size === 0) {
+  // Cumulative balance = all approved deposits (+ withdrawals as negative) + profit distributions, up to end of month
+  const balanceByMember = new Map<string, number>();
+  for (const d of data.deposits) {
+    if (d.status !== 'approved') continue;
+    const dt = d.created_at ? new Date(d.created_at) : null;
+    if (!dt || dt > end) continue;
+    balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount || 0));
+  }
+  for (const r of (data.distributions || [])) {
+    const dt = r.created_at ? new Date(r.created_at) : null;
+    if (!dt || dt > end) continue;
+    balanceByMember.set(r.member_id, (balanceByMember.get(r.member_id) || 0) + Number(r.amount || 0));
+  }
+
+  const activeMembers = data.members
+    .filter((m: any) => !m.is_deleted && !m.is_customer)
+    .sort((a: any, b: any) => (a.full_name || '').localeCompare(b.full_name || ''));
+
+  y = sectionTitle(doc, 'Members — Deposits, Withdrawals & Balance', y);
+  if (activeMembers.length === 0) {
     doc.setFontSize(9); doc.setTextColor(120);
-    doc.text('No member deposit activity this period.', 14, y + 3);
+    doc.text('No active members.', 14, y + 3);
     doc.setTextColor(0);
     y += 8;
   } else {
-    const rows = Array.from(perMember.entries())
-      .map(([id, v]) => [memberById.get(id) || '-', fmt(v.deposit), fmt(v.withdraw)])
-      .sort((a, b) => a[0].localeCompare(b[0]));
+    const rows = activeMembers.map((m: any) => {
+      const v = perMember.get(m.id);
+      return [
+        m.full_name || '-',
+        v && v.deposit > 0 ? fmt(v.deposit) : '',
+        v && v.withdraw > 0 ? fmt(v.withdraw) : '',
+        fmt(balanceByMember.get(m.id) || 0),
+      ];
+    });
     autoTable(doc, {
       startY: y,
-      head: [['Member', 'Deposit', 'Withdraw']],
+      head: [['Member', 'Deposit', 'Withdraw', 'Total Balance']],
       body: rows,
       ...tableStyle,
     });
     y = (doc as any).lastAutoTable.finalY + 5;
   }
+
 
   // Fund
   const monthFund = data.fundTxns.filter(t => inRange(t.created_at, start, end));
