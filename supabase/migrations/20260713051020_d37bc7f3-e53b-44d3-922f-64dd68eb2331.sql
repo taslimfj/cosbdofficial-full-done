@@ -1,0 +1,1 @@
+GRANT SELECT ON public.islamic_loans_public TO authenticated;
