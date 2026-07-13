@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, MessageCircle, MessageSquare, Loader2, Pencil, Trash2,
-  Plus, TrendingDown, TrendingUp, Sparkles,
+  Plus, TrendingDown, TrendingUp, Sparkles, Download,
 } from 'lucide-react';
 import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
+import { generateProjectSnapshotPDF } from '@/lib/snapshotReportPdf';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -280,6 +281,26 @@ export default function ProjectDetailPage() {
           if (!isAdmin && !isManager) return null;
           return (
             <div className="flex gap-2 flex-wrap">
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+                    const adminIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
+                    const { data: adminProfiles } = adminIds.length
+                      ? await supabase.from('profiles').select('id, full_name').in('id', adminIds as string[])
+                      : { data: [] as any[] };
+                    await generateProjectSnapshotPDF({
+                      project,
+                      managerName: project.manager?.full_name || null,
+                      secondaryManagerName: project.secondary_manager?.full_name || null,
+                      snapshot: snapshot as any,
+                      admins: (adminProfiles || []) as any,
+                    });
+                  } catch (e: any) {
+                    toast.error('PDF তৈরিতে সমস্যা: ' + (e?.message || ''));
+                  }
+                }}><Download className="w-4 h-4 mr-1" /> Snapshot PDF</Button>
+              )}
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
               )}
