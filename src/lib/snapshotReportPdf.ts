@@ -33,38 +33,69 @@ function drawFooter(doc: jsPDF) {
   doc.text(`${BRAND.name} — ${BRAND.slogan}`, pageWidth / 2, pageHeight - 9, { align: 'center' });
 }
 
-/** Two blank boxes side-by-side for manual profit / profit-or-loss entry. */
-function drawManualBoxes(doc: jsPDF, y: number) {
+/** One blank box for manual Profit / Loss entry. */
+function drawManualBox(doc: jsPDF, y: number) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 12;
-  const gap = 6;
-  const boxW = (pageWidth - margin * 2 - gap) / 2;
-  const boxH = 20;
+  const boxW = pageWidth - margin * 2;
+  const boxH = 18;
   doc.setDrawColor(120); doc.setLineWidth(0.3);
-  // Box 1
   doc.rect(margin, y, boxW, boxH);
   doc.setFontSize(8); doc.setTextColor(90); doc.setFont('helvetica', 'bold');
-  doc.text('Profit (Manual):', margin + 2, y + 5);
-  // Box 2
-  doc.rect(margin + boxW + gap, y, boxW, boxH);
-  doc.text('Profit / Loss Total:', margin + boxW + gap + 2, y + 5);
+  doc.text('Profit / Loss (Manual Entry):', margin + 2, y + 5);
   doc.setTextColor(0); doc.setFont('helvetica', 'normal');
   return y + boxH;
+}
+
+interface MemberInfo { id: string; full_name?: string | null; deleted_name?: string | null }
+interface SnapshotRow { member_id?: string; member_name?: string; share_percentage: number }
+
+function buildMemberRows(opts: {
+  allMembers: MemberInfo[];
+  snapshot: SnapshotRow[];
+  excludedIds: string[];
+  mediaId1?: string | null;
+  mediaId2?: string | null;
+  perMediaPct: number;
+  mediaLabel: 'media' | 'manager';
+  adminIds: string[];
+  perAdminPct: number;
+}) {
+  const excluded = new Set(opts.excludedIds.filter(Boolean));
+  const snapById = new Map<string, number>();
+  opts.snapshot.forEach((s) => {
+    if (s.member_id) snapById.set(s.member_id, Number(s.share_percentage) || 0);
+  });
+  const adminSet = new Set(opts.adminIds.filter(Boolean));
+
+  const rows = opts.allMembers
+    .filter((m) => !excluded.has(m.id))
+    .map((m) => {
+      const base = snapById.get(m.id) || 0;
+      const name = m.full_name || m.deleted_name || 'Unknown';
+      const tags: string[] = [];
+      if (m.id === opts.mediaId1 || m.id === opts.mediaId2) {
+        tags.push(`+${pct(opts.perMediaPct)} ${opts.mediaLabel}`);
+      }
+      if (adminSet.has(m.id)) {
+        tags.push(`+${pct(opts.perAdminPct)} admin`);
+      }
+      const label = tags.length ? `${name}  (${tags.join(', ')})` : name;
+      return { label, base };
+    })
+    .sort((a, b) => b.base - a.base);
+
+  return rows;
 }
 
 export interface IslamicLoanSnapshotData {
   loan: any;
   mediaPersonId?: string | null;
-  mediaPersonName?: string | null;
   secondaryMediaPersonId?: string | null;
-  secondaryMediaPersonName?: string | null;
-  snapshot: Array<{
-    member_id?: string;
-    member_name: string;
-    deposit_snapshot: number;
-    share_percentage: number;
-    is_member_deleted?: boolean;
-  }>;
+  snapshot: SnapshotRow[];
+  allMembers: MemberInfo[];
+  adminIds: string[];
+  excludedIds?: string[];
 }
 
 export async function generateIslamicLoanSnapshotPDF(data: IslamicLoanSnapshotData) {
@@ -74,12 +105,13 @@ export async function generateIslamicLoanSnapshotPDF(data: IslamicLoanSnapshotDa
   await drawHeader(doc, 'Islamic Loan — Snapshot', code);
 
   const mediaPct = Number(loan.media_person_profit_pct) || 0;
+  const adminPct = Number(loan.admin_profit_pct) || 0;
   const mediaId1 = data.mediaPersonId || loan.media_person_id || null;
   const mediaId2 = data.secondaryMediaPersonId || loan.secondary_media_person_id || null;
   const bothMedia = mediaId1 && mediaId2 && mediaId1 !== mediaId2;
   const perMediaPct = bothMedia ? mediaPct / 2 : mediaPct;
+  const perAdminPct = data.adminIds.length ? adminPct / data.adminIds.length : 0;
 
-  // Compact loan info (2 columns)
   let y = 32;
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
   doc.text('Loan Info', 12, y);
@@ -104,30 +136,29 @@ export async function generateIslamicLoanSnapshotPDF(data: IslamicLoanSnapshotDa
   });
   y = (doc as any).lastAutoTable.finalY + 4;
 
-  // Manual boxes
-  y = drawManualBoxes(doc, y) + 5;
+  y = drawManualBox(doc, y) + 5;
 
-  // Member share table
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
   doc.text('Member Share %', 12, y);
   doc.setDrawColor(200); doc.line(12, y + 1.5, doc.internal.pageSize.getWidth() - 12, y + 1.5);
   y += 3;
 
-  const totalPct = data.snapshot.reduce((s, r) => s + Number(r.share_percentage || 0), 0);
-  const body = data.snapshot.map((r, i) => {
-    const isMedia1 = !!r.member_id && r.member_id === mediaId1;
-    const isMedia2 = !!r.member_id && r.member_id === mediaId2;
-    let extra = '';
-    if (isMedia1 || isMedia2) extra = ` (+${pct(perMediaPct)} media)`;
-    return [String(i + 1), (r.member_name || '-') + extra, pct(r.share_percentage)];
+  const rows = buildMemberRows({
+    allMembers: data.allMembers,
+    snapshot: data.snapshot,
+    excludedIds: data.excludedIds || (loan.excluded_member_ids as string[]) || [],
+    mediaId1, mediaId2, perMediaPct, mediaLabel: 'media',
+    adminIds: data.adminIds, perAdminPct,
   });
-  body.push(['', { content: 'TOTAL', styles: { fontStyle: 'bold' } } as any, { content: pct(totalPct), styles: { fontStyle: 'bold' } } as any]);
+  const totalPct = rows.reduce((s, r) => s + r.base, 0);
+  const body: any[] = rows.map((r, i) => [String(i + 1), r.label, pct(r.base)]);
+  body.push(['', { content: 'TOTAL', styles: { fontStyle: 'bold' } }, { content: pct(totalPct), styles: { fontStyle: 'bold' } }]);
 
   autoTable(doc, {
     startY: y,
     head: [['#', 'Member', 'Share %']],
     body,
-    styles: { fontSize: 8.5, cellPadding: 1.2 },
+    styles: { fontSize: 8.5, cellPadding: 1.1 },
     headStyles: { fillColor: [16, 122, 87], fontSize: 9 },
     columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 28, halign: 'right' } },
   });
@@ -139,16 +170,11 @@ export async function generateIslamicLoanSnapshotPDF(data: IslamicLoanSnapshotDa
 export interface ProjectSnapshotData {
   project: any;
   managerId?: string | null;
-  managerName?: string | null;
   secondaryManagerId?: string | null;
-  secondaryManagerName?: string | null;
-  snapshot: Array<{
-    member_id?: string;
-    member_name: string;
-    deposit_snapshot: number;
-    share_percentage: number;
-    is_member_deleted?: boolean;
-  }>;
+  snapshot: SnapshotRow[];
+  allMembers: MemberInfo[];
+  adminIds: string[];
+  excludedIds?: string[];
 }
 
 export async function generateProjectSnapshotPDF(data: ProjectSnapshotData) {
@@ -158,10 +184,12 @@ export async function generateProjectSnapshotPDF(data: ProjectSnapshotData) {
   await drawHeader(doc, 'Project — Snapshot', code);
 
   const mgrPct = Number(project.manager_profit_pct) || 0;
+  const adminPct = Number(project.admin_profit_pct) || 0;
   const mgrId1 = data.managerId || project.manager_id || null;
   const mgrId2 = data.secondaryManagerId || project.secondary_manager_id || null;
   const bothMgr = mgrId1 && mgrId2 && mgrId1 !== mgrId2;
   const perMgrPct = bothMgr ? mgrPct / 2 : mgrPct;
+  const perAdminPct = data.adminIds.length ? adminPct / data.adminIds.length : 0;
 
   let y = 32;
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
@@ -187,28 +215,29 @@ export async function generateProjectSnapshotPDF(data: ProjectSnapshotData) {
   });
   y = (doc as any).lastAutoTable.finalY + 4;
 
-  y = drawManualBoxes(doc, y) + 5;
+  y = drawManualBox(doc, y) + 5;
 
   doc.setFontSize(11); doc.setFont('helvetica', 'bold');
   doc.text('Member Share %', 12, y);
   doc.setDrawColor(200); doc.line(12, y + 1.5, doc.internal.pageSize.getWidth() - 12, y + 1.5);
   y += 3;
 
-  const totalPct = data.snapshot.reduce((s, r) => s + Number(r.share_percentage || 0), 0);
-  const body = data.snapshot.map((r, i) => {
-    const isMgr1 = !!r.member_id && r.member_id === mgrId1;
-    const isMgr2 = !!r.member_id && r.member_id === mgrId2;
-    let extra = '';
-    if (isMgr1 || isMgr2) extra = ` (+${pct(perMgrPct)} manager)`;
-    return [String(i + 1), (r.member_name || '-') + extra, pct(r.share_percentage)];
+  const rows = buildMemberRows({
+    allMembers: data.allMembers,
+    snapshot: data.snapshot,
+    excludedIds: data.excludedIds || (project.excluded_member_ids as string[]) || [],
+    mediaId1: mgrId1, mediaId2: mgrId2, perMediaPct: perMgrPct, mediaLabel: 'manager',
+    adminIds: data.adminIds, perAdminPct,
   });
-  body.push(['', { content: 'TOTAL', styles: { fontStyle: 'bold' } } as any, { content: pct(totalPct), styles: { fontStyle: 'bold' } } as any]);
+  const totalPct = rows.reduce((s, r) => s + r.base, 0);
+  const body: any[] = rows.map((r, i) => [String(i + 1), r.label, pct(r.base)]);
+  body.push(['', { content: 'TOTAL', styles: { fontStyle: 'bold' } }, { content: pct(totalPct), styles: { fontStyle: 'bold' } }]);
 
   autoTable(doc, {
     startY: y,
     head: [['#', 'Member', 'Share %']],
     body,
-    styles: { fontSize: 8.5, cellPadding: 1.2 },
+    styles: { fontSize: 8.5, cellPadding: 1.1 },
     headStyles: { fillColor: [16, 122, 87], fontSize: 9 },
     columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 28, halign: 'right' } },
   });
