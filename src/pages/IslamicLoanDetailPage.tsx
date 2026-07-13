@@ -688,6 +688,26 @@ export default function IslamicLoanDetailPage() {
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
         <div className="flex gap-2 flex-wrap justify-end">
           <LoanContractPdf loan={loan} />
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+                const adminIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
+                const { data: adminProfiles } = adminIds.length
+                  ? await supabase.from('profiles').select('id, full_name').in('id', adminIds as string[])
+                  : { data: [] as any[] };
+                await generateIslamicLoanSnapshotPDF({
+                  loan,
+                  mediaPersonName: loan.media_person?.full_name || null,
+                  secondaryMediaPersonName: (loan as any).secondary_media_person?.full_name || null,
+                  snapshot: snapshot as any,
+                  admins: (adminProfiles || []) as any,
+                });
+              } catch (e: any) {
+                toast.error('PDF তৈরিতে সমস্যা: ' + (e?.message || ''));
+              }
+            }}><Download className="w-4 h-4 mr-1" /> Snapshot PDF</Button>
+          )}
           {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>}
           {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>}
           {canRequestDeposit && <Button size="sm" variant="outline" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }}><Plus className="w-4 h-4 mr-1" /> Deposit Request</Button>}
