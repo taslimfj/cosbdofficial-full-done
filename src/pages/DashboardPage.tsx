@@ -121,6 +121,34 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
+  const handleOverallPdf = async (period: OverallPeriod) => {
+    try {
+      const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes] = await Promise.all([
+        supabase.from('fund_transactions').select('*'),
+        supabase.from('deposits').select('*'),
+        supabase.from('islamic_loans').select('id, code, purchase_price, sell_price, borrower_name, media_person_id, created_at'),
+        supabase.from('islamic_loan_payments').select('loan_id, amount, payment_method, created_at'),
+        supabase.from('projects').select('id, name, code'),
+        supabase.from('project_transactions').select('project_id, type, amount, reason, comments, created_at'),
+        supabase.from('member_loans').select('id, member_id, approved_amount, requested_amount, status, created_at'),
+        supabase.from('member_loan_repayments').select('loan_id, amount, status, created_at'),
+      ]);
+      await generateOverallSummaryPDF({
+        members,
+        fundTxns: fundRes.data || [],
+        deposits: depsRes.data || [],
+        islamicLoans: ilRes.data || [],
+        islamicPayments: ilPayRes.data || [],
+        projects: projRes.data || [],
+        projectTxns: projTxRes.data || [],
+        memberLoans: mlRes.data || [],
+        memberRepayments: mlRepayRes.data || [],
+      }, period);
+    } catch (e: any) {
+      toast.error(e?.message || 'PDF তৈরি করা যায়নি');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
