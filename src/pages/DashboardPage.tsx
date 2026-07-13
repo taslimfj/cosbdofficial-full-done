@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
   const handleOverallPdf = async (period: OverallPeriod) => {
     try {
-      const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes] = await Promise.all([
+      const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes, distRes] = await Promise.all([
         supabase.from('fund_transactions').select('*'),
         supabase.from('deposits').select('*'),
         supabase.from('islamic_loans').select('id, code, purchase_price, sell_price, borrower_name, media_person_id, created_at'),
@@ -132,6 +132,7 @@ export default function DashboardPage() {
         supabase.from('project_transactions').select('project_id, type, amount, reason, comments, created_at'),
         supabase.from('member_loans').select('id, member_id, approved_amount, requested_amount, status, created_at'),
         supabase.from('member_loan_repayments').select('loan_id, amount, status, created_at'),
+        supabase.from('profit_distributions').select('member_id, amount, created_at'),
       ]);
       await generateOverallSummaryPDF({
         members,
@@ -143,6 +144,7 @@ export default function DashboardPage() {
         projectTxns: projTxRes.data || [],
         memberLoans: mlRes.data || [],
         memberRepayments: mlRepayRes.data || [],
+        distributions: distRes.data || [],
       }, period);
     } catch (e: any) {
       toast.error(e?.message || 'PDF তৈরি করা যায়নি');
