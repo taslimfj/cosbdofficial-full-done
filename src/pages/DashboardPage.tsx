@@ -136,28 +136,19 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Overview of your community fund</p>
         </div>
-        <PdfPeriodButton
-          label="Overall Summary PDF"
-          onDownload={async (p) => {
-            const [fund, deps, il, ml, assetsRes, dist] = await Promise.all([
-              supabase.from('fund_transactions').select('*'),
-              supabase.from('deposits').select('*'),
-              supabase.from('islamic_loans').select('*'),
-              supabase.from('member_loans').select('*'),
-              supabase.from('assets' as any).select('*'),
-              supabase.from('profit_distributions').select('*'),
-            ]);
-            generateDashboardPDF({
-              members,
-              fundTxns: fund.data || [],
-              deposits: deps.data || [],
-              islamicLoans: il.data || [],
-              memberLoans: ml.data || [],
-              assets: (assetsRes.data as any) || [],
-              distributions: dist.data || [],
-            }, p);
-          }}
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="w-4 h-4" /> Overall Summary PDF
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleOverallPdf('month')}>This Month</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>This Year</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <DashboardStats stats={stats} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
