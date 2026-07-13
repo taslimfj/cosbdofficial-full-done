@@ -14,9 +14,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, MessageCircle, MessageSquare, Loader2, Pencil, Trash2,
-  Plus, TrendingDown, TrendingUp, Sparkles,
+  Plus, TrendingDown, TrendingUp, Sparkles, Download,
 } from 'lucide-react';
 import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
+import { generateProjectSnapshotPDF } from '@/lib/snapshotReportPdf';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
