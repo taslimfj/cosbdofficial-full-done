@@ -286,7 +286,7 @@ export default function ProjectDetailPage() {
               {(isAdmin || isManager) && (
                 <Button size="sm" variant="outline" onClick={() => setShowTx(true)}><Plus className="w-4 h-4 mr-1" /> Transaction</Button>
               )}
-              {isAdmin && (
+              {isAdmin && isClosed && (
                 <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
               )}
             </div>
