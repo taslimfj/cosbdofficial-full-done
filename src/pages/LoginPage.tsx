@@ -164,13 +164,15 @@ export default function LoginPage() {
       return;
     }
 
-    const [roleRes, profileRes] = await Promise.all([
+    const [roleRes, profileRes, adminRoleRes, memberRoleRes] = await Promise.all([
       supabase.from('user_roles').select('role').eq('user_id', userId),
       supabase.from('profiles').select('is_customer').eq('id', userId).maybeSingle(),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'admin' as any }),
+      supabase.rpc('has_role', { _user_id: userId, _role: 'member' as any }),
     ]);
     const actualRoles = (roleRes.data || []).map((r: any) => r.role as 'admin' | 'member');
-    const hasAdminRole = actualRoles.includes('admin');
-    const hasMemberAccess = actualRoles.includes('member') || hasAdminRole;
+    const hasAdminRole = adminRoleRes.data === true || actualRoles.includes('admin');
+    const hasMemberAccess = memberRoleRes.data === true || actualRoles.includes('member') || hasAdminRole;
     const isCustomer = !!profileRes.data?.is_customer;
 
     // Determine which section this user belongs to for the error message.

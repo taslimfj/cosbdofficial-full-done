@@ -53,15 +53,17 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName },
+      user_metadata: { full_name: fullName, role: "admin", is_customer: false },
     });
     if (createError) throw createError;
 
     if (role === "admin" && userData.user) {
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
-        .update({ role: "admin" })
-        .eq("user_id", userData.user.id);
+        .upsert([
+          { user_id: userData.user.id, role: "admin" },
+          { user_id: userData.user.id, role: "member" },
+        ], { onConflict: "user_id,role" });
       if (roleError) throw roleError;
     }
 
