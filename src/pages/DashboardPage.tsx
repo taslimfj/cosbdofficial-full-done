@@ -7,8 +7,11 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
 import { DefaultPaymentMethods } from '@/components/dashboard/DefaultPaymentMethods';
 import { Loader2 } from 'lucide-react';
-import { PdfPeriodButton } from '@/components/PdfPeriodButton';
-import { generateDashboardPDF } from '@/lib/pdfGenerator';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download } from 'lucide-react';
+import { generateOverallSummaryPDF, type OverallPeriod } from '@/lib/overallSummaryPdf';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { role } = useAuth();
