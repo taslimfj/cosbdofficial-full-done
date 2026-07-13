@@ -383,8 +383,9 @@ export default function IslamicLoanDetailPage() {
     if (!transactionId.trim()) { toast.error('Transaction ID দিন'); return; }
     if (!user) return;
     setBusy(true);
+    const requestCustomerId = isCustomer ? user.id : ((loan as any)?.customer_user_id || user.id);
     const { error } = await (supabase as any).from('customer_payment_requests').insert({
-      loan_id: id, customer_user_id: user.id, amount: amt,
+      loan_id: id, customer_user_id: requestCustomerId, amount: amt,
       note: requestNote || null,
       payment_method: paymentMethod,
       transaction_id: transactionId.trim(),
@@ -675,23 +676,22 @@ export default function IslamicLoanDetailPage() {
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
   const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
-  const isMediaPerson = !!user?.id && loan?.media_person_id === user.id;
-  const canManage = isAdmin || isMediaPerson;
+  const isMediaPerson = !!user?.id && (
+    loan?.media_person_id === user.id ||
+    (loan as any)?.secondary_media_person_id === user.id
+  );
+  const canRequestDeposit = isMediaPerson && !isAdmin && !isClosed;
   return (
     <div className={`space-y-6 animate-fade-in max-w-3xl ${overdue ? 'p-4 -m-4 rounded-xl bg-destructive/5 ring-2 ring-destructive/40' : ''}`}>
       <div className="flex items-center justify-between">
         <Link to="/islamic-loans"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Button></Link>
-        {canManage ? (
-          <div className="flex gap-2 flex-wrap">
-            <LoanContractPdf loan={loan} />
-            <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-            <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>
-            {isAdmin && <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>}
-          </div>
-        ) : (
-          // Member (non-customer, non-media-person) — only download contract
+        <div className="flex gap-2 flex-wrap justify-end">
           <LoanContractPdf loan={loan} />
-        )}
+          {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>}
+          {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>}
+          {canRequestDeposit && <Button size="sm" variant="outline" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }}><Plus className="w-4 h-4 mr-1" /> Deposit Request</Button>}
+          {isAdmin && <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>}
+        </div>
       </div>
 
 
@@ -1085,6 +1085,43 @@ export default function IslamicLoanDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Media-person deposit request dialog */}
+      {canRequestDeposit && (
+        <Dialog open={showRequest} onOpenChange={setShowRequest}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Deposit Request</DialogTitle></DialogHeader>
+            <p className="text-xs text-muted-foreground">Admin approve করলে এটা installment হিসেবে count হবে।</p>
+            <div className="space-y-3 mt-2">
+              <div><Label>Amount (৳)</Label><Input type="number" value={depositAmt} onChange={e => setDepositAmt(e.target.value)} /></div>
+              <div>
+                <Label>কোন মাধ্যমে টাকা পাঠানো হয়েছে?</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bKash">bKash</SelectItem>
+                    <SelectItem value="Nagad">Nagad</SelectItem>
+                    <SelectItem value="Rocket">Rocket</SelectItem>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Card">Card</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Transaction ID</Label>
+                <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
+              </div>
+              <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRequest(false)}>Cancel</Button>
+              <Button onClick={handleSubmitRequest} disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Submit Request</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete dialog */}
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
