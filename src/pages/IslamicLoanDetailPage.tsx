@@ -690,7 +690,7 @@ export default function IslamicLoanDetailPage() {
           {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>}
           {isAdmin && <Button size="sm" variant="outline" onClick={() => setShowDeposit(true)} disabled={isClosed}><Plus className="w-4 h-4 mr-1" /> Deposit</Button>}
           {canRequestDeposit && <Button size="sm" variant="outline" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }}><Plus className="w-4 h-4 mr-1" /> Deposit Request</Button>}
-          {isAdmin && <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>}
+          {isAdmin && isClosed && <Button size="sm" variant="destructive" onClick={() => setShowDelete(true)}><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>}
         </div>
       </div>
 
