@@ -691,13 +691,16 @@ export default function IslamicLoanDetailPage() {
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={async () => {
               try {
+                const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
+                const adminIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
                 await generateIslamicLoanSnapshotPDF({
                   loan,
                   mediaPersonId: loan.media_person_id || null,
-                  mediaPersonName: loan.media_person?.full_name || null,
                   secondaryMediaPersonId: (loan as any).secondary_media_person_id || null,
-                  secondaryMediaPersonName: (loan as any).secondary_media_person?.full_name || null,
                   snapshot: snapshot as any,
+                  allMembers: members as any,
+                  adminIds,
+                  excludedIds: (loan as any).excluded_member_ids || [],
                 });
               } catch (e: any) {
                 toast.error('PDF তৈরিতে সমস্যা: ' + (e?.message || ''));
