@@ -50,12 +50,9 @@ export default function IslamicLoansPage() {
   });
 
   useEffect(() => {
-    const isAdmin = role === 'admin';
-    const loansQuery = isAdmin
-      ? supabase.from('islamic_loans').select('*').order('created_at', { ascending: false })
-      : (supabase as any).from('islamic_loans_public').select('*').order('created_at', { ascending: false });
+    if (isCustomer) { setLoading(false); return; }
     Promise.all([
-      loansQuery,
+      supabase.from('islamic_loans').select('*').order('created_at', { ascending: false }),
       (supabase as any).from('member_directory').select('*'),
       supabase.from('islamic_loan_payments').select('*').order('created_at', { ascending: false }),
       supabase.from('deposits').select('member_id, amount, month_year, created_at, status'),
@@ -70,7 +67,7 @@ export default function IslamicLoansPage() {
       setLoading(false);
     });
 
-  }, [role]);
+  }, [role, isCustomer]);
 
   const tenure = parseInt(form.tenure);
   const purchasePrice = parseFloat(form.purchasePrice) || 0;
