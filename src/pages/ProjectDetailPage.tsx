@@ -284,17 +284,13 @@ export default function ProjectDetailPage() {
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={async () => {
                   try {
-                    const { data: adminRoles } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
-                    const adminIds = (adminRoles || []).map((r: any) => r.user_id).filter(Boolean);
-                    const { data: adminProfiles } = adminIds.length
-                      ? await supabase.from('profiles').select('id, full_name').in('id', adminIds as string[])
-                      : { data: [] as any[] };
                     await generateProjectSnapshotPDF({
                       project,
+                      managerId: project.manager_id || null,
                       managerName: project.manager?.full_name || null,
+                      secondaryManagerId: project.secondary_manager_id || null,
                       secondaryManagerName: project.secondary_manager?.full_name || null,
                       snapshot: snapshot as any,
-                      admins: (adminProfiles || []) as any,
                     });
                   } catch (e: any) {
                     toast.error('PDF তৈরিতে সমস্যা: ' + (e?.message || ''));
