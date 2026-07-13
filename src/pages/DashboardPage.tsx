@@ -7,8 +7,11 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
 import { DefaultPaymentMethods } from '@/components/dashboard/DefaultPaymentMethods';
 import { Loader2 } from 'lucide-react';
-import { PdfPeriodButton } from '@/components/PdfPeriodButton';
-import { generateDashboardPDF } from '@/lib/pdfGenerator';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download } from 'lucide-react';
+import { generateOverallSummaryPDF, type OverallPeriod } from '@/lib/overallSummaryPdf';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { role } = useAuth();
@@ -118,6 +121,34 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
+  const handleOverallPdf = async (period: OverallPeriod) => {
+    try {
+      const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes] = await Promise.all([
+        supabase.from('fund_transactions').select('*'),
+        supabase.from('deposits').select('*'),
+        supabase.from('islamic_loans').select('id, code, purchase_price, sell_price, borrower_name, media_person_id, created_at'),
+        supabase.from('islamic_loan_payments').select('loan_id, amount, payment_method, created_at'),
+        supabase.from('projects').select('id, name, code'),
+        supabase.from('project_transactions').select('project_id, type, amount, reason, comments, created_at'),
+        supabase.from('member_loans').select('id, member_id, approved_amount, requested_amount, status, created_at'),
+        supabase.from('member_loan_repayments').select('loan_id, amount, status, created_at'),
+      ]);
+      await generateOverallSummaryPDF({
+        members,
+        fundTxns: fundRes.data || [],
+        deposits: depsRes.data || [],
+        islamicLoans: ilRes.data || [],
+        islamicPayments: ilPayRes.data || [],
+        projects: projRes.data || [],
+        projectTxns: projTxRes.data || [],
+        memberLoans: mlRes.data || [],
+        memberRepayments: mlRepayRes.data || [],
+      }, period);
+    } catch (e: any) {
+      toast.error(e?.message || 'PDF তৈরি করা যায়নি');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -133,28 +164,19 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Overview of your community fund</p>
         </div>
-        <PdfPeriodButton
-          label="Overall Summary PDF"
-          onDownload={async (p) => {
-            const [fund, deps, il, ml, assetsRes, dist] = await Promise.all([
-              supabase.from('fund_transactions').select('*'),
-              supabase.from('deposits').select('*'),
-              supabase.from('islamic_loans').select('*'),
-              supabase.from('member_loans').select('*'),
-              supabase.from('assets' as any).select('*'),
-              supabase.from('profit_distributions').select('*'),
-            ]);
-            generateDashboardPDF({
-              members,
-              fundTxns: fund.data || [],
-              deposits: deps.data || [],
-              islamicLoans: il.data || [],
-              memberLoans: ml.data || [],
-              assets: (assetsRes.data as any) || [],
-              distributions: dist.data || [],
-            }, p);
-          }}
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="w-4 h-4" /> Overall Summary PDF
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleOverallPdf('month')}>This Month</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>This Year</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <DashboardStats stats={stats} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
