@@ -198,7 +198,9 @@ export function RecentActivity() {
   const handleDelete = async (tx: UnifiedTx) => {
     let error: any = null;
     if (tx.table === 'profit_distributions_group' && tx.groupKey) {
-      const dt = tx.groupKey.isLoss ? ['loss', 'loss_deleted_to_fund'] : ['profit', 'profit_deleted_to_fund', 'profit_to_fund'];
+      const dt = tx.groupKey.isLoss
+        ? ['loss', 'loss_deleted_to_fund', 'loss_share']
+        : ['profit', 'profit_deleted_to_fund', 'profit_to_fund', 'fund', 'profit_share', 'manager', 'media', 'admin'];
       ({ error } = await supabase.from('profit_distributions').delete()
         .eq('source_type', tx.groupKey.source_type)
         .eq('source_id', tx.groupKey.source_id)
