@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 import { generateProjectSnapshotPDF } from '@/lib/snapshotReportPdf';
+import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -32,6 +33,7 @@ export default function ProjectDetailPage() {
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
+  const [showShareEdit, setShowShareEdit] = useState(false);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showTx, setShowTx] = useState(false);
@@ -369,13 +371,20 @@ export default function ProjectDetailPage() {
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold">{totals.loss > 0 ? 'Loss Distribution' : 'Profit Distribution'}</h2>
-          {isAdmin && isClosed && !alreadyDistributed && (totals.profit > 0 || totals.loss > 0) && (
-            <Button size="sm" variant={totals.loss > 0 ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
-              {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
-              <Sparkles className="w-4 h-4 mr-1" /> Distribute {totals.loss > 0 ? 'Loss' : 'Profit'}
-            </Button>
-          )}
-          {alreadyDistributed && <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-full">Distributed</span>}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && !alreadyDistributed && snapshot.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setShowShareEdit(true)}>
+                <Pencil className="w-4 h-4 mr-1" /> Edit Shares
+              </Button>
+            )}
+            {isAdmin && isClosed && !alreadyDistributed && (totals.profit > 0 || totals.loss > 0) && (
+              <Button size="sm" variant={totals.loss > 0 ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
+                {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                <Sparkles className="w-4 h-4 mr-1" /> Distribute {totals.loss > 0 ? 'Loss' : 'Profit'}
+              </Button>
+            )}
+            {alreadyDistributed && <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-full">Distributed</span>}
+          </div>
         </div>
         {totals.loss > 0 ? (
           <div className="bg-destructive/5 rounded-lg p-3 mb-4">
@@ -544,6 +553,13 @@ export default function ProjectDetailPage() {
         </DialogContent>
       </Dialog>
 
+      <SnapshotShareEditor
+        open={showShareEdit}
+        onOpenChange={setShowShareEdit}
+        table="project_member_shares"
+        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        onSaved={load}
+      />
     </div>
   );
 }

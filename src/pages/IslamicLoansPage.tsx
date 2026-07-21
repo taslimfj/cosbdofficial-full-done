@@ -34,6 +34,13 @@ export default function IslamicLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
+  const todayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   const [form, setForm] = useState({
     borrowerName: '',
     borrowerPhone: '+880',
@@ -47,6 +54,7 @@ export default function IslamicLoansPage() {
     mediaPersonProfitPct: '10',
     fundProfitPct: '5',
     discountPct: '0',
+    issueDate: todayStr(),
   });
 
   useEffect(() => {
@@ -127,6 +135,7 @@ export default function IslamicLoansPage() {
       .gte('created_at', yStart);
     const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
     const usingCredit = phoneHistory?.credit && discountPct > 0 && Math.abs(discountPct - phoneHistory.credit.months) < 0.01;
+    const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
@@ -146,6 +155,8 @@ export default function IslamicLoansPage() {
       monthly_installment: monthlyInstallment,
       comments: form.comments,
       discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
+      // Admin-only: allow custom issue date; members always use today (default)
+      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
       // Auto-populate admin's default payment methods so customer sees them immediately
       payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
@@ -182,7 +193,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0' } as any);
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr() } as any);
     setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
@@ -222,6 +233,19 @@ export default function IslamicLoansPage() {
             <SheetContent className="overflow-y-auto">
               <SheetHeader><SheetTitle>Create Islamic Loan</SheetTitle></SheetHeader>
               <div className="space-y-4 mt-6">
+                {role === 'admin' && (() => {
+                  const d = form.issueDate ? new Date(form.issueDate) : new Date();
+                  const end = new Date(d);
+                  end.setMonth(end.getMonth() + (parseInt(form.tenure) || 0));
+                  const endStr = end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  return (
+                    <div className="space-y-2">
+                      <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
+                      <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                      <p className="text-[11px] text-muted-foreground">শেষ কিস্তির তারিখ: <b>{endStr}</b> ({form.tenure} মাস পরে)</p>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-2">
                   <Label>Borrower Name</Label>
                   <Input value={form.borrowerName} onChange={e => setForm(p => ({ ...p, borrowerName: e.target.value }))} placeholder="Full name" />

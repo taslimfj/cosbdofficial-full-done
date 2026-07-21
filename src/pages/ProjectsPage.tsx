@@ -28,7 +28,11 @@ export default function ProjectsPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
 
   useEffect(() => {
     Promise.all([
@@ -73,11 +77,13 @@ export default function ProjectsPage() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', yStart);
     const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, now);
+    const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
-    }).select('id').single();
+      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
+    } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 
     // Snapshot member shares — locked at creation
@@ -89,7 +95,7 @@ export default function ProjectsPage() {
     setSubmitting(false);
     toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
     setExcludedMemberIds([]);
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
@@ -117,6 +123,12 @@ export default function ProjectsPage() {
             <SheetContent>
               <SheetHeader><SheetTitle>Create Project</SheetTitle></SheetHeader>
               <div className="space-y-4 mt-6">
+                {role === 'admin' && (
+                  <div className="space-y-2">
+                    <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
+                    <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Project Name</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Project name" /></div>
                 <div className="space-y-2">
                   <Label>Project Manager</Label>

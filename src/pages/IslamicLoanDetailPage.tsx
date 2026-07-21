@@ -23,6 +23,7 @@ import { LoanContractPdf } from '@/components/LoanContractPdf';
 import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/loanStatus';
 import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 import { generateIslamicLoanSnapshotPDF } from '@/lib/snapshotReportPdf';
+import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -47,6 +48,7 @@ export default function IslamicLoanDetailPage() {
   const [showRequest, setShowRequest] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showShareEdit, setShowShareEdit] = useState(false);
 
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
@@ -246,7 +248,7 @@ export default function IslamicLoanDetailPage() {
     if (currentRemaining > 0.01) return;
     if (loan.closed_at) return;
     const now = new Date();
-    const start = new Date(loan.created_at);
+    const start = new Date((loan as any).issue_date || loan.created_at);
     const monthsUsed =
       (now.getFullYear() - start.getFullYear()) * 12 +
       (now.getMonth() - start.getMonth()) +
@@ -435,7 +437,7 @@ export default function IslamicLoanDetailPage() {
   const remaining = Number(loan.remaining_amount);
   const paid = sellPriceN - remaining;
   const monthly = Number(loan.monthly_installment);
-  const startDate = loan.created_at ? new Date(loan.created_at) : new Date();
+  const startDate = (loan as any).issue_date ? new Date((loan as any).issue_date) : (loan.created_at ? new Date(loan.created_at) : new Date());
   const endDate = addMonths(startDate, loan.tenure_months);
   const installmentsPaid = monthly > 0 ? Math.floor(paid / monthly) : 0;
   const nextInstallmentDate = addMonths(startDate, Math.min(installmentsPaid + 1, loan.tenure_months));
@@ -835,14 +837,21 @@ export default function IslamicLoanDetailPage() {
 
       {/* Share / Profit Distribution preview */}
       <div className="bg-card border border-border rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
-          {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
-            <Button size="sm" variant={profitTotals.isLoss ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
-              <Sparkles className="w-4 h-4 mr-1" /> {profitTotals.isLoss ? 'Distribute Loss' : 'Distribute Profit'}
-            </Button>
-          )}
-          {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && !alreadyDistributed && snapshot.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setShowShareEdit(true)}>
+                <Pencil className="w-4 h-4 mr-1" /> Edit Shares
+              </Button>
+            )}
+            {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
+              <Button size="sm" variant={profitTotals.isLoss ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
+                <Sparkles className="w-4 h-4 mr-1" /> {profitTotals.isLoss ? 'Distribute Loss' : 'Distribute Profit'}
+              </Button>
+            )}
+            {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
@@ -893,6 +902,14 @@ export default function IslamicLoanDetailPage() {
           </div>
         )}
       </div>
+
+      <SnapshotShareEditor
+        open={showShareEdit}
+        onOpenChange={setShowShareEdit}
+        table="islamic_loan_member_shares"
+        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        onSaved={load}
+      />
 
       <ExcludedMembersCard
         excludedIds={(loan as any).excluded_member_ids || []}
