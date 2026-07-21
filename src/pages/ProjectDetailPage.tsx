@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ExcludedMembersCard } from '@/components/ExcludedMembersCard';
 import { generateProjectSnapshotPDF } from '@/lib/snapshotReportPdf';
+import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
