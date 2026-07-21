@@ -77,11 +77,13 @@ export default function ProjectsPage() {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', yStart);
     const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, now);
+    const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: parseFloat(form.managerProfitPct),
       fund_profit_pct: parseFloat(form.fundProfitPct),
-    }).select('id').single();
+      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
+    } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 
     // Snapshot member shares — locked at creation
@@ -93,7 +95,7 @@ export default function ProjectsPage() {
     setSubmitting(false);
     toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
     setExcludedMemberIds([]);
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
