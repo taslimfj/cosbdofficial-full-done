@@ -34,6 +34,13 @@ export default function IslamicLoansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
+  const todayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   const [form, setForm] = useState({
     borrowerName: '',
     borrowerPhone: '+880',
@@ -47,6 +54,7 @@ export default function IslamicLoansPage() {
     mediaPersonProfitPct: '10',
     fundProfitPct: '5',
     discountPct: '0',
+    issueDate: todayStr(),
   });
 
   useEffect(() => {
