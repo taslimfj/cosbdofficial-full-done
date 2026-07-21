@@ -837,14 +837,21 @@ export default function IslamicLoanDetailPage() {
 
       {/* Share / Profit Distribution preview */}
       <div className="bg-card border border-border rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
-          {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
-            <Button size="sm" variant={profitTotals.isLoss ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
-              <Sparkles className="w-4 h-4 mr-1" /> {profitTotals.isLoss ? 'Distribute Loss' : 'Distribute Profit'}
-            </Button>
-          )}
-          {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && !alreadyDistributed && snapshot.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setShowShareEdit(true)}>
+                <Pencil className="w-4 h-4 mr-1" /> Edit Shares
+              </Button>
+            )}
+            {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
+              <Button size="sm" variant={profitTotals.isLoss ? 'destructive' : 'default'} onClick={handleDistribute} disabled={busy}>
+                <Sparkles className="w-4 h-4 mr-1" /> {profitTotals.isLoss ? 'Distribute Loss' : 'Distribute Profit'}
+              </Button>
+            )}
+            {alreadyDistributed && <span className="text-xs text-emerald-600 font-medium">✓ Distributed</span>}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
