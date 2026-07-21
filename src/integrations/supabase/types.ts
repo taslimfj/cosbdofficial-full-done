@@ -336,6 +336,7 @@ export type Database = {
           exclusion_reasons: Json
           fund_profit_pct: number | null
           id: string
+          issue_date: string | null
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
@@ -367,6 +368,7 @@ export type Database = {
           exclusion_reasons?: Json
           fund_profit_pct?: number | null
           id?: string
+          issue_date?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
@@ -398,6 +400,7 @@ export type Database = {
           exclusion_reasons?: Json
           fund_profit_pct?: number | null
           id?: string
+          issue_date?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
@@ -855,6 +858,7 @@ export type Database = {
           extra_funds_approved: number
           fund_profit_pct: number | null
           id: string
+          issue_date: string | null
           manager_id: string | null
           manager_profit_pct: number | null
           name: string
@@ -874,6 +878,7 @@ export type Database = {
           extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string
+          issue_date?: string | null
           manager_id?: string | null
           manager_profit_pct?: number | null
           name: string
@@ -893,6 +898,7 @@ export type Database = {
           extra_funds_approved?: number
           fund_profit_pct?: number | null
           id?: string
+          issue_date?: string | null
           manager_id?: string | null
           manager_profit_pct?: number | null
           name?: string
