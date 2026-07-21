@@ -28,7 +28,11 @@ export default function ProjectsPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5' });
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
 
   useEffect(() => {
     Promise.all([
