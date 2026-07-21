@@ -48,6 +48,7 @@ export default function IslamicLoanDetailPage() {
   const [showRequest, setShowRequest] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showShareEdit, setShowShareEdit] = useState(false);
 
   const [depositAmt, setDepositAmt] = useState('');
   const [depositType, setDepositType] = useState('installment');
