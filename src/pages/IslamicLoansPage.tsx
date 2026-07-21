@@ -233,6 +233,19 @@ export default function IslamicLoansPage() {
             <SheetContent className="overflow-y-auto">
               <SheetHeader><SheetTitle>Create Islamic Loan</SheetTitle></SheetHeader>
               <div className="space-y-4 mt-6">
+                {role === 'admin' && (() => {
+                  const d = form.issueDate ? new Date(form.issueDate) : new Date();
+                  const end = new Date(d);
+                  end.setMonth(end.getMonth() + (parseInt(form.tenure) || 0));
+                  const endStr = end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  return (
+                    <div className="space-y-2">
+                      <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
+                      <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                      <p className="text-[11px] text-muted-foreground">শেষ কিস্তির তারিখ: <b>{endStr}</b> ({form.tenure} মাস পরে)</p>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-2">
                   <Label>Borrower Name</Label>
                   <Input value={form.borrowerName} onChange={e => setForm(p => ({ ...p, borrowerName: e.target.value }))} placeholder="Full name" />
