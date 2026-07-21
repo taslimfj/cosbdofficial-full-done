@@ -553,6 +553,13 @@ export default function ProjectDetailPage() {
         </DialogContent>
       </Dialog>
 
+      <SnapshotShareEditor
+        open={showShareEdit}
+        onOpenChange={setShowShareEdit}
+        table="project_member_shares"
+        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        onSaved={load}
+      />
     </div>
   );
 }
