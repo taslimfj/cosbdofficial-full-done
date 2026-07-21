@@ -123,6 +123,12 @@ export default function ProjectsPage() {
             <SheetContent>
               <SheetHeader><SheetTitle>Create Project</SheetTitle></SheetHeader>
               <div className="space-y-4 mt-6">
+                {role === 'admin' && (
+                  <div className="space-y-2">
+                    <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
+                    <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Project Name</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Project name" /></div>
                 <div className="space-y-2">
                   <Label>Project Manager</Label>
