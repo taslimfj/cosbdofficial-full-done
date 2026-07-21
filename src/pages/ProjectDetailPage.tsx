@@ -33,6 +33,7 @@ export default function ProjectDetailPage() {
   const [distributions, setDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [txLimit, setTxLimit] = useState(3);
+  const [showShareEdit, setShowShareEdit] = useState(false);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showTx, setShowTx] = useState(false);
