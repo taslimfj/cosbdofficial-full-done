@@ -23,6 +23,7 @@ import { LoanContractPdf } from '@/components/LoanContractPdf';
 import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/loanStatus';
 import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 import { generateIslamicLoanSnapshotPDF } from '@/lib/snapshotReportPdf';
+import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
