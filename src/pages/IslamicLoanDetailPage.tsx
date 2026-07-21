@@ -903,6 +903,14 @@ export default function IslamicLoanDetailPage() {
         )}
       </div>
 
+      <SnapshotShareEditor
+        open={showShareEdit}
+        onOpenChange={setShowShareEdit}
+        table="islamic_loan_member_shares"
+        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        onSaved={load}
+      />
+
       <ExcludedMembersCard
         excludedIds={(loan as any).excluded_member_ids || []}
         reasons={(loan as any).exclusion_reasons || {}}
