@@ -135,6 +135,7 @@ export default function IslamicLoansPage() {
       .gte('created_at', yStart);
     const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
     const usingCredit = phoneHistory?.credit && discountPct > 0 && Math.abs(discountPct - phoneHistory.credit.months) < 0.01;
+    const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
       code,
       borrower_name: form.borrowerName.trim(),
@@ -154,6 +155,8 @@ export default function IslamicLoansPage() {
       monthly_installment: monthlyInstallment,
       comments: form.comments,
       discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
+      // Admin-only: allow custom issue date; members always use today (default)
+      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
       // Auto-populate admin's default payment methods so customer sees them immediately
       payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
