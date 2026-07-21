@@ -246,7 +246,7 @@ export default function IslamicLoanDetailPage() {
     if (currentRemaining > 0.01) return;
     if (loan.closed_at) return;
     const now = new Date();
-    const start = new Date(loan.created_at);
+    const start = new Date((loan as any).issue_date || loan.created_at);
     const monthsUsed =
       (now.getFullYear() - start.getFullYear()) * 12 +
       (now.getMonth() - start.getMonth()) +
