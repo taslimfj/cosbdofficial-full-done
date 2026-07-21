@@ -435,7 +435,7 @@ export default function IslamicLoanDetailPage() {
   const remaining = Number(loan.remaining_amount);
   const paid = sellPriceN - remaining;
   const monthly = Number(loan.monthly_installment);
-  const startDate = loan.created_at ? new Date(loan.created_at) : new Date();
+  const startDate = (loan as any).issue_date ? new Date((loan as any).issue_date) : (loan.created_at ? new Date(loan.created_at) : new Date());
   const endDate = addMonths(startDate, loan.tenure_months);
   const installmentsPaid = monthly > 0 ? Math.floor(paid / monthly) : 0;
   const nextInstallmentDate = addMonths(startDate, Math.min(installmentsPaid + 1, loan.tenure_months));
