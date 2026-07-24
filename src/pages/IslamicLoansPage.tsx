@@ -45,6 +45,8 @@ export default function IslamicLoansPage() {
     borrowerName: '',
     borrowerPhone: '+880',
     relativePhone: '+880',
+    relativeName: '',
+    relationship: '',
     productName: '',
     purchasePrice: '',
     advanceAmount: '',
@@ -182,6 +184,8 @@ export default function IslamicLoansPage() {
       borrower_name: form.borrowerName.trim(),
       borrower_phone: form.borrowerPhone.trim(),
       relative_phone: form.relativePhone.trim() || null,
+      relative_name: form.relativeName.trim() || null,
+      relationship: form.relationship.trim() || null,
       product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
       advance_amount: advanceAmount,
@@ -252,7 +256,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr(), customerPassword: '123456' } as any);
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', relativeName: '', relationship: '', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr(), customerPassword: '123456' } as any);
     setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
@@ -317,6 +321,16 @@ export default function IslamicLoansPage() {
                   <div className="space-y-2">
                     <Label>Relative Phone</Label>
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>পারিবারিক সদস্যের নাম</Label>
+                    <Input value={form.relativeName} onChange={e => setForm(p => ({ ...p, relativeName: e.target.value }))} placeholder="নাম" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>সম্পর্ক</Label>
+                    <Input value={form.relationship} onChange={e => setForm(p => ({ ...p, relationship: e.target.value }))} placeholder="যেমন: বাবা, ভাই, স্ত্রী" />
                   </div>
                 </div>
 
