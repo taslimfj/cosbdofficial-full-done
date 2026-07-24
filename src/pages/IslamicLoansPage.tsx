@@ -223,7 +223,7 @@ export default function IslamicLoansPage() {
     // Create customer login (phone + default password 123456) and link to loan
     try {
       const { data: custRes, error: custErr } = await supabase.functions.invoke('create-customer', {
-        body: { phone: form.borrowerPhone.trim(), fullName: form.borrowerName.trim() },
+        body: { phone: form.borrowerPhone.trim(), fullName: form.borrowerName.trim(), password: (form.customerPassword || '').trim() || '123456' },
       });
       if (custErr) throw custErr;
       if (custRes?.userId) {
