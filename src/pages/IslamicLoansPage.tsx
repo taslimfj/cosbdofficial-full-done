@@ -56,6 +56,7 @@ export default function IslamicLoansPage() {
     fundProfitPct: '5',
     discountPct: '0',
     issueDate: todayStr(),
+    customerPassword: '123456',
   });
 
 
