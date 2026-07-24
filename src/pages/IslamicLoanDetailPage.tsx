@@ -942,9 +942,9 @@ export default function IslamicLoanDetailPage() {
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.media)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.admin)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2">
-            <p className="text-muted-foreground">Member Pool</p>
+            <p className="text-muted-foreground">Member Pool (80%)</p>
             <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
-              {profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(shareRows.reduce((s: number, r: any) => s + r.expected, 0)) || Math.abs(profitTotals.memberPool))}
+              {profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(profitTotals.memberPool))}
             </p>
           </div>
         </div>
