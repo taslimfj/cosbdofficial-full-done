@@ -120,13 +120,14 @@ export default function MemberDetailPage() {
       amount,
       payment_method: depositForm.paymentMethod,
       transaction_number: depositForm.transactionNumber.trim(),
+      month_year: depositForm.date || null,
       status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
       toast.success(isAdmin ? `৳${amount} deposit recorded` : `৳${amount} deposit request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowDepositDialog(false);
-      setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
+      setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
       fetchData();
     } else {
       toast.error(error.message);
@@ -145,19 +146,21 @@ export default function MemberDetailPage() {
       amount: -amount,
       payment_method: withdrawForm.paymentMethod,
       transaction_number: withdrawForm.transactionNumber.trim(),
+      month_year: withdrawForm.date || null,
       status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
       toast.success(isAdmin ? `৳${amount} withdrawal recorded` : `৳${amount} withdraw request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowWithdrawDialog(false);
-      setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
+      setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
       fetchData();
     } else {
       toast.error(error.message);
     }
     setSubmitting(false);
   };
+
 
   const handleDeleteTransaction = async (depositId: string, amount: number) => {
     const { error } = await supabase.from('deposits').delete().eq('id', depositId);
