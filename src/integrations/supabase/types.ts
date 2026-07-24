@@ -464,6 +464,33 @@ export type Database = {
           },
         ]
       }
+      islamic_tenure_options: {
+        Row: {
+          created_at: string
+          id: string
+          months: number
+          profit_pct: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          months: number
+          profit_pct: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          months?: number
+          profit_pct?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_loan_repayments: {
         Row: {
           amount: number

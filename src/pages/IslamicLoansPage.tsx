@@ -77,6 +77,23 @@ export default function IslamicLoansPage() {
       });
   }, []);
 
+  const [tenureOptions, setTenureOptions] = useState<{ months: number; profit_pct: number }[]>([
+    { months: 3, profit_pct: 8 }, { months: 6, profit_pct: 16 }, { months: 12, profit_pct: 25 },
+  ]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from('islamic_tenure_options')
+      .select('months, profit_pct')
+      .order('months')
+      .then(({ data }: any) => {
+        if (data && data.length) {
+          setTenureOptions(data.map((d: any) => ({ months: Number(d.months), profit_pct: Number(d.profit_pct) })));
+        }
+      });
+  }, []);
+
+
   useEffect(() => {
     if (isCustomer) { setLoading(false); return; }
     Promise.all([
@@ -102,7 +119,7 @@ export default function IslamicLoansPage() {
   const advanceAmount = Math.max(0, Math.min(purchasePrice, parseFloat(form.advanceAmount) || 0));
   const financedAmount = Math.max(0, purchasePrice - advanceAmount);
   const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
-  const profitPct = calculateProfitPercentage(tenure);
+  const profitPct = (tenureOptions.find(o => o.months === tenure)?.profit_pct) ?? calculateProfitPercentage(tenure);
   const baseSellPrice = calculateSellPrice(financedAmount, profitPct);
   const rawSellPrice = baseSellPrice * (1 - discountPct / 100);
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
@@ -335,10 +352,11 @@ export default function IslamicLoansPage() {
                   <Select value={form.tenure} onValueChange={v => setForm(p => ({ ...p, tenure: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3">3 Months (8%)</SelectItem>
-                      <SelectItem value="6">6 Months (16%)</SelectItem>
-                      <SelectItem value="12">12 Months (25%)</SelectItem>
+                      {tenureOptions.map(o => (
+                        <SelectItem key={o.months} value={String(o.months)}>{o.months} Months ({o.profit_pct}%)</SelectItem>
+                      ))}
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-2">

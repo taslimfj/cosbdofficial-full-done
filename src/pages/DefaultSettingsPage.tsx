@@ -4,6 +4,8 @@ import { Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PaymentDefaultsSection } from '@/components/settings/PaymentDefaultsSection';
 import { PercentageDefaultsSection } from '@/components/settings/PercentageDefaultsSection';
+import { TenureDefaultsSection } from '@/components/settings/TenureDefaultsSection';
+
 
 export default function DefaultSettingsPage() {
   const { role } = useAuth();
@@ -24,9 +26,10 @@ export default function DefaultSettingsPage() {
       </div>
 
       <Tabs defaultValue="payment" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="payment">Payment Default</TabsTrigger>
-          <TabsTrigger value="percentage">Percentage Default</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="payment">Payment</TabsTrigger>
+          <TabsTrigger value="percentage">Percentage</TabsTrigger>
+          <TabsTrigger value="tenure">Loan Tenure</TabsTrigger>
         </TabsList>
         <TabsContent value="payment" className="mt-6">
           <PaymentDefaultsSection />
@@ -34,7 +37,11 @@ export default function DefaultSettingsPage() {
         <TabsContent value="percentage" className="mt-6">
           <PercentageDefaultsSection />
         </TabsContent>
+        <TabsContent value="tenure" className="mt-6">
+          <TenureDefaultsSection />
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }
