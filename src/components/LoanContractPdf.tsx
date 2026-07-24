@@ -42,7 +42,9 @@ export function LoanContractPdf({ loan }: Props) {
   const sellPrice = Number(loan.sell_price) || 0;
   const monthly = Number(loan.monthly_installment) || 0;
   const tenure = Number(loan.tenure_months) || 0;
-  const startDate = loan.created_at ? new Date(loan.created_at) : new Date();
+  const startDate = loan.issue_date
+    ? new Date(loan.issue_date + 'T00:00:00')
+    : (loan.created_at ? new Date(loan.created_at) : new Date());
   const endDate = addMonths(startDate, tenure);
   const code = loan.code || '';
 
