@@ -47,6 +47,7 @@ export default function IslamicLoansPage() {
     relativePhone: '+880',
     productName: '',
     purchasePrice: '',
+    advanceAmount: '',
     tenure: '3',
     mediaPersonId: '',
     secondaryMediaPersonId: '',
@@ -56,6 +57,7 @@ export default function IslamicLoansPage() {
     discountPct: '0',
     issueDate: todayStr(),
   });
+
 
   const [pctDefaults, setPctDefaults] = useState({ fund: 5, media: 10, admin: 5 });
 
