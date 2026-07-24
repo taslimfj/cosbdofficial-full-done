@@ -302,8 +302,21 @@ export default function IslamicLoansPage() {
                   <div className="space-y-2">
                     <Label>Relative Phone</Label>
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
-                  </div>
                 </div>
+
+                <div className="space-y-2 border border-primary/20 bg-primary/5 rounded-lg p-3">
+                  <Label className="text-xs">Customer Login Password (তার login এর জন্য)</Label>
+                  <Input
+                    type="text"
+                    value={form.customerPassword}
+                    onChange={e => setForm(p => ({ ...p, customerPassword: e.target.value }))}
+                    placeholder="123456"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Customer এই phone number এবং এই password দিয়ে "Customer" section থেকে login করবে। ন্যূনতম ৬ অক্ষর। খালি রাখলে default <b>123456</b> ব্যবহৃত হবে।
+                  </p>
+                </div>
+
 
                 {/* Phone history reminder: discount credit + customer rating */}
                 {phoneHistory && (phoneHistory.rating.totalLoans > 0) && (
