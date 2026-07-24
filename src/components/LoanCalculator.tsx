@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { formatBDT, calculateProfitPercentage, calculateMonthlyInstallment } from '@/lib/finance';
 
 export function LoanCalculator() {
@@ -13,12 +14,29 @@ export function LoanCalculator() {
   const [advance, setAdvance] = useState('');
   const [tenure, setTenure] = useState('3');
   const [pct, setPct] = useState('8');
+  const [tenureOptions, setTenureOptions] = useState<{ months: number; profit_pct: number }[]>([
+    { months: 3, profit_pct: 8 }, { months: 6, profit_pct: 16 }, { months: 12, profit_pct: 25 },
+  ]);
 
-  // When tenure changes, suggest default percentage
+  useEffect(() => {
+    (supabase as any)
+      .from('islamic_tenure_options')
+      .select('months, profit_pct')
+      .order('months')
+      .then(({ data }: any) => {
+        if (data && data.length) {
+          setTenureOptions(data.map((d: any) => ({ months: Number(d.months), profit_pct: Number(d.profit_pct) })));
+        }
+      });
+  }, []);
+
+  // When tenure changes, suggest default percentage from DB (or fallback)
   const onTenureChange = (v: string) => {
     setTenure(v);
-    setPct(String(calculateProfitPercentage(parseInt(v))));
+    const found = tenureOptions.find(o => o.months === parseInt(v));
+    setPct(String(found ? found.profit_pct : calculateProfitPercentage(parseInt(v))));
   };
+
 
   const calc = useMemo(() => {
     const p = parseFloat(purchase) || 0;
