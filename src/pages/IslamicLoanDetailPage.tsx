@@ -624,7 +624,7 @@ export default function IslamicLoanDetailPage() {
           ) : (
             <div className="space-y-2">
               {payments.slice(0, payLimit).map((p, idx) => {
-                const installmentNumber = payments.length - idx;
+                const installmentNumber = installmentIndexById.get(p.id) || 0;
                 const { approvedBy, approvedAt, approverName } = getPaymentApproval(p);
                 const canDownload = !!approvedBy || !!approvedAt;
                 return (
@@ -1029,7 +1029,7 @@ export default function IslamicLoanDetailPage() {
         ) : (
           <div className="space-y-2">
             {payments.slice(0, payLimit).map((p, idx) => {
-              const installmentNumber = payments.length - idx;
+              const installmentNumber = installmentIndexById.get(p.id) || 0;
               const { approvedBy, approvedAt, approverName } = getPaymentApproval(p);
               const canDownload = !!approvedBy || !!approvedAt;
               return (
