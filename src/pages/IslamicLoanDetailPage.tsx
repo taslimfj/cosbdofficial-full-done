@@ -394,12 +394,15 @@ export default function IslamicLoanDetailPage() {
       note: requestNote || null,
       payment_method: paymentMethod,
       transaction_id: transactionId.trim(),
+      // Customer cannot pick a date → null. Media person picks explicitly.
+      payment_date: isCustomer ? null : (paymentDate || null),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
     setShowRequest(false);
     setDepositAmt(''); setRequestNote(''); setPaymentMethod(''); setTransactionId('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     load();
   };
 
@@ -410,6 +413,7 @@ export default function IslamicLoanDetailPage() {
       _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
       _payment_method: req.payment_method || null,
       _transaction_id: req.transaction_id || null,
+      _payment_date: req.payment_date || null,
     } as any);
     if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
     await (supabase as any).from('customer_payment_requests').update({
