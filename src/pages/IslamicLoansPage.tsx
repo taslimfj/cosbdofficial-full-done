@@ -166,9 +166,11 @@ export default function IslamicLoansPage() {
       relative_phone: form.relativePhone.trim() || null,
       product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
+      advance_amount: advanceAmount,
       sell_price: sellPrice,
       tenure_months: tenure,
       profit_percentage: profitPct,
+
       discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
       secondary_media_person_id: (form as any).secondaryMediaPersonId || null,
