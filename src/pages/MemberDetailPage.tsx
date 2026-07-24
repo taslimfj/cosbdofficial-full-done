@@ -344,6 +344,10 @@ export default function MemberDetailPage() {
                       <Label>Transaction Number</Label>
                       <Input value={depositForm.transactionNumber} onChange={e => setDepositForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Date {isAdmin ? '' : '(এই মাসে/আগে/পরের মাসেরও দিতে পারেন)'}</Label>
+                      <Input type="date" value={depositForm.date} onChange={e => setDepositForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
                     <Button className="w-full" onClick={handleAddDeposit} disabled={submitting}>
                       {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Deposit' : 'Send Request'}
                     </Button>
