@@ -55,6 +55,7 @@ export default function IslamicLoanDetailPage() {
   const [requestNote, setRequestNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
   const [phoneHistory, setPhoneHistory] = useState<any[]>([]);
 
