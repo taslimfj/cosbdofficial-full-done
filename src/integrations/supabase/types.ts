@@ -352,6 +352,8 @@ export type Database = {
           product_name: string | null
           profit_percentage: number | null
           purchase_price: number
+          relationship: string | null
+          relative_name: string | null
           relative_phone: string | null
           remaining_amount: number | null
           secondary_media_person_id: string | null
@@ -385,6 +387,8 @@ export type Database = {
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price: number
+          relationship?: string | null
+          relative_name?: string | null
           relative_phone?: string | null
           remaining_amount?: number | null
           secondary_media_person_id?: string | null
@@ -418,6 +422,8 @@ export type Database = {
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number
+          relationship?: string | null
+          relative_name?: string | null
           relative_phone?: string | null
           remaining_amount?: number | null
           secondary_media_person_id?: string | null

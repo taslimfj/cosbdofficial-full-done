@@ -136,6 +136,8 @@ export default function IslamicLoanDetailPage() {
         borrower_name: loan.borrower_name || '',
         borrower_phone: loan.borrower_phone || '',
         relative_phone: loan.relative_phone || '',
+        relative_name: (loan as any).relative_name || '',
+        relationship: (loan as any).relationship || '',
         product_name: (loan as any).product_name || '',
         purchase_price: String(loan.purchase_price ?? ''),
         sell_price: String(loan.sell_price ?? ''),
@@ -197,6 +199,8 @@ export default function IslamicLoanDetailPage() {
       borrower_name: edit.borrower_name.trim() || null,
       borrower_phone: edit.borrower_phone.trim() || null,
       relative_phone: edit.relative_phone.trim() || null,
+      relative_name: (edit as any).relative_name?.trim() || null,
+      relationship: (edit as any).relationship?.trim() || null,
       product_name: edit.product_name?.trim() || null,
       purchase_price: parseFloat(edit.purchase_price) || 0,
       sell_price: parseFloat(edit.sell_price) || 0,
@@ -1097,6 +1101,10 @@ export default function IslamicLoanDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Borrower Phone</Label><Input value={edit.borrower_phone} onChange={e => setEdit({ ...edit, borrower_phone: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Relative Phone</Label><Input value={edit.relative_phone} onChange={e => setEdit({ ...edit, relative_phone: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>পারিবারিক সদস্যের নাম</Label><Input value={(edit as any).relative_name || ''} onChange={e => setEdit({ ...edit, relative_name: e.target.value } as any)} /></div>
+                <div className="space-y-2"><Label>সম্পর্ক</Label><Input value={(edit as any).relationship || ''} onChange={e => setEdit({ ...edit, relationship: e.target.value } as any)} placeholder="যেমন: বাবা, ভাই" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Purchase Price</Label><Input type="number" value={edit.purchase_price} onChange={e => setEdit({ ...edit, purchase_price: e.target.value })} /></div>

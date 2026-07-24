@@ -38,6 +38,8 @@ export function LoanContractPdf({ loan }: Props) {
   const borrowerName = loan.borrower_name || loan.media_person?.full_name || '';
   const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
   const relPhone = loan.relative_phone || '';
+  const relName = loan.relative_name || '';
+  const relationship = loan.relationship || '';
   const productName = loan.product_name || '';
   const sellPrice = Number(loan.sell_price) || 0;
   const monthly = Number(loan.monthly_installment) || 0;
@@ -176,20 +178,20 @@ export function LoanContractPdf({ loan }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 4 }}>
             <div>
               <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>ক্রেতার যোগাযোগ</div>
-              <div style={{ marginBottom: 6 }}>
-                মোবাইল ১: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}>{toBn(borrowerPhone)}</span>
-              </div>
-              <div>
-                মোবাইল ২: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}></span>
+              <div style={{ marginBottom: 4 }}>
+                মোবাইল: <b style={{ paddingLeft: 6 }}>{toBn(borrowerPhone) || '—'}</b>
               </div>
             </div>
             <div>
               <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>পারিবারিক সদস্য</div>
-              <div style={{ marginBottom: 6 }}>
-                মোবাইল: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}>{toBn(relPhone)}</span>
+              <div style={{ marginBottom: 4 }}>
+                নাম: <b style={{ paddingLeft: 6 }}>{relName || '—'}</b>
+              </div>
+              <div style={{ marginBottom: 4 }}>
+                মোবাইল: <b style={{ paddingLeft: 6 }}>{toBn(relPhone) || '—'}</b>
               </div>
               <div>
-                সম্পর্ক: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}></span>
+                সম্পর্ক: <b style={{ paddingLeft: 6 }}>{relationship || '—'}</b>
               </div>
             </div>
           </div>
