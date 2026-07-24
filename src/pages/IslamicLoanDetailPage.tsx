@@ -360,6 +360,28 @@ export default function IslamicLoanDetailPage() {
       }
     });
 
+    // Residual member-pool coverage — if snapshot alive-share % < 100, the
+    // uncovered pool automatically goes to Fund (profit only; skipped on loss).
+    if (!isLoss && profitTotals.memberPool > 0) {
+      const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+      const residualPct = Math.max(0, 100 - totalSnapshotPct);
+      if (residualPct > 0.001) {
+        const residualAmt = round2(profitTotals.memberPool * residualPct / 100);
+        if (residualAmt > 0) {
+          rows.push({
+            source_type: 'islamic_loan', source_id: id, member_id: null,
+            amount: residualAmt, share_percentage: residualPct,
+            distribution_type: 'residual_to_fund',
+          });
+          fundExtras.push({
+            amount: residualAmt,
+            reason: `Loan ${loan.code} — অবশিষ্ট ${residualPct.toFixed(2)}% Fund-এ যোগ`,
+            type: 'in',
+          });
+        }
+      }
+    }
+
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
 
     const { error } = await supabase.from('profit_distributions').insert(rows);
