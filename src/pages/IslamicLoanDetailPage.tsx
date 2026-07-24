@@ -656,7 +656,7 @@ export default function IslamicLoanDetailPage() {
                 <div key={r.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg">
                   <div className="min-w-0">
                     <p className="font-mono font-bold tabular-nums">{formatBDT(Number(r.amount))}{r.payment_method ? ` · ${r.payment_method}` : ''}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'dd MMM yyyy hh:mm a')}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(r.payment_date || r.created_at), 'dd MMM yyyy')}{!r.payment_date ? ` · ${format(new Date(r.created_at), 'hh:mm a')}` : ''}</p>
                     {r.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {r.transaction_id}</p>}
                     {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
                   </div>
