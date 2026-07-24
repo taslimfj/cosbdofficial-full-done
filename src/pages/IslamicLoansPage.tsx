@@ -331,8 +331,10 @@ export default function IslamicLoansPage() {
                           <p className="text-muted-foreground mt-0.5">
                             এই loan-এ <b className="text-emerald-700">{phoneHistory.credit.months}% discount</b> স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে (এক-বারই ব্যবহারযোগ্য)।
                           </p>
-                        </div>
-                      </div>
+                  </div>
+                </div>
+
+
                     )}
                     <div className="border border-border bg-secondary/40 rounded-lg p-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs">
