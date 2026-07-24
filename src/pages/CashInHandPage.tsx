@@ -27,6 +27,8 @@ type Row = {
   direction: 'in' | 'out';
   amount: number;
   reason: string;
+  /** Extra detail lines shown under the main reason. */
+  meta?: string[];
   /** Underlying table + row id, so admin can edit/delete. */
   editable?: {
     table: EditableTable;
@@ -35,6 +37,22 @@ type Row = {
     /** Deposits store signed amount (negative = withdrawal); preserve sign on edit. */
     signed?: boolean;
   };
+};
+
+const shortId = (id: string) => (id || '').replace(/-/g, '').slice(-6).toUpperCase();
+const fmtMethod = (m?: string | null) => {
+  if (!m) return null;
+  const map: Record<string, string> = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', cash: 'Cash', bank: 'Bank' };
+  const k = m.toLowerCase();
+  return map[k] || m;
+};
+const fmtMonth = (my?: string | null) => {
+  if (!my) return null;
+  try {
+    const d = new Date(my.length <= 7 ? `${my}-01` : my);
+    if (!isNaN(d.getTime())) return format(d, 'MMM yyyy');
+  } catch {}
+  return my;
 };
 
 const PREVIEW_LIMIT = 10;
