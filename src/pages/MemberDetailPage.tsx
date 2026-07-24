@@ -305,6 +305,10 @@ export default function MemberDetailPage() {
                       <Label>Transaction Number</Label>
                       <Input value={withdrawForm.transactionNumber} onChange={e => setWithdrawForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Date {isAdmin ? '' : '(এই মাসে/আগে/পরের মাসেরও দিতে পারেন)'}</Label>
+                      <Input type="date" value={withdrawForm.date} onChange={e => setWithdrawForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
                     <Button className="w-full" variant="destructive" onClick={handleWithdraw} disabled={submitting}>
                       {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Withdrawal' : 'Send Request'}
                     </Button>
