@@ -322,6 +322,7 @@ export type Database = {
       islamic_loans: {
         Row: {
           admin_profit_pct: number
+          advance_amount: number
           borrower_name: string | null
           borrower_phone: string | null
           closed_at: string | null
@@ -354,6 +355,7 @@ export type Database = {
         }
         Insert: {
           admin_profit_pct?: number
+          advance_amount?: number
           borrower_name?: string | null
           borrower_phone?: string | null
           closed_at?: string | null
@@ -386,6 +388,7 @@ export type Database = {
         }
         Update: {
           admin_profit_pct?: number
+          advance_amount?: number
           borrower_name?: string | null
           borrower_phone?: string | null
           closed_at?: string | null
