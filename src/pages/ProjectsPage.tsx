@@ -191,7 +191,12 @@ export default function ProjectsPage() {
           <TabsTrigger value="closed">Closed ({projects.filter(p => p.status !== 'active').length})</TabsTrigger>
         </TabsList>
         {(['active', 'closed'] as const).map(tab => {
-          const list = projects.filter(p => tab === 'active' ? p.status === 'active' : p.status !== 'active');
+          const filtered = projects.filter(p => tab === 'active' ? p.status === 'active' : p.status !== 'active');
+          const list = [...filtered].sort((a, b) => {
+            const aMine = user?.id && a.manager_id === user.id ? 1 : 0;
+            const bMine = user?.id && b.manager_id === user.id ? 1 : 0;
+            return bMine - aMine;
+          });
           return (
             <TabsContent key={tab} value={tab} className="mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
