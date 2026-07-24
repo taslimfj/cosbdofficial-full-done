@@ -1180,6 +1180,10 @@ export default function IslamicLoanDetailPage() {
               <Label>Transaction ID (optional)</Label>
               <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
             </div>
+            <div>
+              <Label>Payment Date</Label>
+              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeposit(false)}>Cancel</Button>
