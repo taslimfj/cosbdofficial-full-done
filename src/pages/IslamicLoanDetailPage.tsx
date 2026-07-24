@@ -467,9 +467,15 @@ export default function IslamicLoanDetailPage() {
   const monthly = Number(loan.monthly_installment);
   const startDate = (loan as any).issue_date ? new Date((loan as any).issue_date) : (loan.created_at ? new Date(loan.created_at) : new Date());
   const endDate = addMonths(startDate, loan.tenure_months);
-  const installmentsPaid = monthly > 0 ? Math.floor(paid / monthly) : 0;
+  // Advance payments are one-time upfront amounts — never counted as installment progress.
+  const advancePaid = payments
+    .filter((p: any) => (p.payment_type || 'installment') === 'advance')
+    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const installmentPaidAmount = Math.max(0, paid - advancePaid);
+  const financedAmount = Math.max(0, sellPriceN - advancePaid);
+  const installmentsPaid = monthly > 0 ? Math.floor(installmentPaidAmount / monthly) : 0;
   const nextInstallmentDate = addMonths(startDate, Math.min(installmentsPaid + 1, loan.tenure_months));
-  const progressPct = sellPriceN > 0 ? (paid / sellPriceN) * 100 : 0;
+  const progressPct = financedAmount > 0 ? (installmentPaidAmount / financedAmount) * 100 : 0;
 
   const borrowerName = loan.borrower_name || loan.media_person?.full_name || 'N/A';
   const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
