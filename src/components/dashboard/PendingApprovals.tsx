@@ -30,7 +30,7 @@ export function PendingApprovals() {
     try { await (supabase as any).rpc('ensure_current_welfare_cycle'); } catch {}
 
     const [depRes, loanRes, repayRes, custReqRes, profilesRes, memLoansAll, islamicLoansAll, welfareRes] = await Promise.all([
-      supabase.from('deposits').select('id, amount, member_id, created_at').eq('status', 'pending'),
+      supabase.from('deposits').select('id, amount, member_id, created_at, month_year, payment_method, transaction_number').eq('status', 'pending'),
       supabase.from('member_loans').select('id, requested_amount, member_id, created_at').eq('status', 'pending'),
       supabase.from('member_loan_repayments').select('id, amount, loan_id, created_at, payment_method, transaction_number').eq('status', 'pending'),
       (supabase as any).from('customer_payment_requests').select('id, amount, loan_id, customer_user_id, created_at, payment_method, transaction_id, note, payment_date').eq('status', 'pending'),
@@ -222,6 +222,10 @@ export function PendingApprovals() {
             const details: { k: string; v: string }[] = [];
             const method = r.payment_method;
             const txn = r.transaction_number || r.transaction_id;
+            const forDate = r.month_year || r.payment_date || (it.kind === 'member_loan_repayment' ? r.created_at : null);
+            if (forDate) {
+              try { details.push({ k: 'For', v: new Date(forDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }); } catch {}
+            }
             if (method) details.push({ k: 'Method', v: String(method) });
             if (txn) details.push({ k: 'Txn', v: String(txn) });
             if (r.note) details.push({ k: 'Note', v: String(r.note) });
