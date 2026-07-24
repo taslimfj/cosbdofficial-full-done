@@ -222,6 +222,10 @@ export function PendingApprovals() {
             const details: { k: string; v: string }[] = [];
             const method = r.payment_method;
             const txn = r.transaction_number || r.transaction_id;
+            const forDate = r.month_year || r.payment_date || (it.kind === 'member_loan_repayment' ? r.created_at : null);
+            if (forDate) {
+              try { details.push({ k: 'For', v: new Date(forDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }); } catch {}
+            }
             if (method) details.push({ k: 'Method', v: String(method) });
             if (txn) details.push({ k: 'Txn', v: String(txn) });
             if (r.note) details.push({ k: 'Note', v: String(r.note) });
