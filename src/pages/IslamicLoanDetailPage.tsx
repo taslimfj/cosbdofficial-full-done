@@ -804,6 +804,43 @@ export default function IslamicLoanDetailPage() {
           </div>
         )}
 
+        {isAdmin && (loan as any).customer_user_id && phoneDigits && (
+          <div className="mb-6 border border-primary/30 bg-primary/5 rounded-lg p-3">
+            <p className="text-xs font-semibold text-primary mb-2">Customer Login Credentials</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Phone:</span>{' '}
+                <span className="font-mono font-semibold">{borrowerPhone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Section:</span>{' '}
+                <span className="font-semibold">Customer</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7 text-[11px]"
+                  onClick={async () => {
+                    const np = window.prompt('নতুন password দিন (ন্যূনতম ৬ অক্ষর):', '123456');
+                    if (!np || np.trim().length < 6) { toast.error('Password কমপক্ষে ৬ অক্ষর হতে হবে'); return; }
+                    const { error } = await supabase.functions.invoke('create-customer', {
+                      body: { phone: borrowerPhone, fullName: borrowerName, password: np.trim() },
+                    });
+                    if (error) { toast.error(error.message || 'Password reset failed'); return; }
+                    toast.success('Customer এর password reset হয়েছে');
+                  }}
+                >
+                  Reset Password
+                </Button>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Customer এই phone দিয়ে "Customer" section থেকে login করবে। Password ভুলে গেলে উপরের "Reset Password" বাটনে ক্লিক করে নতুন password সেট করুন।
+            </p>
+          </div>
+        )}
+
+
+
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Purchase</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p></div>
           <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Sell Price</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDT(sellPriceN)}</p></div>

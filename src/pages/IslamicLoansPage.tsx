@@ -56,6 +56,7 @@ export default function IslamicLoansPage() {
     fundProfitPct: '5',
     discountPct: '0',
     issueDate: todayStr(),
+    customerPassword: '123456',
   });
 
 
@@ -222,7 +223,7 @@ export default function IslamicLoansPage() {
     // Create customer login (phone + default password 123456) and link to loan
     try {
       const { data: custRes, error: custErr } = await supabase.functions.invoke('create-customer', {
-        body: { phone: form.borrowerPhone.trim(), fullName: form.borrowerName.trim() },
+        body: { phone: form.borrowerPhone.trim(), fullName: form.borrowerName.trim(), password: (form.customerPassword || '').trim() || '123456' },
       });
       if (custErr) throw custErr;
       if (custRes?.userId) {
@@ -236,7 +237,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr() } as any);
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr(), customerPassword: '123456' } as any);
     setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
@@ -304,6 +305,20 @@ export default function IslamicLoansPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2 border border-primary/20 bg-primary/5 rounded-lg p-3">
+                  <Label className="text-xs">Customer Login Password (তার login এর জন্য)</Label>
+                  <Input
+                    type="text"
+                    value={form.customerPassword}
+                    onChange={e => setForm(p => ({ ...p, customerPassword: e.target.value }))}
+                    placeholder="123456"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Customer এই phone number এবং এই password দিয়ে "Customer" section থেকে login করবে। ন্যূনতম ৬ অক্ষর। খালি রাখলে default <b>123456</b> ব্যবহৃত হবে।
+                  </p>
+                </div>
+
+
                 {/* Phone history reminder: discount credit + customer rating */}
                 {phoneHistory && (phoneHistory.rating.totalLoans > 0) && (
                   <div className="space-y-2">
@@ -317,8 +332,10 @@ export default function IslamicLoansPage() {
                           <p className="text-muted-foreground mt-0.5">
                             এই loan-এ <b className="text-emerald-700">{phoneHistory.credit.months}% discount</b> স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে (এক-বারই ব্যবহারযোগ্য)।
                           </p>
-                        </div>
-                      </div>
+                  </div>
+                </div>
+
+
                     )}
                     <div className="border border-border bg-secondary/40 rounded-lg p-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs">

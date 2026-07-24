@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { phone, fullName } = await req.json();
+    const { phone, fullName, password: reqPassword } = await req.json();
     if (!phone || typeof phone !== "string") {
       return new Response(JSON.stringify({ error: "phone required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
       });
     }
     const email = `${digits}@sharee.local`;
-    const password = "123456";
+    const password = (typeof reqPassword === "string" && reqPassword.trim().length >= 6)
+      ? reqPassword.trim()
+      : "123456";
 
     // Check existing user
     const { data: existing } = await supabaseAdmin
@@ -62,6 +64,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.id) {
+      // Update password so admin can re-issue/reset credentials for the same customer.
+      await supabaseAdmin.auth.admin.updateUserById(existing.id, { password, email_confirm: true });
       return new Response(JSON.stringify({ success: true, userId: existing.id, reused: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -101,6 +105,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingProfile && !existingProfile.is_deleted && existingProfile.is_customer) {
+          await supabaseAdmin.auth.admin.updateUserById(foundId, { password, email_confirm: true });
           return new Response(JSON.stringify({ success: true, userId: foundId, reused: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
