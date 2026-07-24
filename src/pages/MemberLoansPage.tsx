@@ -117,7 +117,14 @@ export default function MemberLoansPage() {
       .filter(l => l.status === 'approved' && l.due_date)
       .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
     return { memberId, member, mLoans, ongoing, paid, rejected, totalRemaining, nextDue };
-  }).sort((a, b) => (b.ongoing.length - a.ongoing.length) || (b.totalRemaining - a.totalRemaining));
+  }).sort((a, b) => {
+    // Logged-in member's own card always first
+    const aSelf = user?.id && a.memberId === user.id ? 1 : 0;
+    const bSelf = user?.id && b.memberId === user.id ? 1 : 0;
+    if (aSelf !== bSelf) return bSelf - aSelf;
+    return (b.ongoing.length - a.ongoing.length) || (b.totalRemaining - a.totalRemaining);
+  });
+
 
   return (
     <div className="space-y-6 animate-fade-in">
