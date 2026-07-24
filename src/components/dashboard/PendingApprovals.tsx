@@ -168,6 +168,7 @@ export function PendingApprovals() {
             _payment_type: 'installment',
             _payment_method: item.raw.payment_method || null,
             _transaction_id: item.raw.transaction_id || null,
+            _payment_date: item.raw.payment_date || null,
           } as any);
           if (rpcErr) throw rpcErr;
         }
