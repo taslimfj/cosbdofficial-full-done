@@ -82,10 +82,11 @@ export function LoanCalculator() {
               <Select value={tenure} onValueChange={onTenureChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="3">3 মাস</SelectItem>
-                  <SelectItem value="6">6 মাস</SelectItem>
-                  <SelectItem value="12">12 মাস</SelectItem>
+                  {tenureOptions.map(o => (
+                    <SelectItem key={o.months} value={String(o.months)}>{o.months} মাস</SelectItem>
+                  ))}
                 </SelectContent>
+
               </Select>
             </div>
             <div className="space-y-2">
