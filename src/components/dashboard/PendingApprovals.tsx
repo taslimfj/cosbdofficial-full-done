@@ -216,26 +216,51 @@ export function PendingApprovals() {
         </div>
       ) : (
         <div className="divide-y divide-border max-h-[520px] overflow-y-auto">
-          {items.map(it => (
-            <div key={`${it.kind}-${it.id}`} className="px-5 py-3 flex items-center gap-3 flex-wrap">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{it.member_name}</p>
-                <p className="text-xs text-muted-foreground truncate">{it.label} · {formatBDT(it.amount)}</p>
+          {items.map(it => {
+            const r = it.raw || {};
+            const details: { k: string; v: string }[] = [];
+            const method = r.payment_method;
+            const txn = r.transaction_number || r.transaction_id;
+            if (method) details.push({ k: 'Method', v: String(method) });
+            if (txn) details.push({ k: 'Txn', v: String(txn) });
+            if (r.note) details.push({ k: 'Note', v: String(r.note) });
+            if (r.reason) details.push({ k: 'Reason', v: String(r.reason) });
+            return (
+              <div key={`${it.kind}-${it.id}`} className="px-4 sm:px-5 py-4 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground break-words">{it.member_name}</p>
+                  <p className="text-xs text-muted-foreground break-words">
+                    <span className="font-medium text-foreground/80">{it.label}</span>
+                    {' · '}
+                    <span className="font-semibold text-foreground">{formatBDT(it.amount)}</span>
+                  </p>
+                  {details.length > 0 && (
+                    <div className="pt-1 space-y-0.5">
+                      {details.map((d, i) => (
+                        <p key={i} className="text-xs text-muted-foreground break-all">
+                          <span className="font-medium text-foreground/70">{d.k}:</span> {d.v}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm" variant="outline" disabled={busyId === it.id}
+                    className="h-9 px-4 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50"
+                    onClick={() => handle(it, 'approved')}>
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm" variant="outline" disabled={busyId === it.id}
+                    className="h-9 px-4 text-sm font-medium text-rose-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50"
+                    onClick={() => handle(it, 'rejected')}>
+                    Reject
+                  </Button>
+                </div>
               </div>
-              <Button
-                size="sm" variant="outline" disabled={busyId === it.id}
-                className="h-9 px-3 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50"
-                onClick={() => handle(it, 'approved')}>
-                Approve
-              </Button>
-              <Button
-                size="sm" variant="outline" disabled={busyId === it.id}
-                className="h-9 px-3 text-sm font-medium text-rose-600 hover:text-rose-700 hover:border-rose-200 hover:bg-rose-50"
-                onClick={() => handle(it, 'rejected')}>
-                Reject
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
