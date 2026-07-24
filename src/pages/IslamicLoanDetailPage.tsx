@@ -942,9 +942,9 @@ export default function IslamicLoanDetailPage() {
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Media ({loan.media_person_profit_pct}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.media)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2"><p className="text-muted-foreground">Admins ({(loan as any).admin_profit_pct ?? 5}%)</p><p className="font-mono font-bold tabular-nums">{formatBDTDecimal(profitTotals.admin)}</p></div>
           <div className="bg-secondary/50 rounded-lg p-2">
-            <p className="text-muted-foreground">Member Pool</p>
+            <p className="text-muted-foreground">Member Pool (80%)</p>
             <p className={`font-mono font-bold tabular-nums ${profitTotals.isLoss ? 'text-destructive' : ''}`}>
-              {profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(shareRows.reduce((s: number, r: any) => s + r.expected, 0)) || Math.abs(profitTotals.memberPool))}
+              {profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(profitTotals.memberPool))}
             </p>
           </div>
         </div>
@@ -972,7 +972,23 @@ export default function IslamicLoanDetailPage() {
                 </div>
               </div>
             ))}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot। Edit না করলে original snapshot বহাল থাকবে। Edit-এ যাকে delete করা হবে বা residual %, সব Fund-এ যোগ হবে (Loss হলে Fund থেকে বিয়োগ)।</p>
+            {(() => {
+              const aliveSum = shareRows.filter(r => !r.isDeleted).reduce((s: number, r: any) => s + r.expected, 0);
+              const fundGets = profitTotals.memberPool - aliveSum;
+              return (
+                <div className="border-t border-border/50 mt-2 pt-2 space-y-0.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Active members total</span>
+                    <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(aliveSum))}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>→ Fund (deleted + residual)</span>
+                    <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(fundGets))}</span>
+                  </div>
+                </div>
+              );
+            })()}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি member পান: Member Pool × তার % ÷ 100। Deleted members ও residual % → Fund (Loss হলে Fund থেকে বিয়োগ)।</p>
           </div>
         )}
       </div>
