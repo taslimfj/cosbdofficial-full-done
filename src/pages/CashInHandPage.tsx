@@ -359,20 +359,32 @@ export default function CashInHandPage() {
         ) : (
           <div className="divide-y divide-border">
             {visible.map(r => (
-              <div key={r.id} className="flex items-center gap-3 px-5 py-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              <div key={r.id} className="flex items-start gap-3 px-5 py-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {r.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{r.reason}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-foreground break-words">{r.reason}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-medium">{r.source}</span>
                     {r.created_at ? ` · ${format(new Date(r.created_at), 'MMM d, yyyy · h:mm a')}` : ''}
                   </p>
+                  {r.meta && r.meta.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                      {r.meta.map((m, i) => (
+                        <span
+                          key={i}
+                          className="text-[11px] leading-tight text-muted-foreground bg-muted/50 border border-border/60 rounded px-1.5 py-0.5 break-all"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className={`text-sm font-semibold tabular-nums shrink-0 ${
+                <p className={`text-sm font-semibold tabular-nums shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
                 }`}>
                   {r.direction === 'in' ? '+' : '-'}{formatBDT(r.amount)}
