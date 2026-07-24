@@ -491,7 +491,7 @@ export default function MemberDetailPage() {
                         d.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
                         'bg-amber-50 text-amber-700'
                       }`}>{d.status}</span>
-                      <p className="text-xs text-muted-foreground mt-1">{d.created_at ? format(new Date(d.created_at), 'MMM d, yyyy') : ''}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{(d.month_year || d.created_at) ? format(new Date(d.month_year || d.created_at), 'MMM d, yyyy') : ''}</p>
                     </div>
                     {role === 'admin' && (
                       <AlertDialog>
