@@ -38,6 +38,8 @@ export function LoanContractPdf({ loan }: Props) {
   const borrowerName = loan.borrower_name || loan.media_person?.full_name || '';
   const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
   const relPhone = loan.relative_phone || '';
+  const relName = loan.relative_name || '';
+  const relationship = loan.relationship || '';
   const productName = loan.product_name || '';
   const sellPrice = Number(loan.sell_price) || 0;
   const monthly = Number(loan.monthly_installment) || 0;
