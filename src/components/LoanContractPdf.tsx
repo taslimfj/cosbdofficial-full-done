@@ -5,6 +5,7 @@ import { formatBDT } from '@/lib/finance';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { BRAND, loadLogoDataUrl } from '@/lib/brand';
 
 interface Props {
   loan: any;
@@ -21,6 +22,7 @@ export function LoanContractPdf({ loan }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [defaults, setDefaults] = useState<Array<{ label: string; value: string }>>([]);
+  const [logoUrl, setLogoUrl] = useState<string>('');
 
   useEffect(() => {
     (supabase as any)
@@ -30,8 +32,8 @@ export function LoanContractPdf({ loan }: Props) {
       .then(({ data }: any) => {
         if (Array.isArray(data)) setDefaults(data);
       });
+    loadLogoDataUrl().then(setLogoUrl).catch(() => {});
   }, []);
-
 
   const borrowerName = loan.borrower_name || loan.media_person?.full_name || '';
   const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
@@ -45,7 +47,8 @@ export function LoanContractPdf({ loan }: Props) {
   const code = loan.code || '';
 
   const dueDateBn = `${toBn(format(endDate, 'dd'))}/${toBn(format(endDate, 'MM'))}/${toBn(format(endDate, 'yyyy'))}`;
-  const startDateBn = format(startDate, 'dd/MM/yyyy');
+  const startDateBn = `${toBn(format(startDate, 'dd'))}/${toBn(format(startDate, 'MM'))}/${toBn(format(startDate, 'yyyy'))}`;
+  const generatedAt = format(new Date(), 'MMM d, yyyy h:mm a');
 
   const handleDownload = async () => {
     if (!ref.current) return;
@@ -55,7 +58,6 @@ export function LoanContractPdf({ loan }: Props) {
         import('html2canvas'),
         import('jspdf'),
       ]);
-      // Make node visible off-screen for capture
       const node = ref.current;
       node.style.left = '0';
       node.style.top = '0';
@@ -65,10 +67,11 @@ export function LoanContractPdf({ loan }: Props) {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-      const w = canvas.width * ratio;
-      const h = canvas.height * ratio;
-      pdf.addImage(imgData, 'JPEG', (pageW - w) / 2, (pageH - h) / 2, w, h);
+      // Fill the whole page (pad style) — width match, height scaled proportionally
+      const w = pageW;
+      const h = (canvas.height * pageW) / canvas.width;
+      const y = h <= pageH ? 0 : 0;
+      pdf.addImage(imgData, 'JPEG', 0, y, w, Math.min(h, pageH));
       pdf.save(`contract-${code || 'loan'}.pdf`);
     } catch (e: any) {
       toast.error('PDF তৈরিতে সমস্যা: ' + (e?.message || ''));
@@ -76,6 +79,10 @@ export function LoanContractPdf({ loan }: Props) {
       setBusy(false);
     }
   };
+
+  // A4 @ 96dpi ≈ 794 × 1123 px
+  const PAGE_W = 794;
+  const PAGE_H = 1123;
 
   return (
     <>
@@ -89,102 +96,139 @@ export function LoanContractPdf({ loan }: Props) {
         ref={ref}
         style={{
           position: 'fixed', left: '-10000px', top: 0,
-          width: '794px', // ~ A4 @ 96dpi
-          padding: '40px 50px',
-          background: '#fff', color: '#111',
+          width: `${PAGE_W}px`,
+          height: `${PAGE_H}px`,
+          background: '#ffffff',
+          color: '#111',
           fontFamily: '"Noto Sans Bengali", "SolaimanLipi", "Kalpurush", "Siyam Rupali", system-ui, sans-serif',
-          fontSize: '14px', lineHeight: 1.7,
+          fontSize: '14px',
+          lineHeight: 1.7,
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          padding: '40px 56px 32px',
         }}
       >
-        {/* Header */}
-        <div style={{ textAlign: 'center', borderBottom: '2px solid #111', paddingBottom: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 14, color: '#666' }}>بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: 2, margin: '6px 0' }}>CIRCLE OF SUCCESS</h1>
-          <div style={{ fontSize: 12, color: '#666' }}>Since : 2024</div>
-        </div>
-
-        {/* Date / ID */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 18, fontSize: 14 }}>
-          <span>Date : <b>{startDateBn}</b></span>
-          <span>ID : <b>{code}</b></span>
-        </div>
-
-        {/* Title */}
-        <h2 style={{ textAlign: 'center', fontSize: 22, fontWeight: 700, margin: '10px 0 22px' }}>
-          ইসলামিক ঋণ চুক্তিনামা
-        </h2>
-
-        {/* Product / price / installment */}
-        <div style={{ marginBottom: 6 }}>
-          <b>পণ্য:</b> <span style={{ paddingLeft: 6 }}>{productName}</span>
-        </div>
-        <div style={{ marginBottom: 6 }}>
-          <b>বিক্রয় মূল্য:</b> <span style={{ paddingLeft: 6 }}>{toBn(formatBDT(sellPrice))}</span>
-        </div>
-        <div style={{ marginBottom: 18 }}>
-          <b>কিস্তির পরিমাণ:</b> <span style={{ paddingLeft: 6 }}>{toBn(formatBDT(monthly))}</span>
-          <span style={{ marginLeft: 12 }}>মাসিক</span>
-        </div>
-
-        {/* Main clause */}
-        <p style={{ textAlign: 'justify', margin: '18px 0' }}>
-          <b style={{ padding: '0 6px' }}>{borrowerName}</b>
-          {' '}কে{' '}
-          <b style={{ padding: '0 6px' }}>{toBn(tenure)}</b>
-          {' '}মাসের কিস্তি সুবিধা চুক্তিতে পণ্যটি বিক্রয় করা হলো। তিনি পণ্যটির সম্পূর্ণ মূল্য{' '}
-          <b style={{ padding: '0 6px' }}>{dueDateBn}</b>
-          {' '}তারিখ এর মধ্যে পরিশোধ করিতে বাধ্য থাকিবেন অন্যথায় আইনানুগ ব্যবস্থা গ্রহণ করা হবে এবং এর সকল দায়ভার মাধ্যম গ্রহণ করিবে।
-        </p>
-
-        {/* Phones */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, gap: 30 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: 6 }}>
-              <b>মোবাইল ১=</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 200, paddingLeft: 6 }}>{toBn(borrowerPhone)}</span>
-            </div>
-            <div>
-              <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;২=</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 200, paddingLeft: 6 }}></span>
-            </div>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: 6 }}>
-              <b>পারিবারিক সদস্য:</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}>{toBn(relPhone)}</span>
-            </div>
-            <div>
-              <b>সম্পর্ক:</b> <span style={{ borderBottom: '1px dotted #333', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Conditions */}
-        <div style={{ marginTop: 24 }}>
-          <b>শর্ত:</b>
-          <ol style={{ paddingLeft: 20, margin: '6px 0' }}>
-            <li>সাপ্তাহিক ভিত্তিতে প্রতি সপ্তাহের সোমবারের মধ্যে টাকা পরিশোধ করতে হবে।</li>
-            <li>মোবাইল ব্যাংকিং এর মাধ্যমে পাঠালে বিকাশে হাজারে ১২ টাকা ৫০ পয়সা, নগদে ১৫ টাকা খরচ সহকারে পাঠাতে হবে।</li>
-          </ol>
-        </div>
-
-        {/* Bank info — from default payment methods */}
-        <div style={{ marginTop: 18, fontSize: 13 }}>
-          <b>ব্যাংক অ্যাকাউন্ট</b>
-          {defaults.length === 0 ? (
-            <div style={{ color: '#888' }}>কোনো ডিফল্ট পেমেন্ট মাধ্যম সেট করা নেই।</div>
-          ) : (
-            defaults.map((d, i) => (
-              <div key={i}>{d.label}: {toBn(d.value)}</div>
-            ))
+        {/* ===== Pad Header ===== */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {logoUrl && (
+            <img src={logoUrl} alt="" style={{ width: 56, height: 56, objectFit: 'contain' }} />
           )}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1, color: '#0f172a' }}>
+              {BRAND.name}
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+              {BRAND.slogan}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 10, color: '#64748b' }}>
+            Generated: {generatedAt}
+          </div>
+        </div>
+        <div style={{ height: 2, background: '#0f172a', marginTop: 10 }} />
+        <div style={{ height: 1, background: '#0f172a', marginTop: 2, opacity: 0.35 }} />
+
+        {/* ===== Body ===== */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 22 }}>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b', marginBottom: 4 }}>
+            بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+          </div>
+          <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, margin: '4px 0 6px' }}>
+            ইসলামিক ঋণ চুক্তিনামা
+          </h2>
+          <div style={{ width: 90, height: 3, background: '#0f172a', margin: '0 auto 22px', borderRadius: 2 }} />
+
+          {/* Date / ID row */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 6,
+            background: '#f8fafc', marginBottom: 20, fontSize: 13,
+          }}>
+            <span>তারিখ: <b>{startDateBn}</b></span>
+            <span>চুক্তি নং: <b>{code || '—'}</b></span>
+          </div>
+
+          {/* Info grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', rowGap: 10, columnGap: 12, marginBottom: 18 }}>
+            <div style={{ color: '#475569' }}>পণ্য</div>
+            <div><b>{productName || '—'}</b></div>
+            <div style={{ color: '#475569' }}>বিক্রয় মূল্য</div>
+            <div><b>{toBn(formatBDT(sellPrice))}</b></div>
+            <div style={{ color: '#475569' }}>মাসিক কিস্তি</div>
+            <div><b>{toBn(formatBDT(monthly))}</b></div>
+            <div style={{ color: '#475569' }}>মেয়াদ</div>
+            <div><b>{toBn(tenure)} মাস</b></div>
+            <div style={{ color: '#475569' }}>পরিশোধের শেষ তারিখ</div>
+            <div><b>{dueDateBn}</b></div>
+          </div>
+
+          {/* Main clause */}
+          <p style={{ textAlign: 'justify', margin: '6px 0 18px' }}>
+            <b>{borrowerName}</b> কে <b>{toBn(tenure)}</b> মাসের কিস্তি সুবিধা চুক্তিতে উপরোক্ত পণ্যটি বিক্রয় করা হলো।
+            তিনি পণ্যটির সম্পূর্ণ মূল্য <b>{dueDateBn}</b> তারিখের মধ্যে পরিশোধ করিতে বাধ্য থাকিবেন;
+            অন্যথায় আইনানুগ ব্যবস্থা গ্রহণ করা হবে এবং এর সকল দায়ভার মাধ্যম গ্রহণ করিবে।
+          </p>
+
+          {/* Contacts */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 4 }}>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>ক্রেতার যোগাযোগ</div>
+              <div style={{ marginBottom: 6 }}>
+                মোবাইল ১: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}>{toBn(borrowerPhone)}</span>
+              </div>
+              <div>
+                মোবাইল ২: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}></span>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>পারিবারিক সদস্য</div>
+              <div style={{ marginBottom: 6 }}>
+                মোবাইল: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}>{toBn(relPhone)}</span>
+              </div>
+              <div>
+                সম্পর্ক: <span style={{ borderBottom: '1px dotted #64748b', display: 'inline-block', minWidth: 180, paddingLeft: 6 }}></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Condition */}
+          <div style={{ marginTop: 22 }}>
+            <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>শর্ত</div>
+            <ol style={{ paddingLeft: 22, margin: 0 }}>
+              <li>মোবাইল ব্যাংকিং এর মাধ্যমে পাঠালে বিকাশে হাজারে ১২ টাকা ৫০ পয়সা, নগদে ১৫ টাকা খরচ সহকারে পাঠাতে হবে।</li>
+            </ol>
+          </div>
+
+          {/* Payment defaults */}
+          {defaults.length > 0 && (
+            <div style={{
+              marginTop: 18, padding: '10px 14px', border: '1px solid #e2e8f0',
+              borderRadius: 6, background: '#f8fafc', fontSize: 13,
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: 4, color: '#0f172a' }}>পেমেন্ট মাধ্যম</div>
+              {defaults.map((d, i) => (
+                <div key={i}>{d.label}: <b>{toBn(d.value)}</b></div>
+              ))}
+            </div>
+          )}
+
+          {/* Spacer pushes signatures to bottom */}
+          <div style={{ flex: 1 }} />
+
+          {/* Signatures — pinned near the bottom */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 30, marginTop: 40 }}>
+            {['ক্রেতা', 'বিক্রেতা', 'মাধ্যম'].map(label => (
+              <div key={label} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ borderTop: '1px solid #0f172a', paddingTop: 6, fontSize: 13 }}>{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
-
-        {/* Signatures */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 60, gap: 30 }}>
-          {['ক্রেতা', 'বিক্রেতা', 'মাধ্যম'].map(label => (
-            <div key={label} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ borderTop: '1px solid #111', paddingTop: 4 }}>{label}</div>
-            </div>
-          ))}
+        {/* ===== Pad Footer ===== */}
+        <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 14, paddingTop: 8, textAlign: 'center', fontSize: 10, color: '#94a3b8' }}>
+          {BRAND.name} — {BRAND.slogan}
         </div>
       </div>
     </>
