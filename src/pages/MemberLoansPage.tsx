@@ -117,7 +117,14 @@ export default function MemberLoansPage() {
       .filter(l => l.status === 'approved' && l.due_date)
       .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
     return { memberId, member, mLoans, ongoing, paid, rejected, totalRemaining, nextDue };
-  }).sort((a, b) => (b.ongoing.length - a.ongoing.length) || (b.totalRemaining - a.totalRemaining));
+  }).sort((a, b) => {
+    // Logged-in member's own card always first
+    const aSelf = user?.id && a.memberId === user.id ? 1 : 0;
+    const bSelf = user?.id && b.memberId === user.id ? 1 : 0;
+    if (aSelf !== bSelf) return bSelf - aSelf;
+    return (b.ongoing.length - a.ongoing.length) || (b.totalRemaining - a.totalRemaining);
+  });
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -178,15 +185,25 @@ export default function MemberLoansPage() {
               className="text-left bg-card border border-border rounded-xl p-5 shadow-subtle hover:shadow-card hover:border-primary/30 transition-all"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
-                  {mc.member?.full_name?.charAt(0)?.toUpperCase() || <Users className="w-5 h-5" />}
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0 overflow-hidden ring-1 ring-border">
+                  {mc.member?.avatar_url ? (
+                    <img src={mc.member.avatar_url} alt={mc.member?.full_name || ''} className="w-full h-full object-cover" />
+                  ) : (
+                    mc.member?.full_name?.charAt(0)?.toUpperCase() || <Users className="w-5 h-5" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{mc.member?.full_name || 'Unknown'}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {mc.member?.full_name || 'Unknown'}
+                    {user?.id && mc.memberId === user.id && (
+                      <span className="ml-2 text-[10px] font-medium bg-primary/10 text-primary px-1.5 py-0.5 rounded">আপনি</span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">{mc.mLoans.length}টি loan মোট</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
               </div>
+
 
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <StatChip label="Ongoing" value={mc.ongoing.length} tone="warning" />

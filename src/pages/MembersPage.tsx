@@ -19,7 +19,7 @@ interface MemberContact {
 }
 
 export default function MembersPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const navigate = useNavigate();
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,8 +89,11 @@ export default function MembersPage() {
     setTotalInvestment(total);
     setMemberBalances(balanceMap);
 
-    // Admins first, then by balance desc
+    // Self first, then admins, then by balance desc
     const sorted = [...profiles].sort((a, b) => {
+      const aSelf = user?.id && a.id === user.id ? 1 : 0;
+      const bSelf = user?.id && b.id === user.id ? 1 : 0;
+      if (aSelf !== bSelf) return bSelf - aSelf;
       const aAdmin = admins.has(a.id) ? 1 : 0;
       const bAdmin = admins.has(b.id) ? 1 : 0;
       if (aAdmin !== bAdmin) return bAdmin - aAdmin;
