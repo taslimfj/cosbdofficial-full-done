@@ -352,10 +352,11 @@ export default function IslamicLoansPage() {
                   <Select value={form.tenure} onValueChange={v => setForm(p => ({ ...p, tenure: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3">3 Months (8%)</SelectItem>
-                      <SelectItem value="6">6 Months (16%)</SelectItem>
-                      <SelectItem value="12">12 Months (25%)</SelectItem>
+                      {tenureOptions.map(o => (
+                        <SelectItem key={o.months} value={String(o.months)}>{o.months} Months ({o.profit_pct}%)</SelectItem>
+                      ))}
                     </SelectContent>
+
                   </Select>
                 </div>
                 <div className="space-y-2">
