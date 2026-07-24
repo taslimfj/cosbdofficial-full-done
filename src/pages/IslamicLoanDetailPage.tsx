@@ -478,6 +478,19 @@ export default function IslamicLoanDetailPage() {
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
   const overdue = isLoanOverdue(loan);
+  // Installment numbering — excludes Advance payments so Advance never counts as an installment
+  const installmentIndexById = (() => {
+    const map = new Map<string, number>();
+    const asc = [...payments].reverse();
+    let n = 0;
+    for (const p of asc) {
+      if ((p.payment_type || 'installment') !== 'advance') {
+        n++;
+        map.set(p.id, n);
+      }
+    }
+    return map;
+  })();
   const getMatchedApprovedRequest = (payment: any) => payRequests.find((request: any) =>
     request.status === 'approved' &&
     Number(request.amount) === Number(payment.amount) &&
