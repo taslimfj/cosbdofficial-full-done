@@ -324,19 +324,12 @@ export default function IslamicLoanDetailPage() {
     }
 
     // Member shares — signed (positive = profit credit, negative = loss debit)
-    // For LOSS: deleted members' loss is NOT sent to Fund — it is redistributed
-    // proportionally among remaining alive members.
-    const aliveShares = shareRows.filter(r => !r.isDeleted && r.memberId);
-    const totalAlivePct = aliveShares.reduce((s, r) => s + r.sharePct, 0);
-    const deletedLossPool = isLoss
-      ? shareRows.filter(r => r.isDeleted || !r.memberId).reduce((s, r) => s + r.expected, 0) // negative
-      : 0;
-
+    // Deleted members are NEVER part of profit or loss — Fund absorbs their share
+    // in both cases (Fund credited on profit, Fund debited on loss).
     shareRows.forEach(r => {
       if (r.expected === 0) return;
       if (r.isDeleted || !r.memberId) {
-        if (isLoss) return; // loss is absorbed by alive members below — skip this row
-        // Profit for deleted member → Fund absorbs
+        // Deleted member's share → Fund (both profit and loss)
         rows.push({
           source_type: 'islamic_loan', source_id: id, member_id: null,
           amount: r.expected, share_percentage: r.sharePct,
@@ -344,39 +337,40 @@ export default function IslamicLoanDetailPage() {
         });
         fundExtras.push({
           amount: Math.abs(r.expected),
-          reason: `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
-          type: 'in',
+          reason: isLoss
+            ? `Loan ${loan.code} — ${r.name} (deleted member) এর loss অংশ Fund থেকে বিয়োগ`
+            : `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
+          type: isLoss ? 'out' : 'in',
         });
       } else {
-        let amount = r.expected;
-        if (isLoss && totalAlivePct > 0 && deletedLossPool < 0) {
-          amount = round2(amount + deletedLossPool * (r.sharePct / totalAlivePct));
-        }
         rows.push({
           source_type: 'islamic_loan', source_id: id, member_id: r.memberId,
-          amount, share_percentage: r.sharePct,
+          amount: r.expected, share_percentage: r.sharePct,
           distribution_type: 'share',
         });
       }
     });
 
     // Residual member-pool coverage — if snapshot alive-share % < 100, the
-    // uncovered pool automatically goes to Fund (profit only; skipped on loss).
-    if (!isLoss && profitTotals.memberPool > 0) {
+    // uncovered pool goes to Fund. On profit → Fund gets credit. On loss →
+    // Fund absorbs the uncovered loss.
+    if (profitTotals.memberPool !== 0) {
       const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
       const residualPct = Math.max(0, 100 - totalSnapshotPct);
       if (residualPct > 0.001) {
         const residualAmt = round2(profitTotals.memberPool * residualPct / 100);
-        if (residualAmt > 0) {
+        if (residualAmt !== 0) {
           rows.push({
             source_type: 'islamic_loan', source_id: id, member_id: null,
             amount: residualAmt, share_percentage: residualPct,
             distribution_type: 'residual_to_fund',
           });
           fundExtras.push({
-            amount: residualAmt,
-            reason: `Loan ${loan.code} — অবশিষ্ট ${residualPct.toFixed(2)}% Fund-এ যোগ`,
-            type: 'in',
+            amount: Math.abs(residualAmt),
+            reason: isLoss
+              ? `Loan ${loan.code} — অবশিষ্ট ${residualPct.toFixed(2)}% loss Fund থেকে বিয়োগ`
+              : `Loan ${loan.code} — অবশিষ্ট ${residualPct.toFixed(2)}% Fund-এ যোগ`,
+            type: isLoss ? 'out' : 'in',
           });
         }
       }
