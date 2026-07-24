@@ -33,6 +33,24 @@ export default function ProjectsPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
+  const [pctDefaults, setPctDefaults] = useState({ fund: 5, manager: 10, admin: 5 });
+
+  useEffect(() => {
+    (supabase as any)
+      .from('percentage_defaults')
+      .select('fund_pct, manager_pct, admin_pct')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data) setPctDefaults({
+          fund: Number(data.fund_pct) || 0,
+          manager: Number(data.manager_pct) || 0,
+          admin: Number(data.admin_pct) || 0,
+        });
+      });
+  }, []);
+
 
   useEffect(() => {
     Promise.all([
