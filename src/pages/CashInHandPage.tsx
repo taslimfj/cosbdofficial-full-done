@@ -120,6 +120,15 @@ export default function CashInHandPage() {
       const amt = Number(d.amount || 0);
       const isWithdraw = amt < 0;
       const name = memberName.get(d.member_id) || 'Member';
+      const meta = [
+        `Ref: DEP-${shortId(d.id)}`,
+        `Member ID: ${shortId(d.member_id || '')}`,
+      ];
+      const method = fmtMethod(d.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      const month = fmtMonth(d.month_year);
+      if (month) meta.push(`For: ${month}`);
+      if (d.note) meta.push(`Note: ${d.note}`);
       merged.push({
         id: `dep-${d.id}`,
         created_at: d.created_at,
@@ -127,6 +136,7 @@ export default function CashInHandPage() {
         direction: isWithdraw ? 'out' : 'in',
         amount: Math.abs(amt),
         reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
+        meta,
         editable: { table: 'deposits', rowId: d.id, hasReason: false, signed: true },
       });
     });
@@ -137,6 +147,10 @@ export default function CashInHandPage() {
       const reason: string = t.reason || '';
       const isProfitInternal = /profit share|Admin share.*Fund/i.test(reason);
       if (isProfitInternal) return;
+      const meta = [`Ref: FND-${shortId(t.id)}`];
+      const method = fmtMethod(t.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (t.note) meta.push(`Note: ${t.note}`);
       merged.push({
         id: `fund-${t.id}`,
         created_at: t.created_at,
@@ -144,20 +158,31 @@ export default function CashInHandPage() {
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
         amount: Number(t.amount || 0),
         reason: reason || 'Fund transaction',
+        meta,
         editable: { table: 'fund_transactions', rowId: t.id, hasReason: true },
       });
     });
 
     // Project transactions
-    (projRes.data || []).forEach((t: any) => merged.push({
-      id: `proj-${t.id}`,
-      created_at: t.created_at,
-      source: 'Project',
-      direction: t.type === 'income' ? 'in' : 'out',
-      amount: Number(t.amount || 0),
-      reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
-      editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
-    }));
+    (projRes.data || []).forEach((t: any) => {
+      const meta = [
+        `Ref: PRJ-${shortId(t.id)}`,
+        `Project ID: ${shortId(t.project_id || '')}`,
+      ];
+      const method = fmtMethod(t.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (t.note) meta.push(`Note: ${t.note}`);
+      merged.push({
+        id: `proj-${t.id}`,
+        created_at: t.created_at,
+        source: 'Project',
+        direction: t.type === 'income' ? 'in' : 'out',
+        amount: Number(t.amount || 0),
+        reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
+        meta,
+        editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
+      });
+    });
 
     // Islamic loan purchases (money OUT) — NOT editable here (managed on loan page)
     (ilRes.data || []).forEach((l: any) => merged.push({
@@ -167,11 +192,24 @@ export default function CashInHandPage() {
       direction: 'out',
       amount: Number(l.purchase_price || 0),
       reason: `Purchase — ${l.product_name || l.code || 'Loan'}${l.borrower_name ? ` (${l.borrower_name})` : ''}`,
+      meta: [
+        `Ref: ${l.code || `ILN-${shortId(l.id)}`}`,
+        `Loan ID: ${shortId(l.id)}`,
+      ],
     }));
 
     // Islamic loan payments (money IN)
     (ilPayRes.data || []).forEach((p: any) => {
       const l = ilById.get(p.loan_id);
+      const meta = [
+        `Ref: ILP-${shortId(p.id)}`,
+        `Loan: ${l?.code || shortId(p.loan_id || '')}`,
+      ];
+      if (l?.borrower_name) meta.push(`Borrower: ${l.borrower_name}`);
+      const method = fmtMethod(p.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (p.payment_date) meta.push(`For: ${format(new Date(p.payment_date), 'MMM d, yyyy')}`);
+      if (p.note) meta.push(`Note: ${p.note}`);
       merged.push({
         id: `ilp-${p.id}`,
         created_at: p.created_at,
@@ -179,6 +217,7 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(p.amount || 0),
         reason: `${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.product_name || l?.code || 'Loan'}`,
+        meta,
         editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
     });
@@ -193,12 +232,24 @@ export default function CashInHandPage() {
         direction: 'out',
         amount: Number(l.approved_amount || 0),
         reason: `Loan disbursed — ${memberName.get(l.member_id) || 'Member'}`,
+        meta: [
+          `Ref: MLN-${shortId(l.id)}`,
+          `Member ID: ${shortId(l.member_id || '')}`,
+        ],
       });
     });
 
     // Member loan repayments (money IN)
     (mlPayRes.data || []).forEach((r: any) => {
       const l = mlById.get(r.loan_id);
+      const meta = [
+        `Ref: MLP-${shortId(r.id)}`,
+        `Loan ID: ${shortId(r.loan_id || '')}`,
+      ];
+      const method = fmtMethod(r.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (r.payment_date) meta.push(`For: ${format(new Date(r.payment_date), 'MMM d, yyyy')}`);
+      if (r.note) meta.push(`Note: ${r.note}`);
       merged.push({
         id: `mlp-${r.id}`,
         created_at: r.approved_at || r.created_at,
@@ -206,6 +257,7 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(r.amount || 0),
         reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
+        meta,
         editable: { table: 'member_loan_repayments', rowId: r.id, hasReason: false },
       });
     });
