@@ -468,8 +468,9 @@ export default function IslamicLoanDetailPage() {
   const startDate = (loan as any).issue_date ? new Date((loan as any).issue_date) : (loan.created_at ? new Date(loan.created_at) : new Date());
   const endDate = addMonths(startDate, loan.tenure_months);
   // Advance payments are one-time upfront amounts — never counted as installment progress.
+  // Only approved advance entries reduce financed amount (pending requests are excluded).
   const advancePaid = payments
-    .filter((p: any) => (p.payment_type || 'installment') === 'advance')
+    .filter((p: any) => (p.payment_type || 'installment') === 'advance' && (p.status ?? 'approved') === 'approved')
     .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
   const installmentPaidAmount = Math.max(0, paid - advancePaid);
   const financedAmount = Math.max(0, sellPriceN - advancePaid);
