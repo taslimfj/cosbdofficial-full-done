@@ -33,6 +33,24 @@ export default function ProjectsPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
+  const [pctDefaults, setPctDefaults] = useState({ fund: 5, manager: 10, admin: 5 });
+
+  useEffect(() => {
+    (supabase as any)
+      .from('percentage_defaults')
+      .select('fund_pct, manager_pct, admin_pct')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data) setPctDefaults({
+          fund: Number(data.fund_pct) || 0,
+          manager: Number(data.manager_pct) || 0,
+          admin: Number(data.admin_pct) || 0,
+        });
+      });
+  }, []);
+
 
   useEffect(() => {
     Promise.all([
@@ -80,8 +98,9 @@ export default function ProjectsPage() {
     const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
-      manager_profit_pct: parseFloat(form.managerProfitPct),
-      fund_profit_pct: parseFloat(form.fundProfitPct),
+      manager_profit_pct: pctDefaults.manager,
+      fund_profit_pct: pctDefaults.fund,
+      admin_profit_pct: pctDefaults.admin,
       ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
@@ -140,10 +159,10 @@ export default function ProjectsPage() {
                 <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded px-2 py-1">
                   Project-এর সব খরচ সরাসরি Cash in Hand থেকে হবে — কোনো budget আগে থেকে reserve করা লাগবে না।
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>Manager %</Label><Input type="number" value={form.managerProfitPct} onChange={e => setForm(p => ({ ...p, managerProfitPct: e.target.value }))} /></div>
-                  <div className="space-y-2"><Label>Fund %</Label><Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} /></div>
-                </div>
+                <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded px-2 py-1">
+                  Profit distribution — Fund: <b>{pctDefaults.fund}%</b> • Manager: <b>{pctDefaults.manager}%</b> • Admin: <b>{pctDefaults.admin}%</b>
+                  <span className="block opacity-70">Default Settings → Percentage Default থেকে পরিবর্তন করুন।</span>
+                </p>
                 <div className="space-y-2">
                   <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই project-এ যাদের অংশ থাকবে না)</span></Label>
                   <MemberMultiSelect
