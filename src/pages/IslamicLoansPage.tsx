@@ -47,6 +47,7 @@ export default function IslamicLoansPage() {
     relativePhone: '+880',
     productName: '',
     purchasePrice: '',
+    advanceAmount: '',
     tenure: '3',
     mediaPersonId: '',
     secondaryMediaPersonId: '',
@@ -56,6 +57,7 @@ export default function IslamicLoansPage() {
     discountPct: '0',
     issueDate: todayStr(),
   });
+
 
   const [pctDefaults, setPctDefaults] = useState({ fund: 5, media: 10, admin: 5 });
 
@@ -97,12 +99,15 @@ export default function IslamicLoansPage() {
 
   const tenure = parseInt(form.tenure);
   const purchasePrice = parseFloat(form.purchasePrice) || 0;
+  const advanceAmount = Math.max(0, Math.min(purchasePrice, parseFloat(form.advanceAmount) || 0));
+  const financedAmount = Math.max(0, purchasePrice - advanceAmount);
   const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
   const profitPct = calculateProfitPercentage(tenure);
-  const baseSellPrice = calculateSellPrice(purchasePrice, profitPct);
+  const baseSellPrice = calculateSellPrice(financedAmount, profitPct);
   const rawSellPrice = baseSellPrice * (1 - discountPct / 100);
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
-  const sellPrice = monthlyInstallment * (tenure || 0); // effective (ভগ্নাংশ বাদ)
+  const sellPrice = monthlyInstallment * (tenure || 0); // financed portion — customer's remaining
+
 
   const criticalMemberIds = useMemo(() => {
     const byMember = new Map<string, any[]>();
@@ -161,9 +166,11 @@ export default function IslamicLoansPage() {
       relative_phone: form.relativePhone.trim() || null,
       product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
+      advance_amount: advanceAmount,
       sell_price: sellPrice,
       tenure_months: tenure,
       profit_percentage: profitPct,
+
       discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
       secondary_media_person_id: (form as any).secondaryMediaPersonId || null,
@@ -212,7 +219,7 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr() } as any);
+    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr() } as any);
     setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     setLoans(data || []);
@@ -319,6 +326,11 @@ export default function IslamicLoansPage() {
                   <Input type="number" value={form.purchasePrice} onChange={e => setForm(p => ({ ...p, purchasePrice: e.target.value }))} placeholder="0" />
                 </div>
                 <div className="space-y-2">
+                  <Label>Advance / অগ্রিম (৳) <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Input type="number" min="0" value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: e.target.value }))} placeholder="যদি কোনো advance থাকে" />
+                  <p className="text-[11px] text-muted-foreground">Advance বাদ দিয়ে বাকি টাকার উপর profit % হিসাব হবে।</p>
+                </div>
+                <div className="space-y-2">
                   <Label>Tenure</Label>
                   <Select value={form.tenure} onValueChange={v => setForm(p => ({ ...p, tenure: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -336,16 +348,26 @@ export default function IslamicLoansPage() {
                 {purchasePrice > 0 && (
                   <div className="bg-secondary rounded-lg p-4 space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Profit %</span><span className="font-semibold">{profitPct}%</span></div>
+                    {advanceAmount > 0 && (
+                      <>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Advance</span><span className="font-semibold tabular-nums text-emerald-600">−{formatBDT(advanceAmount)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Financed (বাকি)</span><span className="font-semibold tabular-nums">{formatBDT(financedAmount)}</span></div>
+                      </>
+                    )}
                     {discountPct > 0 && (
                       <>
                         <div className="flex justify-between"><span className="text-muted-foreground">Before Discount</span><span className="font-semibold tabular-nums">{formatBDT(baseSellPrice)}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
                       </>
                     )}
-                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price {advanceAmount > 0 ? '(Financed অংশ)' : ''}</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
+                    {advanceAmount > 0 && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">মোট গ্রাহক প্রদেয় (Advance সহ)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice + advanceAmount)}</span></div>
+                    )}
                     <div className="flex justify-between"><span className="text-muted-foreground">Monthly</span><span className="font-semibold tabular-nums">{formatBDT(monthlyInstallment)}</span></div>
                   </div>
                 )}
+
                 <div className="space-y-2">
                   <Label>Media Person</Label>
                   <Select value={form.mediaPersonId} onValueChange={v => setForm(p => ({ ...p, mediaPersonId: v }))}>
