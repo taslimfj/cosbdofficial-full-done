@@ -230,20 +230,25 @@ export function RecentActivity() {
         <>
           <div className="divide-y divide-border">
             {shown.map(tx => (
-              <div key={tx.id} className="flex items-center gap-3 px-5 py-3">
+              <div key={tx.id} className="flex items-start gap-3 px-4 sm:px-5 py-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   tx.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {tx.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{tx.label}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-foreground break-words whitespace-normal">{tx.label}</p>
+                  <p className="text-xs text-muted-foreground break-words whitespace-normal">
                     <span className="uppercase tracking-wide">{tx.category}</span>
                     {tx.date ? ` · ${format(new Date(tx.date), 'MMM d, yyyy')}` : ''}
                   </p>
+                  <p className={`sm:hidden mt-1 text-sm font-semibold tabular-nums ${
+                    tx.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
+                  }`}>
+                    {tx.direction === 'in' ? '+' : '-'}{formatBDT(tx.amount)}
+                  </p>
                 </div>
-                <p className={`text-sm font-semibold tabular-nums ${
+                <p className={`hidden sm:block text-sm font-semibold tabular-nums shrink-0 ${
                   tx.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
                 }`}>
                   {tx.direction === 'in' ? '+' : '-'}{formatBDT(tx.amount)}
