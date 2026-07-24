@@ -77,6 +77,23 @@ export default function IslamicLoansPage() {
       });
   }, []);
 
+  const [tenureOptions, setTenureOptions] = useState<{ months: number; profit_pct: number }[]>([
+    { months: 3, profit_pct: 8 }, { months: 6, profit_pct: 16 }, { months: 12, profit_pct: 25 },
+  ]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from('islamic_tenure_options')
+      .select('months, profit_pct')
+      .order('months')
+      .then(({ data }: any) => {
+        if (data && data.length) {
+          setTenureOptions(data.map((d: any) => ({ months: Number(d.months), profit_pct: Number(d.profit_pct) })));
+        }
+      });
+  }, []);
+
+
   useEffect(() => {
     if (isCustomer) { setLoading(false); return; }
     Promise.all([
