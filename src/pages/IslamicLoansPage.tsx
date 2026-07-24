@@ -185,7 +185,7 @@ export default function IslamicLoansPage() {
       product_name: form.productName.trim() || null,
       purchase_price: purchasePrice,
       advance_amount: advanceAmount,
-      sell_price: sellPrice,
+      sell_price: sellPrice + advanceAmount, // Total customer-payable (Advance সহ)
       tenure_months: tenure,
       profit_percentage: profitPct,
 
@@ -195,7 +195,7 @@ export default function IslamicLoansPage() {
       media_person_profit_pct: pctDefaults.media,
       fund_profit_pct: pctDefaults.fund,
       admin_profit_pct: pctDefaults.admin,
-      remaining_amount: sellPrice,
+      remaining_amount: sellPrice + advanceAmount,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
       discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
@@ -206,6 +206,21 @@ export default function IslamicLoansPage() {
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
     const loanId = inserted.id;
+
+    // Auto-record Advance as a paid deposit (not an installment)
+    if (advanceAmount > 0) {
+      try {
+        await supabase.rpc('record_islamic_loan_payment', {
+          _loan_id: loanId,
+          _amount: advanceAmount,
+          _payment_type: 'advance',
+          _payment_method: 'advance',
+          _transaction_id: `ADV-${code}`,
+          _payment_date: (isAdmin && form.issueDate) ? form.issueDate : new Date().toISOString().split('T')[0],
+        } as any);
+      } catch (e: any) { console.warn('Advance auto-record failed:', e?.message); }
+    }
+
 
     // Mark the previous loan's discount credit as used (one-shot)
     if (usingCredit) {
