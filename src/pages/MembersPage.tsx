@@ -19,7 +19,7 @@ interface MemberContact {
 }
 
 export default function MembersPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const navigate = useNavigate();
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
