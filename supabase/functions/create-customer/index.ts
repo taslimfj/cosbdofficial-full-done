@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingProfile && !existingProfile.is_deleted && existingProfile.is_customer) {
+          await supabaseAdmin.auth.admin.updateUserById(foundId, { password, email_confirm: true });
           return new Response(JSON.stringify({ success: true, userId: foundId, reused: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
