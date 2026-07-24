@@ -27,6 +27,8 @@ type Row = {
   direction: 'in' | 'out';
   amount: number;
   reason: string;
+  /** Extra detail lines shown under the main reason. */
+  meta?: string[];
   /** Underlying table + row id, so admin can edit/delete. */
   editable?: {
     table: EditableTable;
@@ -35,6 +37,22 @@ type Row = {
     /** Deposits store signed amount (negative = withdrawal); preserve sign on edit. */
     signed?: boolean;
   };
+};
+
+const shortId = (id: string) => (id || '').replace(/-/g, '').slice(-6).toUpperCase();
+const fmtMethod = (m?: string | null) => {
+  if (!m) return null;
+  const map: Record<string, string> = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', cash: 'Cash', bank: 'Bank' };
+  const k = m.toLowerCase();
+  return map[k] || m;
+};
+const fmtMonth = (my?: string | null) => {
+  if (!my) return null;
+  try {
+    const d = new Date(my.length <= 7 ? `${my}-01` : my);
+    if (!isNaN(d.getTime())) return format(d, 'MMM yyyy');
+  } catch {}
+  return my;
 };
 
 const PREVIEW_LIMIT = 10;
@@ -102,6 +120,15 @@ export default function CashInHandPage() {
       const amt = Number(d.amount || 0);
       const isWithdraw = amt < 0;
       const name = memberName.get(d.member_id) || 'Member';
+      const meta = [
+        `Ref: DEP-${shortId(d.id)}`,
+        `Member ID: ${shortId(d.member_id || '')}`,
+      ];
+      const method = fmtMethod(d.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      const month = fmtMonth(d.month_year);
+      if (month) meta.push(`For: ${month}`);
+      if (d.note) meta.push(`Note: ${d.note}`);
       merged.push({
         id: `dep-${d.id}`,
         created_at: d.created_at,
@@ -109,6 +136,7 @@ export default function CashInHandPage() {
         direction: isWithdraw ? 'out' : 'in',
         amount: Math.abs(amt),
         reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
+        meta,
         editable: { table: 'deposits', rowId: d.id, hasReason: false, signed: true },
       });
     });
@@ -119,6 +147,10 @@ export default function CashInHandPage() {
       const reason: string = t.reason || '';
       const isProfitInternal = /profit share|Admin share.*Fund/i.test(reason);
       if (isProfitInternal) return;
+      const meta = [`Ref: FND-${shortId(t.id)}`];
+      const method = fmtMethod(t.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (t.note) meta.push(`Note: ${t.note}`);
       merged.push({
         id: `fund-${t.id}`,
         created_at: t.created_at,
@@ -126,20 +158,31 @@ export default function CashInHandPage() {
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
         amount: Number(t.amount || 0),
         reason: reason || 'Fund transaction',
+        meta,
         editable: { table: 'fund_transactions', rowId: t.id, hasReason: true },
       });
     });
 
     // Project transactions
-    (projRes.data || []).forEach((t: any) => merged.push({
-      id: `proj-${t.id}`,
-      created_at: t.created_at,
-      source: 'Project',
-      direction: t.type === 'income' ? 'in' : 'out',
-      amount: Number(t.amount || 0),
-      reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
-      editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
-    }));
+    (projRes.data || []).forEach((t: any) => {
+      const meta = [
+        `Ref: PRJ-${shortId(t.id)}`,
+        `Project ID: ${shortId(t.project_id || '')}`,
+      ];
+      const method = fmtMethod(t.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (t.note) meta.push(`Note: ${t.note}`);
+      merged.push({
+        id: `proj-${t.id}`,
+        created_at: t.created_at,
+        source: 'Project',
+        direction: t.type === 'income' ? 'in' : 'out',
+        amount: Number(t.amount || 0),
+        reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
+        meta,
+        editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
+      });
+    });
 
     // Islamic loan purchases (money OUT) — NOT editable here (managed on loan page)
     (ilRes.data || []).forEach((l: any) => merged.push({
@@ -149,11 +192,24 @@ export default function CashInHandPage() {
       direction: 'out',
       amount: Number(l.purchase_price || 0),
       reason: `Purchase — ${l.product_name || l.code || 'Loan'}${l.borrower_name ? ` (${l.borrower_name})` : ''}`,
+      meta: [
+        `Ref: ${l.code || `ILN-${shortId(l.id)}`}`,
+        `Loan ID: ${shortId(l.id)}`,
+      ],
     }));
 
     // Islamic loan payments (money IN)
     (ilPayRes.data || []).forEach((p: any) => {
       const l = ilById.get(p.loan_id);
+      const meta = [
+        `Ref: ILP-${shortId(p.id)}`,
+        `Loan: ${l?.code || shortId(p.loan_id || '')}`,
+      ];
+      if (l?.borrower_name) meta.push(`Borrower: ${l.borrower_name}`);
+      const method = fmtMethod(p.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (p.payment_date) meta.push(`For: ${format(new Date(p.payment_date), 'MMM d, yyyy')}`);
+      if (p.note) meta.push(`Note: ${p.note}`);
       merged.push({
         id: `ilp-${p.id}`,
         created_at: p.created_at,
@@ -161,6 +217,7 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(p.amount || 0),
         reason: `${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.product_name || l?.code || 'Loan'}`,
+        meta,
         editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
     });
@@ -175,12 +232,24 @@ export default function CashInHandPage() {
         direction: 'out',
         amount: Number(l.approved_amount || 0),
         reason: `Loan disbursed — ${memberName.get(l.member_id) || 'Member'}`,
+        meta: [
+          `Ref: MLN-${shortId(l.id)}`,
+          `Member ID: ${shortId(l.member_id || '')}`,
+        ],
       });
     });
 
     // Member loan repayments (money IN)
     (mlPayRes.data || []).forEach((r: any) => {
       const l = mlById.get(r.loan_id);
+      const meta = [
+        `Ref: MLP-${shortId(r.id)}`,
+        `Loan ID: ${shortId(r.loan_id || '')}`,
+      ];
+      const method = fmtMethod(r.payment_method);
+      if (method) meta.push(`Via: ${method}`);
+      if (r.payment_date) meta.push(`For: ${format(new Date(r.payment_date), 'MMM d, yyyy')}`);
+      if (r.note) meta.push(`Note: ${r.note}`);
       merged.push({
         id: `mlp-${r.id}`,
         created_at: r.approved_at || r.created_at,
@@ -188,6 +257,7 @@ export default function CashInHandPage() {
         direction: 'in',
         amount: Number(r.amount || 0),
         reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
+        meta,
         editable: { table: 'member_loan_repayments', rowId: r.id, hasReason: false },
       });
     });
@@ -289,20 +359,32 @@ export default function CashInHandPage() {
         ) : (
           <div className="divide-y divide-border">
             {visible.map(r => (
-              <div key={r.id} className="flex items-center gap-3 px-5 py-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              <div key={r.id} className="flex items-start gap-3 px-5 py-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {r.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{r.reason}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-medium text-foreground break-words">{r.reason}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-medium">{r.source}</span>
                     {r.created_at ? ` · ${format(new Date(r.created_at), 'MMM d, yyyy · h:mm a')}` : ''}
                   </p>
+                  {r.meta && r.meta.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                      {r.meta.map((m, i) => (
+                        <span
+                          key={i}
+                          className="text-[11px] leading-tight text-muted-foreground bg-muted/50 border border-border/60 rounded px-1.5 py-0.5 break-all"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className={`text-sm font-semibold tabular-nums shrink-0 ${
+                <p className={`text-sm font-semibold tabular-nums shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
                 }`}>
                   {r.direction === 'in' ? '+' : '-'}{formatBDT(r.amount)}
