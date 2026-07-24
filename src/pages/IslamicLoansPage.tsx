@@ -57,6 +57,24 @@ export default function IslamicLoansPage() {
     issueDate: todayStr(),
   });
 
+  const [pctDefaults, setPctDefaults] = useState({ fund: 5, media: 10, admin: 5 });
+
+  useEffect(() => {
+    (supabase as any)
+      .from('percentage_defaults')
+      .select('fund_pct, media_person_pct, admin_pct')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data) setPctDefaults({
+          fund: Number(data.fund_pct) || 0,
+          media: Number(data.media_person_pct) || 0,
+          admin: Number(data.admin_pct) || 0,
+        });
+      });
+  }, []);
+
   useEffect(() => {
     if (isCustomer) { setLoading(false); return; }
     Promise.all([
@@ -149,8 +167,9 @@ export default function IslamicLoansPage() {
       discount_pct: discountPct,
       media_person_id: form.mediaPersonId,
       secondary_media_person_id: (form as any).secondaryMediaPersonId || null,
-      media_person_profit_pct: parseFloat(form.mediaPersonProfitPct),
-      fund_profit_pct: parseFloat(form.fundProfitPct),
+      media_person_profit_pct: pctDefaults.media,
+      fund_profit_pct: pctDefaults.fund,
+      admin_profit_pct: pctDefaults.admin,
       remaining_amount: sellPrice,
       monthly_installment: monthlyInstallment,
       comments: form.comments,
@@ -346,16 +365,10 @@ export default function IslamicLoansPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Media Person %</Label>
-                    <Input type="number" value={form.mediaPersonProfitPct} onChange={e => setForm(p => ({ ...p, mediaPersonProfitPct: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fund %</Label>
-                    <Input type="number" value={form.fundProfitPct} onChange={e => setForm(p => ({ ...p, fundProfitPct: e.target.value }))} />
-                  </div>
-                </div>
+                <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded px-2 py-1">
+                  Profit distribution — Fund: <b>{pctDefaults.fund}%</b> • Media: <b>{pctDefaults.media}%</b> • Admin: <b>{pctDefaults.admin}%</b>
+                  <span className="block opacity-70">Default Settings → Percentage Default থেকে পরিবর্তন করুন।</span>
+                </p>
                 <div className="space-y-2">
                   <Label>Exclude Members <span className="text-xs text-muted-foreground">(এই loan এ যাদের অংশ থাকবে না)</span></Label>
                   <MemberMultiSelect
