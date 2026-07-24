@@ -972,7 +972,23 @@ export default function IslamicLoanDetailPage() {
                 </div>
               </div>
             ))}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot। Edit না করলে original snapshot বহাল থাকবে। Edit-এ যাকে delete করা হবে বা residual %, সব Fund-এ যোগ হবে (Loss হলে Fund থেকে বিয়োগ)।</p>
+            {(() => {
+              const aliveSum = shareRows.filter(r => !r.isDeleted).reduce((s: number, r: any) => s + r.expected, 0);
+              const fundGets = profitTotals.memberPool - aliveSum;
+              return (
+                <div className="border-t border-border/50 mt-2 pt-2 space-y-0.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Active members total</span>
+                    <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(aliveSum))}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>→ Fund (deleted + residual)</span>
+                    <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(fundGets))}</span>
+                  </div>
+                </div>
+              );
+            })()}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি member পান: Member Pool × তার % ÷ 100। Deleted members ও residual % → Fund (Loss হলে Fund থেকে বিয়োগ)।</p>
           </div>
         )}
       </div>
