@@ -628,6 +628,36 @@ export type Database = {
         }
         Relationships: []
       }
+      percentage_defaults: {
+        Row: {
+          admin_pct: number
+          fund_pct: number
+          id: string
+          manager_pct: number
+          media_person_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          admin_pct?: number
+          fund_pct?: number
+          id?: string
+          manager_pct?: number
+          media_person_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          admin_pct?: number
+          fund_pct?: number
+          id?: string
+          manager_pct?: number
+          media_person_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       phone_book: {
         Row: {
           created_at: string
