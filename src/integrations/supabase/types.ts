@@ -82,6 +82,7 @@ export type Database = {
           id: string
           loan_id: string
           note: string | null
+          payment_date: string | null
           payment_method: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -95,6 +96,7 @@ export type Database = {
           id?: string
           loan_id: string
           note?: string | null
+          payment_date?: string | null
           payment_method?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           id?: string
           loan_id?: string
           note?: string | null
+          payment_date?: string | null
           payment_method?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -276,6 +279,7 @@ export type Database = {
           created_at: string | null
           id: string
           loan_id: string
+          payment_date: string | null
           payment_method: string | null
           payment_type: string | null
           transaction_id: string | null
@@ -287,6 +291,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           loan_id: string
+          payment_date?: string | null
           payment_method?: string | null
           payment_type?: string | null
           transaction_id?: string | null
@@ -298,6 +303,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           loan_id?: string
+          payment_date?: string | null
           payment_method?: string | null
           payment_type?: string | null
           transaction_id?: string | null
@@ -1283,16 +1289,28 @@ export type Database = {
         Args: { _message: string; _tag?: string; _title: string; _url?: string }
         Returns: undefined
       }
-      record_islamic_loan_payment: {
-        Args: {
-          _amount: number
-          _loan_id: string
-          _payment_method?: string
-          _payment_type?: string
-          _transaction_id?: string
-        }
-        Returns: string
-      }
+      record_islamic_loan_payment:
+        | {
+            Args: {
+              _amount: number
+              _loan_id: string
+              _payment_method?: string
+              _payment_type?: string
+              _transaction_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _amount: number
+              _loan_id: string
+              _payment_date?: string
+              _payment_method?: string
+              _payment_type?: string
+              _transaction_id?: string
+            }
+            Returns: string
+          }
       reject_welfare_deduction: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
