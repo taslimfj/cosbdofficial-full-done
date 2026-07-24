@@ -231,14 +231,15 @@ export default function IslamicLoanDetailPage() {
       _payment_type: depositType,
       _payment_method: paymentMethod || null,
       _transaction_id: transactionId || null,
+      _payment_date: paymentDate || null,
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    // If this payment fully settled the loan → stamp closed_at + months_paid_early
     await maybeMarkClosed(amt);
     toast.success('Deposit recorded');
     setShowDeposit(false);
     setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     load();
   };
 
