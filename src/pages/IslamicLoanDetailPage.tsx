@@ -1219,6 +1219,10 @@ export default function IslamicLoanDetailPage() {
                 <Label>Transaction ID</Label>
                 <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
               </div>
+              <div>
+                <Label>Payment Date</Label>
+                <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+              </div>
               <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>
             <DialogFooter>
