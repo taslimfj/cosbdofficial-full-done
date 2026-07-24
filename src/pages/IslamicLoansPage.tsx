@@ -326,6 +326,11 @@ export default function IslamicLoansPage() {
                   <Input type="number" value={form.purchasePrice} onChange={e => setForm(p => ({ ...p, purchasePrice: e.target.value }))} placeholder="0" />
                 </div>
                 <div className="space-y-2">
+                  <Label>Advance / অগ্রিম (৳) <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Input type="number" min="0" value={form.advanceAmount} onChange={e => setForm(p => ({ ...p, advanceAmount: e.target.value }))} placeholder="যদি কোনো advance থাকে" />
+                  <p className="text-[11px] text-muted-foreground">Advance বাদ দিয়ে বাকি টাকার উপর profit % হিসাব হবে।</p>
+                </div>
+                <div className="space-y-2">
                   <Label>Tenure</Label>
                   <Select value={form.tenure} onValueChange={v => setForm(p => ({ ...p, tenure: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -343,16 +348,26 @@ export default function IslamicLoansPage() {
                 {purchasePrice > 0 && (
                   <div className="bg-secondary rounded-lg p-4 space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Profit %</span><span className="font-semibold">{profitPct}%</span></div>
+                    {advanceAmount > 0 && (
+                      <>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Advance</span><span className="font-semibold tabular-nums text-emerald-600">−{formatBDT(advanceAmount)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Financed (বাকি)</span><span className="font-semibold tabular-nums">{formatBDT(financedAmount)}</span></div>
+                      </>
+                    )}
                     {discountPct > 0 && (
                       <>
                         <div className="flex justify-between"><span className="text-muted-foreground">Before Discount</span><span className="font-semibold tabular-nums">{formatBDT(baseSellPrice)}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
                       </>
                     )}
-                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price {advanceAmount > 0 ? '(Financed অংশ)' : ''}</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
+                    {advanceAmount > 0 && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">মোট গ্রাহক প্রদেয় (Advance সহ)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice + advanceAmount)}</span></div>
+                    )}
                     <div className="flex justify-between"><span className="text-muted-foreground">Monthly</span><span className="font-semibold tabular-nums">{formatBDT(monthlyInstallment)}</span></div>
                   </div>
                 )}
+
                 <div className="space-y-2">
                   <Label>Media Person</Label>
                   <Select value={form.mediaPersonId} onValueChange={v => setForm(p => ({ ...p, mediaPersonId: v }))}>
