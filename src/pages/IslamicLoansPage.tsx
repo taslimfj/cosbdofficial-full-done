@@ -395,9 +395,9 @@ export default function IslamicLoansPage() {
                         <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
                       </>
                     )}
-                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price {advanceAmount > 0 ? '(Financed অংশ)' : ''}</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sell Price (Advance সহ)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice + advanceAmount)}</span></div>
                     {advanceAmount > 0 && (
-                      <div className="flex justify-between"><span className="text-muted-foreground">মোট গ্রাহক প্রদেয় (Advance সহ)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice + advanceAmount)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Financed বাকি ({tenure} মাস)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
                     )}
                     <div className="flex justify-between"><span className="text-muted-foreground">Monthly</span><span className="font-semibold tabular-nums">{formatBDT(monthlyInstallment)}</span></div>
                   </div>
