@@ -618,7 +618,7 @@ export default function IslamicLoanDetailPage() {
                   <div key={p.id} className="flex justify-between items-center p-3 bg-secondary/40 rounded-lg gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium capitalize">{p.payment_type || 'installment'}{p.payment_method ? ` · ${p.payment_method}` : ''}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(p.created_at), 'dd MMM yyyy')}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(p.payment_date || p.created_at), 'dd MMM yyyy')}</p>
                       {p.transaction_id && <p className="text-[11px] text-muted-foreground font-mono truncate">TrxID: {p.transaction_id}</p>}
                       {approverName && <p className="text-[11px] text-emerald-600 mt-0.5">✓ Approved by {approverName}</p>}
                     </div>
