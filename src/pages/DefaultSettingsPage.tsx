@@ -4,6 +4,8 @@ import { Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PaymentDefaultsSection } from '@/components/settings/PaymentDefaultsSection';
 import { PercentageDefaultsSection } from '@/components/settings/PercentageDefaultsSection';
+import { TenureDefaultsSection } from '@/components/settings/TenureDefaultsSection';
+
 
 export default function DefaultSettingsPage() {
   const { role } = useAuth();
