@@ -216,7 +216,7 @@ export default function CashInHandPage() {
         source: 'Islamic Loan',
         direction: 'in',
         amount: Number(p.amount || 0),
-        reason: `${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.product_name || l?.code || 'Loan'}`,
+        reason: `Islamic Loan ${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.borrower_name || l?.product_name || l?.code || 'Loan'}`,
         meta,
         editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
