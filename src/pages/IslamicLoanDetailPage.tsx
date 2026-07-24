@@ -960,30 +960,25 @@ export default function IslamicLoanDetailPage() {
           </p>
         )}
 
-        {shareRows.length === 0 ? (
+        {shareRows.filter(r => !r.isDeleted).length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No member deposits at loan creation time</p>
         ) : (
           <div className="space-y-1">
             <div className="grid grid-cols-12 gap-2 text-[10px] uppercase text-muted-foreground px-2">
-              <div className="col-span-5">Member</div>
-              <div className="col-span-3 text-right">Deposit</div>
+              <div className="col-span-7">Member</div>
               <div className="col-span-2 text-right">Share</div>
-              <div className="col-span-2 text-right">{profitTotals.isLoss ? 'Loss' : 'Profit'}</div>
+              <div className="col-span-3 text-right">{profitTotals.isLoss ? 'Loss' : 'Profit'}</div>
             </div>
-            {shareRows.map(r => (
-              <div key={r.id} className={`grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
-                <div className="col-span-5 truncate">
-                  {r.name}
-                  {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Fund)</span>}
-                </div>
-                <div className="col-span-3 text-right font-mono tabular-nums text-xs">{formatBDT(r.deposit)}</div>
+            {shareRows.filter(r => !r.isDeleted).map(r => (
+              <div key={r.id} className="grid grid-cols-12 gap-2 text-sm rounded px-2 py-2 bg-secondary/30">
+                <div className="col-span-7 truncate">{r.name}</div>
                 <div className="col-span-2 text-right font-medium">{r.sharePct.toFixed(2)}%</div>
-                <div className={`col-span-2 text-right font-mono tabular-nums text-xs ${r.isDeleted ? 'text-muted-foreground' : (r.expected < 0 ? 'text-destructive' : 'text-emerald-600')}`}>
+                <div className={`col-span-3 text-right font-mono tabular-nums text-xs ${r.expected < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
                   {r.expected < 0 ? '−' : ''}{formatBDTDecimal(Math.abs(r.expected))}
                 </div>
               </div>
             ))}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot — নতুন deposit/member-এ পরিবর্তন হয় না। Deleted member-এর অংশ Fund-{profitTotals.isLoss ? 'থেকে বিয়োগ' : 'এ যোগ'} হবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">Loan তৈরির সময়ের snapshot। Edit না করলে original snapshot বহাল থাকবে। Edit-এ যাকে delete করা হবে বা residual %, সব Fund-এ যোগ হবে (Loss হলে Fund থেকে বিয়োগ)।</p>
           </div>
         )}
       </div>
