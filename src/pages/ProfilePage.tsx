@@ -193,7 +193,7 @@ export default function ProfilePage() {
                 )}
                 <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </div>
-              <p className="text-xs text-muted-foreground">Maximum image size: 50 KB.</p>
+              <p className="text-xs text-muted-foreground">Maximum image size: 150 KB.</p>
             </div>
           </div>
           <div className="space-y-2">
