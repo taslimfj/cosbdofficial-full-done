@@ -33,7 +33,7 @@ export function PendingApprovals() {
       supabase.from('deposits').select('id, amount, member_id, created_at').eq('status', 'pending'),
       supabase.from('member_loans').select('id, requested_amount, member_id, created_at').eq('status', 'pending'),
       supabase.from('member_loan_repayments').select('id, amount, loan_id, created_at, payment_method, transaction_number').eq('status', 'pending'),
-      (supabase as any).from('customer_payment_requests').select('id, amount, loan_id, customer_user_id, created_at, payment_method, transaction_id, note').eq('status', 'pending'),
+      (supabase as any).from('customer_payment_requests').select('id, amount, loan_id, customer_user_id, created_at, payment_method, transaction_id, note, payment_date').eq('status', 'pending'),
       supabase.from('profiles').select('id, full_name'),
       supabase.from('member_loans').select('id, member_id'),
       (supabase as any).from('islamic_loans').select('id, borrower_name, code'),
@@ -168,6 +168,7 @@ export function PendingApprovals() {
             _payment_type: 'installment',
             _payment_method: item.raw.payment_method || null,
             _transaction_id: item.raw.transaction_id || null,
+            _payment_date: item.raw.payment_date || null,
           } as any);
           if (rpcErr) throw rpcErr;
         }

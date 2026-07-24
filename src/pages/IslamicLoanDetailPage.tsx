@@ -55,6 +55,7 @@ export default function IslamicLoanDetailPage() {
   const [requestNote, setRequestNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [transactionId, setTransactionId] = useState('');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
   const [phoneHistory, setPhoneHistory] = useState<any[]>([]);
 
@@ -230,14 +231,15 @@ export default function IslamicLoanDetailPage() {
       _payment_type: depositType,
       _payment_method: paymentMethod || null,
       _transaction_id: transactionId || null,
+      _payment_date: paymentDate || null,
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    // If this payment fully settled the loan → stamp closed_at + months_paid_early
     await maybeMarkClosed(amt);
     toast.success('Deposit recorded');
     setShowDeposit(false);
     setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     load();
   };
 
@@ -358,6 +360,28 @@ export default function IslamicLoanDetailPage() {
       }
     });
 
+    // Residual member-pool coverage — if snapshot alive-share % < 100, the
+    // uncovered pool automatically goes to Fund (profit only; skipped on loss).
+    if (!isLoss && profitTotals.memberPool > 0) {
+      const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+      const residualPct = Math.max(0, 100 - totalSnapshotPct);
+      if (residualPct > 0.001) {
+        const residualAmt = round2(profitTotals.memberPool * residualPct / 100);
+        if (residualAmt > 0) {
+          rows.push({
+            source_type: 'islamic_loan', source_id: id, member_id: null,
+            amount: residualAmt, share_percentage: residualPct,
+            distribution_type: 'residual_to_fund',
+          });
+          fundExtras.push({
+            amount: residualAmt,
+            reason: `Loan ${loan.code} — অবশিষ্ট ${residualPct.toFixed(2)}% Fund-এ যোগ`,
+            type: 'in',
+          });
+        }
+      }
+    }
+
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
 
     const { error } = await supabase.from('profit_distributions').insert(rows);
@@ -392,12 +416,15 @@ export default function IslamicLoanDetailPage() {
       note: requestNote || null,
       payment_method: paymentMethod,
       transaction_id: transactionId.trim(),
+      // Customer cannot pick a date → null. Media person picks explicitly.
+      payment_date: isCustomer ? null : (paymentDate || null),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request পাঠানো হয়েছে। Admin approve করলে installment হিসেবে count হবে।');
     setShowRequest(false);
     setDepositAmt(''); setRequestNote(''); setPaymentMethod(''); setTransactionId('');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
     load();
   };
 
@@ -408,6 +435,7 @@ export default function IslamicLoanDetailPage() {
       _loan_id: id!, _amount: Number(req.amount), _payment_type: 'installment',
       _payment_method: req.payment_method || null,
       _transaction_id: req.transaction_id || null,
+      _payment_date: req.payment_date || null,
     } as any);
     if (rpcErr) { setBusy(false); toast.error(rpcErr.message); return; }
     await (supabase as any).from('customer_payment_requests').update({
@@ -1152,6 +1180,10 @@ export default function IslamicLoanDetailPage() {
               <Label>Transaction ID (optional)</Label>
               <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
             </div>
+            <div>
+              <Label>Payment Date</Label>
+              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeposit(false)}>Cancel</Button>
@@ -1186,6 +1218,10 @@ export default function IslamicLoanDetailPage() {
               <div>
                 <Label>Transaction ID</Label>
                 <Input value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="যেমন: 8FA7CX12B9" />
+              </div>
+              <div>
+                <Label>Payment Date</Label>
+                <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
               </div>
               <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>

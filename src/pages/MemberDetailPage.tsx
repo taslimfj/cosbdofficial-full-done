@@ -28,8 +28,8 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showDepositDialog, setShowDepositDialog] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
-  const [depositForm, setDepositForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
-  const [withdrawForm, setWithdrawForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
+  const [depositForm, setDepositForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
+  const [withdrawForm, setWithdrawForm] = useState({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [outstandingLoans, setOutstandingLoans] = useState<any[]>([]);
@@ -120,13 +120,14 @@ export default function MemberDetailPage() {
       amount,
       payment_method: depositForm.paymentMethod,
       transaction_number: depositForm.transactionNumber.trim(),
+      month_year: depositForm.date || null,
       status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
       toast.success(isAdmin ? `৳${amount} deposit recorded` : `৳${amount} deposit request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowDepositDialog(false);
-      setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
+      setDepositForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
       fetchData();
     } else {
       toast.error(error.message);
@@ -145,19 +146,21 @@ export default function MemberDetailPage() {
       amount: -amount,
       payment_method: withdrawForm.paymentMethod,
       transaction_number: withdrawForm.transactionNumber.trim(),
+      month_year: withdrawForm.date || null,
       status: isAdmin ? 'approved' : 'pending',
     });
 
     if (!error) {
       toast.success(isAdmin ? `৳${amount} withdrawal recorded` : `৳${amount} withdraw request পাঠানো হয়েছে — admin approval অপেক্ষমান`);
       setShowWithdrawDialog(false);
-      setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '' });
+      setWithdrawForm({ amount: '', paymentMethod: 'bkash', transactionNumber: '', date: new Date().toISOString().split('T')[0] });
       fetchData();
     } else {
       toast.error(error.message);
     }
     setSubmitting(false);
   };
+
 
   const handleDeleteTransaction = async (depositId: string, amount: number) => {
     const { error } = await supabase.from('deposits').delete().eq('id', depositId);
@@ -302,6 +305,10 @@ export default function MemberDetailPage() {
                       <Label>Transaction Number</Label>
                       <Input value={withdrawForm.transactionNumber} onChange={e => setWithdrawForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Date {isAdmin ? '' : '(এই মাসে/আগে/পরের মাসেরও দিতে পারেন)'}</Label>
+                      <Input type="date" value={withdrawForm.date} onChange={e => setWithdrawForm(p => ({ ...p, date: e.target.value }))} />
+                    </div>
                     <Button className="w-full" variant="destructive" onClick={handleWithdraw} disabled={submitting}>
                       {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Withdrawal' : 'Send Request'}
                     </Button>
@@ -336,6 +343,10 @@ export default function MemberDetailPage() {
                     <div className="space-y-2">
                       <Label>Transaction Number</Label>
                       <Input value={depositForm.transactionNumber} onChange={e => setDepositForm(p => ({ ...p, transactionNumber: e.target.value }))} placeholder="TXN-XXXXX" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date {isAdmin ? '' : '(এই মাসে/আগে/পরের মাসেরও দিতে পারেন)'}</Label>
+                      <Input type="date" value={depositForm.date} onChange={e => setDepositForm(p => ({ ...p, date: e.target.value }))} />
                     </div>
                     <Button className="w-full" onClick={handleAddDeposit} disabled={submitting}>
                       {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} {isAdmin ? 'Record Deposit' : 'Send Request'}
