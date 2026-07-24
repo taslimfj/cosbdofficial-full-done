@@ -302,6 +302,7 @@ export default function IslamicLoansPage() {
                   <div className="space-y-2">
                     <Label>Relative Phone</Label>
                     <PhoneInput value={form.relativePhone} onChange={v => setForm(p => ({ ...p, relativePhone: v }))} />
+                  </div>
                 </div>
 
                 <div className="space-y-2 border border-primary/20 bg-primary/5 rounded-lg p-3">
