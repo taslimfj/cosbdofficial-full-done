@@ -64,6 +64,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.id) {
+      // Update password so admin can re-issue/reset credentials for the same customer.
+      await supabaseAdmin.auth.admin.updateUserById(existing.id, { password, email_confirm: true });
       return new Response(JSON.stringify({ success: true, userId: existing.id, reused: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
