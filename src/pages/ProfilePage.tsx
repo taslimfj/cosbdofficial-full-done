@@ -53,6 +53,50 @@ export default function ProfilePage() {
     }
   };
 
+  const compressImage = (file: File, maxBytes: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          const maxDim = 512;
+          if (width > maxDim || height > maxDim) {
+            const scale = Math.min(maxDim / width, maxDim / height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          let quality = 0.9;
+          let dataUrl = '';
+          for (let i = 0; i < 10; i++) {
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('Canvas not supported'));
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const bytes = Math.ceil((dataUrl.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
+            if (bytes <= maxBytes) return resolve(dataUrl);
+            if (quality > 0.4) {
+              quality -= 0.1;
+            } else {
+              width = Math.round(width * 0.85);
+              height = Math.round(height * 0.85);
+            }
+          }
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('ছবি load করা যায়নি'));
+        img.src = String(reader.result || '');
+      };
+      reader.onerror = () => reject(new Error('ছবি পড়া যায়নি'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -62,15 +106,17 @@ export default function ProfilePage() {
       toast.error('শুধুমাত্র image file upload করুন');
       return;
     }
-    if (file.size > 150 * 1024) {
-      toast.error('ছবির size সর্বোচ্চ 150 KB হতে পারবে');
-      return;
-    }
 
     setSavingPhoto(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = String(reader.result || '');
+    try {
+      const MAX = 150 * 1024;
+      const dataUrl = await compressImage(file, MAX);
+      const finalBytes = Math.ceil((dataUrl.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
+      if (finalBytes > MAX) {
+        setSavingPhoto(false);
+        toast.error('ছবিটি 150 KB-এর নিচে আনা যায়নি, অনুগ্রহ করে ছোট ছবি দিন');
+        return;
+      }
       const { error } = await supabase
         .from('profiles')
         .update({ avatar_url: dataUrl } as any)
@@ -83,12 +129,10 @@ export default function ProfilePage() {
       setAvatarUrl(dataUrl);
       toast.success('Profile photo updated');
       refreshProfile();
-    };
-    reader.onerror = () => {
+    } catch (err: any) {
       setSavingPhoto(false);
-      toast.error('ছবি upload করা যায়নি');
-    };
-    reader.readAsDataURL(file);
+      toast.error(err?.message || 'ছবি upload করা যায়নি');
+    }
   };
 
   const handleDeletePhoto = async () => {
