@@ -99,12 +99,15 @@ export default function IslamicLoansPage() {
 
   const tenure = parseInt(form.tenure);
   const purchasePrice = parseFloat(form.purchasePrice) || 0;
+  const advanceAmount = Math.max(0, Math.min(purchasePrice, parseFloat(form.advanceAmount) || 0));
+  const financedAmount = Math.max(0, purchasePrice - advanceAmount);
   const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
   const profitPct = calculateProfitPercentage(tenure);
-  const baseSellPrice = calculateSellPrice(purchasePrice, profitPct);
+  const baseSellPrice = calculateSellPrice(financedAmount, profitPct);
   const rawSellPrice = baseSellPrice * (1 - discountPct / 100);
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
-  const sellPrice = monthlyInstallment * (tenure || 0); // effective (ভগ্নাংশ বাদ)
+  const sellPrice = monthlyInstallment * (tenure || 0); // financed portion — customer's remaining
+
 
   const criticalMemberIds = useMemo(() => {
     const byMember = new Map<string, any[]>();
