@@ -237,7 +237,7 @@ export default function ProfilePage() {
                 )}
                 <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </div>
-              <p className="text-xs text-muted-foreground">Maximum image size: 150 KB.</p>
+              <p className="text-xs text-muted-foreground">বড় ছবি আপলোড করলে স্বয়ংক্রিয়ভাবে 150 KB-এর মধ্যে compress হবে।</p>
             </div>
           </div>
           <div className="space-y-2">
