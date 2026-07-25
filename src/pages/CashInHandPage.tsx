@@ -30,6 +30,8 @@ type Row = {
   reason: string;
   /** Extra detail lines shown under the main reason. */
   meta?: string[];
+  /** Optional link to the originating record's detail page. */
+  href?: string;
   /** Underlying table + row id, so admin can edit/delete. */
   editable?: {
     table: EditableTable;
