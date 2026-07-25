@@ -147,11 +147,13 @@ export default function ProjectDetailPage() {
     const amt = parseFloat(tx.amount);
     if (!amt || amt <= 0) { toast.error('Enter valid amount'); return; }
     setBusy(true);
+    const { data: sData } = await supabase.auth.getSession();
     const { data: uData } = await supabase.auth.getUser();
+    const uid = sData.session?.user?.id ?? uData.user?.id ?? null;
     const { error } = await supabase.from('project_transactions').insert({
       project_id: id, type: tx.type, amount: amt,
       reason: tx.reason || null, comments: tx.comments || null,
-      created_by: uData.user?.id ?? null,
+      created_by: uid,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
