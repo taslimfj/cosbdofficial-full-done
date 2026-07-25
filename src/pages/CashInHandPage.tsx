@@ -164,6 +164,7 @@ export default function CashInHandPage() {
         amount: Number(t.amount || 0),
         reason: reason || 'Fund transaction',
         meta,
+        href: '/fund',
         editable: { table: 'fund_transactions', rowId: t.id, hasReason: true },
       });
     });
