@@ -62,6 +62,7 @@ const PREVIEW_LIMIT = 10;
 
 export default function CashInHandPage() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = role === 'admin';
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
