@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
@@ -29,6 +30,8 @@ type Row = {
   reason: string;
   /** Extra detail lines shown under the main reason. */
   meta?: string[];
+  /** Optional link to the originating record's detail page. */
+  href?: string;
   /** Underlying table + row id, so admin can edit/delete. */
   editable?: {
     table: EditableTable;
@@ -59,6 +62,7 @@ const PREVIEW_LIMIT = 10;
 
 export default function CashInHandPage() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = role === 'admin';
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
@@ -137,6 +141,7 @@ export default function CashInHandPage() {
         amount: Math.abs(amt),
         reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
         meta,
+        href: d.member_id ? `/members/${d.member_id}` : undefined,
         editable: { table: 'deposits', rowId: d.id, hasReason: false, signed: true },
       });
     });
@@ -159,6 +164,7 @@ export default function CashInHandPage() {
         amount: Number(t.amount || 0),
         reason: reason || 'Fund transaction',
         meta,
+        href: '/fund',
         editable: { table: 'fund_transactions', rowId: t.id, hasReason: true },
       });
     });
@@ -180,6 +186,7 @@ export default function CashInHandPage() {
         amount: Number(t.amount || 0),
         reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
         meta,
+        href: t.project_id ? `/projects/${t.project_id}` : undefined,
         editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
       });
     });
@@ -196,6 +203,7 @@ export default function CashInHandPage() {
         `Ref: ${l.code || `ILN-${shortId(l.id)}`}`,
         `Loan ID: ${shortId(l.id)}`,
       ],
+      href: `/islamic-loans/${l.id}`,
     }));
 
     // Islamic loan payments (money IN)
@@ -218,6 +226,7 @@ export default function CashInHandPage() {
         amount: Number(p.amount || 0),
         reason: `Islamic Loan ${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.borrower_name || l?.product_name || l?.code || 'Loan'}`,
         meta,
+        href: p.loan_id ? `/islamic-loans/${p.loan_id}` : undefined,
         editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
     });
@@ -236,6 +245,7 @@ export default function CashInHandPage() {
           `Ref: MLN-${shortId(l.id)}`,
           `Member ID: ${shortId(l.member_id || '')}`,
         ],
+        href: `/member-loans/${l.id}`,
       });
     });
 
@@ -258,6 +268,7 @@ export default function CashInHandPage() {
         amount: Number(r.amount || 0),
         reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
         meta,
+        href: r.loan_id ? `/member-loans/${r.loan_id}` : undefined,
         editable: { table: 'member_loan_repayments', rowId: r.id, hasReason: false },
       });
     });
@@ -359,13 +370,19 @@ export default function CashInHandPage() {
         ) : (
           <div className="divide-y divide-border">
             {visible.map(r => (
-              <div key={r.id} className="flex items-start gap-3 px-5 py-3">
+              <div key={r.id} className={`flex items-start gap-3 px-5 py-3 ${r.href ? 'hover:bg-muted/40 transition-colors' : ''}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {r.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => r.href && navigate(r.href)}
+                  disabled={!r.href}
+                  className={`flex-1 min-w-0 text-left ${r.href ? 'cursor-pointer' : 'cursor-default'}`}
+                  title={r.href ? 'View source' : undefined}
+                >
                   <p className="text-sm font-medium text-foreground break-words">{r.reason}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-medium">{r.source}</span>
@@ -383,7 +400,7 @@ export default function CashInHandPage() {
                       ))}
                     </div>
                   )}
-                </div>
+                </button>
                 <p className={`text-sm font-semibold tabular-nums shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
                 }`}>
