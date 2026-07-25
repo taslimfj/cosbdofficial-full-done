@@ -98,8 +98,9 @@ export default function ProjectDetailPage() {
 
   const shareRows = useMemo(() => {
     if (!project || !snapshot.length) return [] as any[];
+    const activeMemberIds = new Set(members.map((m: any) => m.id));
     const pool = profitTotalsPre.memberPool;
-    const lossPool = totals.loss; // loss fully borne by members per snapshot share
+    const lossPool = totals.loss; // loss follows snapshot share; deleted members' share is absorbed by Fund
     return snapshot.map((s: any) => ({
       id: s.id,
       memberId: s.member_id,
@@ -108,9 +109,9 @@ export default function ProjectDetailPage() {
       sharePct: Number(s.share_percentage),
       expected: round2(pool * Number(s.share_percentage) / 100),
       lossShare: round2(lossPool * Number(s.share_percentage) / 100),
-      isDeleted: !!s.is_member_deleted || !s.member_id,
+      isDeleted: !!s.is_member_deleted || !s.member_id || !activeMemberIds.has(s.member_id),
     })).sort((a, b) => b.sharePct - a.sharePct);
-  }, [project, snapshot, profitTotalsPre, totals.loss]);
+  }, [project, snapshot, members, profitTotalsPre, totals.loss]);
 
   const profitTotals = profitTotalsPre;
   const visibleShareRows = shareRows.filter(r => !r.isDeleted && r.sharePct > 0);
@@ -182,19 +183,19 @@ export default function ProjectDetailPage() {
       // → half to secondary, half to Fund. Both deleted → all to Fund.
       if (profitTotals.manager > 0) {
         const managerPct = Number(project.manager_profit_pct) || 0;
-        if (project.manager_id) {
+        if (project.manager_id && project.manager) {
           rows.push({ source_type: 'project', source_id: id, member_id: project.manager_id, amount: profitTotals.manager, share_percentage: managerPct, distribution_type: 'manager' });
           memberDelta.set(project.manager_id, (memberDelta.get(project.manager_id) || 0) + profitTotals.manager);
-        } else if (project.secondary_manager_id) {
+        } else if (project.secondary_manager_id && project.secondary_manager) {
           const half = Math.round((profitTotals.manager / 2) * 100) / 100;
           const other = Math.round((profitTotals.manager - half) * 100) / 100;
           rows.push({ source_type: 'project', source_id: id, member_id: project.secondary_manager_id, amount: half, share_percentage: managerPct / 2, distribution_type: 'secondary_manager' });
           memberDelta.set(project.secondary_manager_id, (memberDelta.get(project.secondary_manager_id) || 0) + half);
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: other, share_percentage: managerPct / 2, distribution_type: 'manager_deleted_to_fund' });
-          fundTxRows.push({ type: 'in', amount: other, reason: `Project ${project.code} — Deleted primary manager share (half) → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: other, reason: `Project ${project.code} — Deleted primary manager share (half) Fund-এ যোগ` });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.manager, share_percentage: managerPct, distribution_type: 'manager_deleted_to_fund' });
-          fundTxRows.push({ type: 'in', amount: profitTotals.manager, reason: `Project ${project.code} — Deleted manager share → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: profitTotals.manager, reason: `Project ${project.code} — Deleted manager share Fund-এ যোগ` });
         }
       }
       if (profitTotals.fund > 0) {
@@ -218,14 +219,14 @@ export default function ProjectDetailPage() {
           });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: profitTotals.admin, share_percentage: Number((project as any).admin_profit_pct) || 0, distribution_type: 'admin_to_fund' });
-          fundTxRows.push({ type: 'in', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: profitTotals.admin, reason: `Project ${project.code} — Admin share (no admin found) Fund-এ যোগ` });
         }
       }
       shareRows.forEach(r => {
         if (r.expected <= 0) return;
         if (r.isDeleted || !r.memberId) {
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
-          fundTxRows.push({ type: 'in', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted) profit share → Available Balance` });
+          fundTxRows.push({ type: 'in', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted member) এর profit অংশ Fund-এ যোগ` });
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
           memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) + r.expected);
@@ -417,7 +418,7 @@ export default function ProjectDetailPage() {
           <div className="bg-destructive/5 rounded-lg p-3 mb-4">
             <p className="text-xs text-muted-foreground mb-1">Total Loss</p>
             <p className="font-mono font-bold tabular-nums text-sm text-destructive">−{formatBDT(totals.loss)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ Available Balance থেকে কাটবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী active members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ সরাসরি Fund থেকে বিয়োগ হবে।</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
