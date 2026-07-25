@@ -244,24 +244,30 @@ export default function ProjectDetailPage() {
         }
       }
     } else if (totals.loss > 0) {
-      // Loss distribution — proportional to snapshot share, fully borne by members.
-      // Deleted members' loss share is redistributed among alive members (NOT to Fund).
-      const aliveShares = shareRows.filter(r => !r.isDeleted && r.memberId);
-      const totalAlivePct = aliveShares.reduce((s, r) => s + r.sharePct, 0);
-      const deletedLossPool = shareRows
-        .filter(r => r.isDeleted || !r.memberId)
-        .reduce((s, r) => s + (r.lossShare || 0), 0);
-
+      // Loss distribution — proportional to snapshot share.
+      // Alive members bear their own share; deleted members' loss share is
+      // absorbed by the Fund (Fund debited), matching Islamic loan behavior.
       shareRows.forEach(r => {
         if (r.lossShare <= 0) return;
-        if (r.isDeleted || !r.memberId) return; // absorbed by alive members
-        let loss = r.lossShare;
-        if (totalAlivePct > 0 && deletedLossPool > 0) {
-          loss = Math.round((loss + deletedLossPool * (r.sharePct / totalAlivePct)) * 100) / 100;
+        if (r.isDeleted || !r.memberId) {
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
+          fundTxRows.push({ type: 'out', amount: r.lossShare, reason: `Project ${project.code} — ${r.name} (deleted) loss share Fund থেকে বিয়োগ` });
+        } else {
+          rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss' });
+          memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) - r.lossShare);
         }
-        rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: -loss, share_percentage: r.sharePct, distribution_type: 'loss' });
-        memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) - loss);
       });
+
+      // Residual — snapshot sum < 100 হলে বাকি loss অংশও Fund থেকে minus হবে
+      const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+      const residualPct = Math.max(0, 100 - totalSnapshotPct);
+      if (residualPct > 0.001) {
+        const residualAmt = round2(totals.loss * residualPct / 100);
+        if (residualAmt > 0) {
+          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: -residualAmt, share_percentage: residualPct, distribution_type: 'residual_to_fund' });
+          fundTxRows.push({ type: 'out', amount: residualAmt, reason: `Project ${project.code} — অবশিষ্ট ${residualPct.toFixed(2)}% loss Fund থেকে বিয়োগ` });
+        }
+      }
     }
 
     if (rows.length === 0) { setBusy(false); toast.error('Nothing to distribute'); return; }
