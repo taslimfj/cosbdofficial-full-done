@@ -226,6 +226,7 @@ export default function CashInHandPage() {
         amount: Number(p.amount || 0),
         reason: `Islamic Loan ${p.payment_type === 'advance' ? 'Advance' : 'Installment'} — ${l?.borrower_name || l?.product_name || l?.code || 'Loan'}`,
         meta,
+        href: p.loan_id ? `/islamic-loans/${p.loan_id}` : undefined,
         editable: { table: 'islamic_loan_payments', rowId: p.id, hasReason: false },
       });
     });
