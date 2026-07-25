@@ -370,13 +370,19 @@ export default function CashInHandPage() {
         ) : (
           <div className="divide-y divide-border">
             {visible.map(r => (
-              <div key={r.id} className="flex items-start gap-3 px-5 py-3">
+              <div key={r.id} className={`flex items-start gap-3 px-5 py-3 ${r.href ? 'hover:bg-muted/40 transition-colors' : ''}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {r.direction === 'in' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => r.href && navigate(r.href)}
+                  disabled={!r.href}
+                  className={`flex-1 min-w-0 text-left ${r.href ? 'cursor-pointer' : 'cursor-default'}`}
+                  title={r.href ? 'View source' : undefined}
+                >
                   <p className="text-sm font-medium text-foreground break-words">{r.reason}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-medium">{r.source}</span>
@@ -394,7 +400,7 @@ export default function CashInHandPage() {
                       ))}
                     </div>
                   )}
-                </div>
+                </button>
                 <p className={`text-sm font-semibold tabular-nums shrink-0 mt-0.5 ${
                   r.direction === 'in' ? 'text-emerald-600' : 'text-destructive'
                 }`}>
