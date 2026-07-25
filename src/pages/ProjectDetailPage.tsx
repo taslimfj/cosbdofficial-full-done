@@ -113,6 +113,7 @@ export default function ProjectDetailPage() {
   }, [project, snapshot, profitTotalsPre, totals.loss]);
 
   const profitTotals = profitTotalsPre;
+  const visibleShareRows = shareRows.filter(r => !r.isDeleted && r.sharePct > 0);
 
   const alreadyDistributed = distributions.length > 0;
 
@@ -313,7 +314,12 @@ export default function ProjectDetailPage() {
                       project,
                       managerId: project.manager_id || null,
                       secondaryManagerId: project.secondary_manager_id || null,
-                      snapshot: snapshot as any,
+                      snapshot: visibleShareRows.map((r: any) => ({
+                        member_id: r.memberId,
+                        member_name: r.name,
+                        share_percentage: r.sharePct,
+                        is_member_deleted: false,
+                      })),
                       allMembers: members as any,
                       adminIds,
                       excludedIds: (project as any).excluded_member_ids || [],
@@ -421,22 +427,21 @@ export default function ProjectDetailPage() {
             <div className="bg-secondary/50 rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Members</p><p className="font-mono font-bold tabular-nums text-sm">{formatBDTDecimal(profitTotals.memberPool)}</p></div>
           </div>
         )}
-        {shareRows.length === 0 ? (
+        {visibleShareRows.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">No member shares snapshot for this project.</p>
         ) : (
           <div className="space-y-1.5">
-            {shareRows.map(r => {
+            {visibleShareRows.map(r => {
               const isLoss = totals.loss > 0;
               const amount = isLoss ? r.lossShare : r.expected;
               return (
-                <div key={r.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded-lg ${r.isDeleted ? 'bg-destructive/5' : 'bg-secondary/30'}`}>
+                <div key={r.id} className="flex justify-between items-center text-sm px-3 py-2 rounded-lg bg-secondary/30">
                   <span className="font-medium truncate">
                     {r.name}
-                    {r.isDeleted && <span className="ml-1 text-[10px] text-destructive">(deleted → Available Balance)</span>}
                   </span>
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-muted-foreground">{r.sharePct.toFixed(2)}%</span>
-                    <span className={`font-mono font-bold tabular-nums ${r.isDeleted ? 'line-through text-muted-foreground' : isLoss ? 'text-destructive' : ''}`}>
+                    <span className={`font-mono font-bold tabular-nums ${isLoss ? 'text-destructive' : ''}`}>
                       {isLoss ? '−' : ''}{formatBDTDecimal(amount)}
                     </span>
                   </div>
@@ -578,7 +583,7 @@ export default function ProjectDetailPage() {
         open={showShareEdit}
         onOpenChange={setShowShareEdit}
         table="project_member_shares"
-        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        rows={snapshot.map((s: any) => ({ id: s.id, member_id: s.member_id || null, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage), is_member_deleted: !!s.is_member_deleted }))}
         onSaved={load}
       />
     </div>

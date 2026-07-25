@@ -192,6 +192,7 @@ export default function IslamicLoanDetailPage() {
 
 
   const alreadyDistributed = distributions.length > 0;
+  const visibleShareRows = shareRows.filter(r => !r.isDeleted && r.sharePct > 0);
 
   const handleEditSave = async () => {
     setBusy(true);
@@ -745,7 +746,12 @@ export default function IslamicLoanDetailPage() {
                   loan,
                   mediaPersonId: loan.media_person_id || null,
                   secondaryMediaPersonId: (loan as any).secondary_media_person_id || null,
-                  snapshot: snapshot as any,
+                      snapshot: visibleShareRows.map((r: any) => ({
+                        member_id: r.memberId,
+                        member_name: r.name,
+                        share_percentage: r.sharePct,
+                        is_member_deleted: false,
+                      })),
                   allMembers: members as any,
                   adminIds,
                   excludedIds: (loan as any).excluded_member_ids || [],
@@ -1001,7 +1007,7 @@ export default function IslamicLoanDetailPage() {
         open={showShareEdit}
         onOpenChange={setShowShareEdit}
         table="islamic_loan_member_shares"
-        rows={snapshot.map((s: any) => ({ id: s.id, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage) }))}
+        rows={snapshot.map((s: any) => ({ id: s.id, member_id: s.member_id || null, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage), is_member_deleted: !!s.is_member_deleted }))}
         onSaved={load}
       />
 
