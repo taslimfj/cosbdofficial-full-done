@@ -186,6 +186,7 @@ export default function CashInHandPage() {
         amount: Number(t.amount || 0),
         reason: `${projectName.get(t.project_id) || 'Project'} — ${t.reason || (t.type === 'income' ? 'Income' : 'Expense')}`,
         meta,
+        href: t.project_id ? `/projects/${t.project_id}` : undefined,
         editable: { table: 'project_transactions', rowId: t.id, hasReason: true },
       });
     });
@@ -202,6 +203,7 @@ export default function CashInHandPage() {
         `Ref: ${l.code || `ILN-${shortId(l.id)}`}`,
         `Loan ID: ${shortId(l.id)}`,
       ],
+      href: `/islamic-loans/${l.id}`,
     }));
 
     // Islamic loan payments (money IN)
