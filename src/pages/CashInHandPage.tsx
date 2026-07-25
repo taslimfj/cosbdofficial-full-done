@@ -141,6 +141,7 @@ export default function CashInHandPage() {
         amount: Math.abs(amt),
         reason: `${isWithdraw ? 'Member withdraw' : 'Member deposit'} — ${name}`,
         meta,
+        href: d.member_id ? `/members/${d.member_id}` : undefined,
         editable: { table: 'deposits', rowId: d.id, hasReason: false, signed: true },
       });
     });
