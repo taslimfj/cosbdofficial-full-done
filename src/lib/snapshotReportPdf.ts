@@ -48,7 +48,7 @@ function drawManualBox(doc: jsPDF, y: number) {
 }
 
 interface MemberInfo { id: string; full_name?: string | null; deleted_name?: string | null }
-interface SnapshotRow { member_id?: string; member_name?: string; share_percentage: number }
+interface SnapshotRow { member_id?: string | null; member_name?: string | null; share_percentage: number; is_member_deleted?: boolean }
 
 function buildMemberRows(opts: {
   allMembers: MemberInfo[];
@@ -62,22 +62,21 @@ function buildMemberRows(opts: {
   perAdminPct: number;
 }) {
   const excluded = new Set(opts.excludedIds.filter(Boolean));
-  const snapById = new Map<string, number>();
-  opts.snapshot.forEach((s) => {
-    if (s.member_id) snapById.set(s.member_id, Number(s.share_percentage) || 0);
-  });
+  const memberById = new Map(opts.allMembers.map((m) => [m.id, m]));
   const adminSet = new Set(opts.adminIds.filter(Boolean));
 
-  const rows = opts.allMembers
-    .filter((m) => !excluded.has(m.id))
-    .map((m) => {
-      const base = snapById.get(m.id) || 0;
-      const name = m.full_name || m.deleted_name || 'Unknown';
+  const rows = opts.snapshot
+    .filter((s) => !!s.member_id && !s.is_member_deleted && !excluded.has(s.member_id) && (Number(s.share_percentage) || 0) > 0)
+    .map((s) => {
+      const memberId = s.member_id as string;
+      const member = memberById.get(memberId);
+      const base = Number(s.share_percentage) || 0;
+      const name = s.member_name || member?.full_name || member?.deleted_name || 'Unknown';
       const tags: string[] = [];
-      if (m.id === opts.mediaId1 || m.id === opts.mediaId2) {
+      if (memberId === opts.mediaId1 || memberId === opts.mediaId2) {
         tags.push(`+${pct(opts.perMediaPct)} ${opts.mediaLabel}`);
       }
-      if (adminSet.has(m.id)) {
+      if (adminSet.has(memberId)) {
         tags.push(`+${pct(opts.perAdminPct)} admin`);
       }
       const label = tags.length ? `${name}  (${tags.join(', ')})` : name;

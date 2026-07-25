@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Trash2, RotateCcw } from 'lucide-react';
 
-type Row = { id: string; member_name: string; share_percentage: number };
+type Row = { id: string; member_name: string; share_percentage: number; is_member_deleted?: boolean; member_id?: string | null };
 
 /**
  * Admin-only editor for snapshot share percentages on
@@ -40,7 +40,7 @@ export function SnapshotShareEditor({
       const v: Record<string, string> = {};
       rows.forEach(r => { v[r.id] = String(r.share_percentage); });
       setValues(v);
-      setRemoved(new Set());
+      setRemoved(new Set(rows.filter(r => r.is_member_deleted || !r.member_id).map(r => r.id)));
     }
   }, [open, rows]);
 
