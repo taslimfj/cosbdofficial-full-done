@@ -177,6 +177,7 @@ export default function IslamicLoanDetailPage() {
   const shareRows = useMemo(() => {
     if (!loan || !snapshot.length) return [] as any[];
     const pool = profitTotals.memberPool;
+    const activeMemberIds = new Set(members.map((m: any) => m.id));
     return snapshot
       .map((s: any) => ({
         id: s.id,
@@ -185,10 +186,11 @@ export default function IslamicLoanDetailPage() {
         deposit: Number(s.deposit_snapshot),
         sharePct: Number(s.share_percentage),
         expected: round2(pool * Number(s.share_percentage) / 100),
-        isDeleted: !!s.is_member_deleted || !s.member_id,
+        isDeleted: !!s.is_member_deleted || !s.member_id || !activeMemberIds.has(s.member_id),
       }))
       .sort((a, b) => b.sharePct - a.sharePct);
-  }, [loan, snapshot, profitTotals]);
+  }, [loan, snapshot, profitTotals, members]);
+
 
 
   const alreadyDistributed = distributions.length > 0;
