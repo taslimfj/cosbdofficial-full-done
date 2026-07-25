@@ -245,6 +245,7 @@ export default function CashInHandPage() {
           `Ref: MLN-${shortId(l.id)}`,
           `Member ID: ${shortId(l.member_id || '')}`,
         ],
+        href: `/member-loans/${l.id}`,
       });
     });
 
@@ -267,6 +268,7 @@ export default function CashInHandPage() {
         amount: Number(r.amount || 0),
         reason: `Loan repayment — ${l ? (memberName.get(l.member_id) || 'Member') : 'Member'}`,
         meta,
+        href: r.loan_id ? `/member-loans/${r.loan_id}` : undefined,
         editable: { table: 'member_loan_repayments', rowId: r.id, hasReason: false },
       });
     });
