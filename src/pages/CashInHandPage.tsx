@@ -80,10 +80,11 @@ export default function CashInHandPage() {
       const reason: string = t.reason || '';
       const isProfitInternal = /profit share|Admin share.*Fund|Fund-এ যোগ|Fund থেকে বিয়োগ/i.test(reason);
       if (isProfitInternal) return;
+      const isAsset = assetTxnIds.has(t.id);
       merged.push({
-        id: `fund-${t.id}`, created_at: t.created_at, source: 'Fund',
+        id: `fund-${t.id}`, created_at: t.created_at, source: isAsset ? 'Asset' : 'Fund',
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
-        amount: Number(t.amount || 0), reason: reason || 'Fund transaction',
+        amount: Number(t.amount || 0), reason: reason || (isAsset ? 'Asset transaction' : 'Fund transaction'),
       });
     });
 
