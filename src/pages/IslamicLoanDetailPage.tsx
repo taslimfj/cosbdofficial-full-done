@@ -24,6 +24,7 @@ import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/
 import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 import { generateIslamicLoanSnapshotPDF } from '@/lib/snapshotReportPdf';
 import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
+import { DateField } from '@/components/DateField';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
