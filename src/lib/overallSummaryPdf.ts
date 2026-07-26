@@ -5,6 +5,9 @@ import { BRAND, loadLogoDataUrl } from './brand';
 
 const fmt = (n: number) => `TK ${new Intl.NumberFormat('en-IN').format(Math.round(n))}`;
 const fmtDate = (d?: string | null) => (d ? format(new Date(d), 'MMM d') : '-');
+/** Prefer user-selected event date over system created_at so past-dated entries appear on their real date */
+const eff = (r: any): string | null =>
+  r?.issue_date || r?.payment_date || r?.month_year || r?.created_at || null;
 
 export type OverallPeriod = 'month' | 'year';
 
