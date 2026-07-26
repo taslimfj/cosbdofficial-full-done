@@ -17,6 +17,7 @@ import { generateProjectsPDF } from '@/lib/pdfGenerator';
 import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 import { computeMissedInstallments } from '@/lib/memberStatus';
+import { DateField } from '@/components/DateField';
 
 
 export default function ProjectsPage() {
