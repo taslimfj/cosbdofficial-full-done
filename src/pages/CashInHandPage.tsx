@@ -40,12 +40,13 @@ export default function CashInHandPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
 
   const fetchAll = async () => {
-    const [fundRes, projRes, ilRes, ilPayRes, depRes, mlRes, mlPayRes] = await Promise.all([
+    const [fundRes, projRes, ilRes, ilPayRes, depRes, mlRes, mlPayRes, assetRes] = await Promise.all([
       supabase.from('fund_transactions').select('*'),
       supabase.from('project_transactions').select('*'),
       supabase.from('islamic_loans').select('id, purchase_price, created_at, product_name, code'),
@@ -53,7 +54,15 @@ export default function CashInHandPage() {
       supabase.from('deposits').select('*').eq('status', 'approved'),
       supabase.from('member_loans').select('*'),
       supabase.from('member_loan_repayments').select('*').eq('status', 'approved'),
+      supabase.from('assets').select('*').is('deleted_at', null),
     ]);
+
+    // Asset-linked fund_transactions ids — will be reclassified as "Asset" instead of "Fund"
+    const assetTxnIds = new Set<string>();
+    (assetRes.data || []).forEach((a: any) => {
+      if (a.purchase_txn_id) assetTxnIds.add(a.purchase_txn_id);
+      if (a.scrap_txn_id) assetTxnIds.add(a.scrap_txn_id);
+    });
 
     const merged: Row[] = [];
 
