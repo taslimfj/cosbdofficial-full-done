@@ -85,7 +85,7 @@ export default function DashboardPage() {
     // internal reallocations of already-counted installment money and MUST
     // be excluded to avoid double counting.
     const isProfitInternal = (reason: string) =>
-      /profit share|Admin share.*Fund/i.test(reason || '');
+      /profit share|Admin share.*Fund|Fund-এ যোগ|Fund থেকে বিয়োগ/i.test(reason || '');
 
     const depositsCash = deposits
       .filter((d: any) => d.status === 'approved')

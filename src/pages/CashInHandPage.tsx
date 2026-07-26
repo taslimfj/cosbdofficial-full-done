@@ -146,11 +146,13 @@ export default function CashInHandPage() {
       });
     });
 
-    // Fund transactions — skip auto-created "profit share" rows from loan
-    // distributions (they mirror money already counted as IL installments).
+    // Fund transactions — skip auto-created rows that mirror money already
+    // counted as Islamic Loan installments / Project income (avoid double
+    // counting profit distribution reallocations into the Fund).
     (fundRes.data || []).forEach((t: any) => {
       const reason: string = t.reason || '';
-      const isProfitInternal = /profit share|Admin share.*Fund/i.test(reason);
+      const isProfitInternal =
+        /profit share|Admin share.*Fund|Fund-এ যোগ|Fund থেকে বিয়োগ/i.test(reason);
       if (isProfitInternal) return;
       const meta = [`Ref: FND-${shortId(t.id)}`];
       const method = fmtMethod(t.payment_method);
