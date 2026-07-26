@@ -469,7 +469,22 @@ export default function IslamicLoanDetailPage() {
     .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
   const installmentPaidAmount = Math.max(0, paid - advancePaid);
   const financedAmount = Math.max(0, sellPriceN - advancePaid);
-  const installmentsPaid = monthly > 0 ? Math.floor(installmentPaidAmount / monthly) : 0;
+  // Installment count = number of DISTINCT months in which approved non-advance payments landed.
+  // Same month = 1 installment (partials merged). Different months = separate installments.
+  const monthKey = (p: any) => {
+    const d = p.payment_date || p.created_at;
+    if (!d) return '';
+    const dt = new Date(d);
+    return `${dt.getFullYear()}-${dt.getMonth()}`;
+  };
+  const paidMonthsSet = new Set<string>();
+  for (const p of payments) {
+    if ((p.payment_type || 'installment') === 'advance') continue;
+    if ((p.status ?? 'approved') !== 'approved') continue;
+    const k = monthKey(p);
+    if (k) paidMonthsSet.add(k);
+  }
+  const installmentsPaid = Math.min(paidMonthsSet.size, loan.tenure_months);
   const nextInstallmentDate = addMonths(startDate, Math.min(installmentsPaid + 1, loan.tenure_months));
   const progressPct = financedAmount > 0 ? (installmentPaidAmount / financedAmount) * 100 : 0;
 
@@ -480,16 +495,19 @@ export default function IslamicLoanDetailPage() {
   const relDigits = relPhone?.replace(/[^0-9]/g, '');
   const isClosed = loan.status === 'closed' || remaining <= 0;
   const overdue = isLoanOverdue(loan);
-  // Installment numbering — excludes Advance payments so Advance never counts as an installment
+  // Installment numbering per payment — same-month payments share the same installment number.
   const installmentIndexById = (() => {
     const map = new Map<string, number>();
     const asc = [...payments].reverse();
+    const monthToIdx = new Map<string, number>();
     let n = 0;
     for (const p of asc) {
-      if ((p.payment_type || 'installment') !== 'advance') {
-        n++;
-        map.set(p.id, n);
-      }
+      if ((p.payment_type || 'installment') === 'advance') continue;
+      const k = monthKey(p);
+      if (!k) continue;
+      let idx = monthToIdx.get(k);
+      if (idx === undefined) { n++; idx = n; monthToIdx.set(k, idx); }
+      map.set(p.id, idx);
     }
     return map;
   })();
