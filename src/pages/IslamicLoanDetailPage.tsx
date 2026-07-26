@@ -152,6 +152,9 @@ export default function IslamicLoanDetailPage() {
         remaining_amount: String(loan.remaining_amount ?? ''),
         status: loan.status || 'active',
         comments: loan.comments || '',
+        issue_date: (loan as any).issue_date
+          ? String((loan as any).issue_date).slice(0, 10)
+          : (loan.created_at ? new Date(loan.created_at).toISOString().slice(0, 10) : ''),
         payment_methods: Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [],
       });
     }
