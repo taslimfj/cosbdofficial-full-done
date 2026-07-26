@@ -146,7 +146,7 @@ export default function ProjectsPage() {
                 {role === 'admin' && (
                   <div className="space-y-2">
                     <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
-                    <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                    <DateField value={form.issueDate} onChange={(v) => setForm(p => ({ ...p, issueDate: v }))} />
                   </div>
                 )}
                 <div className="space-y-2"><Label>Project Name</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Project name" /></div>
