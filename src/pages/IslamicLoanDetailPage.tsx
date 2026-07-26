@@ -24,6 +24,7 @@ import { isLoanOverdue, computeCustomerRating, computeMonthsEarly } from '@/lib/
 import { generatePaymentReceiptPDF } from '@/lib/paymentReceipt';
 import { generateIslamicLoanSnapshotPDF } from '@/lib/snapshotReportPdf';
 import { SnapshotShareEditor } from '@/components/SnapshotShareEditor';
+import { DateField } from '@/components/DateField';
 
 export default function IslamicLoanDetailPage() {
   const { id } = useParams();
@@ -152,6 +153,9 @@ export default function IslamicLoanDetailPage() {
         remaining_amount: String(loan.remaining_amount ?? ''),
         status: loan.status || 'active',
         comments: loan.comments || '',
+        issue_date: (loan as any).issue_date
+          ? String((loan as any).issue_date).slice(0, 10)
+          : (loan.created_at ? new Date(loan.created_at).toISOString().slice(0, 10) : ''),
         payment_methods: Array.isArray((loan as any).payment_methods) ? (loan as any).payment_methods : [],
       });
     }
@@ -218,6 +222,7 @@ export default function IslamicLoanDetailPage() {
       remaining_amount: parseFloat(edit.remaining_amount) || 0,
       status: edit.status,
       comments: edit.comments,
+      issue_date: edit.issue_date || null,
       payment_methods: (edit.payment_methods || []).filter((m: PaymentMethod) => m.label?.trim() && m.value?.trim()),
     };
     const { error } = await supabase.from('islamic_loans').update(payload).eq('id', id!);
@@ -1090,6 +1095,10 @@ export default function IslamicLoanDetailPage() {
           <SheetHeader><SheetTitle>Edit Loan</SheetTitle></SheetHeader>
           {edit && (
             <div className="space-y-3 mt-6">
+              <div className="space-y-2">
+                <Label>Issue / Create Date <span className="text-xs text-muted-foreground">(past date সাপোর্টেড)</span></Label>
+                <DateField value={edit.issue_date || ''} onChange={(v) => setEdit({ ...edit, issue_date: v })} />
+              </div>
               <div className="space-y-2"><Label>Borrower Name</Label><Input value={edit.borrower_name} onChange={e => setEdit({ ...edit, borrower_name: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>পণ্যের নাম / Product Name</Label>
@@ -1212,7 +1221,7 @@ export default function IslamicLoanDetailPage() {
             </div>
             <div>
               <Label>Payment Date</Label>
-              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+              <DateField value={paymentDate} onChange={setPaymentDate} />
             </div>
           </div>
           <DialogFooter>
@@ -1251,7 +1260,7 @@ export default function IslamicLoanDetailPage() {
               </div>
               <div>
                 <Label>Payment Date</Label>
-                <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+                <DateField value={paymentDate} onChange={setPaymentDate} />
               </div>
               <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>

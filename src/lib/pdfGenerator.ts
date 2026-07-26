@@ -4,6 +4,8 @@ import { format, subMonths } from 'date-fns';
 import { BRAND, loadLogoDataUrl } from './brand';
 
 const formatAmount = (amount: number) => `TK ${new Intl.NumberFormat('en-IN').format(amount)}`;
+/** Prefer user-selected date over system created_at */
+const effDate = (r: any): string | null => r?.issue_date || r?.payment_date || r?.month_year || r?.created_at || null;
 
 export type ReportPeriod = '3m' | '6m' | '1y';
 
@@ -17,7 +19,7 @@ export const periodCutoff = (p: ReportPeriod) => {
 
 export const filterByPeriod = <T extends { created_at?: string | null }>(rows: T[], p: ReportPeriod) => {
   const cutoff = periodCutoff(p);
-  return rows.filter(r => r.created_at && new Date(r.created_at) >= cutoff);
+  return rows.filter(r => { const e = effDate(r); return e && new Date(e) >= cutoff; });
 };
 
 // ---------- Shared header / footer ----------
@@ -89,7 +91,7 @@ export async function generateMemberPDF(member: any, deposits: any[], distributi
       startY,
       head: [['Date', 'Amount', 'Method', 'TXN No.', 'Status']],
       body: deposits.map(d => [
-        d.created_at ? format(new Date(d.created_at), 'MMM d, yyyy') : '-',
+        (effDate(d) ? format(new Date(effDate(d)!), 'MMM d, yyyy') : '-'),
         formatAmount(Number(d.amount)),
         d.payment_method || '-',
         d.transaction_number || '-',
@@ -107,7 +109,7 @@ export async function generateMemberPDF(member: any, deposits: any[], distributi
       startY,
       head: [['Date', 'Amount', 'Type', 'Share %']],
       body: distributions.map(d => [
-        d.created_at ? format(new Date(d.created_at), 'MMM d, yyyy') : '-',
+        (effDate(d) ? format(new Date(effDate(d)!), 'MMM d, yyyy') : '-'),
         formatAmount(Number(d.amount)),
         d.distribution_type || '-',
         d.share_percentage ? `${d.share_percentage.toFixed(1)}%` : '-',
@@ -137,7 +139,7 @@ export async function generateFundSummaryPDF(allTransactions: any[], stats: { to
     startY: y + 22,
     head: [['Date', 'Type', 'Amount', 'Reason']],
     body: transactions.map(t => [
-      t.created_at ? format(new Date(t.created_at), 'MMM d, yyyy') : '-',
+      (effDate(t) ? format(new Date(effDate(t)!), 'MMM d, yyyy') : '-'),
       t.type === 'in' ? 'Fund In' : 'Fund Out',
       formatAmount(Number(t.amount)),
       t.reason || '-',
@@ -157,7 +159,7 @@ export async function generateMemberLoansPDF(allLoans: any[], period: ReportPeri
     startY: 50,
     head: [['Date', 'Member', 'Requested', 'Approved', 'Repaid', 'Status', 'Due']],
     body: loans.map(l => [
-      l.created_at ? format(new Date(l.created_at), 'MMM d, yyyy') : '-',
+      (effDate(l) ? format(new Date(effDate(l)!), 'MMM d, yyyy') : '-'),
       l.member?.full_name || '-',
       formatAmount(Number(l.requested_amount || 0)),
       formatAmount(Number(l.approved_amount || 0)),
@@ -185,7 +187,7 @@ export async function generateIslamicLoansPDF(allLoans: any[], allPayments: any[
     startY: 65,
     head: [['Date', 'Code', 'Media Person', 'Purchase', 'Sell', 'Remaining', 'Tenure', 'Monthly']],
     body: loans.map(l => [
-      l.created_at ? format(new Date(l.created_at), 'MMM d, yyyy') : '-',
+      (effDate(l) ? format(new Date(effDate(l)!), 'MMM d, yyyy') : '-'),
       l.code || '-',
       l.media_person?.full_name || '-',
       formatAmount(Number(l.purchase_price || 0)),
@@ -204,7 +206,7 @@ export async function generateIslamicLoansPDF(allLoans: any[], allPayments: any[
     startY: afterLoansY + 4,
     head: [['Date', 'Loan ID', 'Amount', 'Method', 'TXN No.']],
     body: payments.map(p => [
-      p.created_at ? format(new Date(p.created_at), 'MMM d, yyyy') : '-',
+      (effDate(p) ? format(new Date(effDate(p)!), 'MMM d, yyyy') : '-'),
       (p.loan_id || '').slice(0, 8),
       formatAmount(Number(p.amount || 0)),
       p.payment_method || '-',
@@ -235,7 +237,7 @@ export async function generateAssetsPDF(allAssets: any[], period: ReportPeriod) 
     startY: 72,
     head: [['Date', 'Name', 'Description', 'Purchase', 'Status', 'Scrap']],
     body: assets.map(a => [
-      a.created_at ? format(new Date(a.created_at), 'MMM d, yyyy') : '-',
+      (effDate(a) ? format(new Date(effDate(a)!), 'MMM d, yyyy') : '-'),
       a.name || '-',
       a.description || '-',
       formatAmount(Number(a.purchase_price || 0)),
@@ -276,7 +278,7 @@ export async function generateProjectsPDF(projects: any[], allTransactions: any[
     startY: y + 4,
     head: [['Date', 'Type', 'Amount', 'Reason']],
     body: txns.map(t => [
-      t.created_at ? format(new Date(t.created_at), 'MMM d, yyyy') : '-',
+      (effDate(t) ? format(new Date(effDate(t)!), 'MMM d, yyyy') : '-'),
       t.type || '-',
       formatAmount(Number(t.amount || 0)),
       t.reason || t.comments || '-',
@@ -346,7 +348,7 @@ export async function generateDashboardPDF(data: DashboardPDFData, period: Repor
     startY: y + 4,
     head: [['Date', 'Type', 'Amount', 'Reason']],
     body: fundTxns.slice(0, 50).map(t => [
-      t.created_at ? format(new Date(t.created_at), 'MMM d, yyyy') : '-',
+      (effDate(t) ? format(new Date(effDate(t)!), 'MMM d, yyyy') : '-'),
       t.type === 'in' ? 'In' : 'Out',
       formatAmount(Number(t.amount)),
       t.reason || '-',
@@ -379,7 +381,7 @@ export async function generateCashInHandPDF(
     startY: y + 22,
     head: [['Date', 'Source', 'Type', 'Amount', 'Reason']],
     body: rows.map(r => [
-      r.created_at ? format(new Date(r.created_at), 'MMM d, yyyy') : '-',
+      (effDate(r) ? format(new Date(effDate(r)!), 'MMM d, yyyy') : '-'),
       r.source,
       r.direction === 'in' ? 'In' : 'Out',
       formatAmount(r.amount),

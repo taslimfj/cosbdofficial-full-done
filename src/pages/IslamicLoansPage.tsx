@@ -22,6 +22,7 @@ import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 import { computeMissedInstallments } from '@/lib/memberStatus';
+import { DateField } from '@/components/DateField';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
@@ -304,7 +305,7 @@ export default function IslamicLoansPage() {
                   return (
                     <div className="space-y-2">
                       <Label>Create / Issue Date <span className="text-xs text-muted-foreground">(admin only)</span></Label>
-                      <Input type="date" value={form.issueDate} onChange={e => setForm(p => ({ ...p, issueDate: e.target.value }))} />
+                      <DateField value={form.issueDate} onChange={(v) => setForm(p => ({ ...p, issueDate: v }))} />
                       <p className="text-[11px] text-muted-foreground">শেষ কিস্তির তারিখ: <b>{endStr}</b> ({form.tenure} মাস পরে)</p>
                     </div>
                   );
