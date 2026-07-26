@@ -330,25 +330,12 @@ export default function IslamicLoanDetailPage() {
       }
     }
 
-    // Member shares — signed (positive = profit credit, negative = loss debit)
-    // Deleted members are NEVER part of profit or loss — Fund absorbs their share
-    // in both cases (Fund credited on profit, Fund debited on loss).
+    // Member shares — only active, non-deleted, non-zero snapshot rows count.
+    // Deleted/0% rows are fully excluded; their names never get a distribution entry.
     shareRows.forEach(r => {
       if (r.expected === 0) return;
       if (r.isDeleted || !r.memberId) {
-        // Deleted member's share → Fund (both profit and loss)
-        rows.push({
-          source_type: 'islamic_loan', source_id: id, member_id: null,
-          amount: r.expected, share_percentage: r.sharePct,
-          distribution_type: 'deleted_member_to_fund',
-        });
-        fundExtras.push({
-          amount: Math.abs(r.expected),
-          reason: isLoss
-            ? `Loan ${loan.code} — ${r.name} (deleted member) এর loss অংশ Fund থেকে বিয়োগ`
-            : `Loan ${loan.code} — ${r.name} (deleted member) এর অংশ Fund-এ যোগ`,
-          type: isLoss ? 'out' : 'in',
-        });
+        return;
       } else {
         rows.push({
           source_type: 'islamic_loan', source_id: id, member_id: r.memberId,
@@ -362,7 +349,9 @@ export default function IslamicLoanDetailPage() {
     // uncovered pool goes to Fund. On profit → Fund gets credit. On loss →
     // Fund absorbs the uncovered loss.
     if (profitTotals.memberPool !== 0) {
-      const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+      const totalSnapshotPct = shareRows
+        .filter(r => !r.isDeleted && r.memberId && r.sharePct > 0)
+        .reduce((s, r) => s + r.sharePct, 0);
       const residualPct = Math.max(0, 100 - totalSnapshotPct);
       if (residualPct > 0.001) {
         const residualAmt = round2(profitTotals.memberPool * residualPct / 100);
@@ -994,13 +983,13 @@ export default function IslamicLoanDetailPage() {
                     <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(aliveSum))}</span>
                   </div>
                   <div className="flex justify-between text-emerald-600">
-                    <span>→ Fund (deleted + residual)</span>
+                    <span>→ Fund (residual only)</span>
                     <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(fundGets))}</span>
                   </div>
                 </div>
               );
             })()}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি member পান: Member Pool × তার % ÷ 100। Deleted members ও residual % → Fund (Loss হলে Fund থেকে বিয়োগ)।</p>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি active member পান: Member Pool × তার % ÷ 100। Deleted/0% members পুরোপুরি বাদ; বাকি residual % Fund-এ যাবে।</p>
           </div>
         )}
       </div>

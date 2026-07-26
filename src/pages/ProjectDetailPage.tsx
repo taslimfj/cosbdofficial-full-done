@@ -100,7 +100,7 @@ export default function ProjectDetailPage() {
     if (!project || !snapshot.length) return [] as any[];
     const activeMemberIds = new Set(members.map((m: any) => m.id));
     const pool = profitTotalsPre.memberPool;
-    const lossPool = totals.loss; // loss follows snapshot share; deleted members' share is absorbed by Fund
+    const lossPool = totals.loss;
     return snapshot.map((s: any) => ({
       id: s.id,
       memberId: s.member_id,
@@ -227,8 +227,7 @@ export default function ProjectDetailPage() {
       shareRows.forEach(r => {
         if (r.expected <= 0) return;
         if (r.isDeleted || !r.memberId) {
-          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
-          fundTxRows.push({ type: 'in', amount: r.expected, reason: `Project ${project.code} — ${r.name} (deleted member) এর profit অংশ Fund-এ যোগ` });
+          return;
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: r.expected, share_percentage: r.sharePct, distribution_type: 'share' });
           memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) + r.expected);
@@ -237,7 +236,9 @@ export default function ProjectDetailPage() {
 
       // Residual — if snapshot member % সমষ্টি < 100, বাকি অংশ Fund-এ চলে যাবে
       if (profitTotals.memberPool > 0) {
-        const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+        const totalSnapshotPct = shareRows
+          .filter(r => !r.isDeleted && r.memberId && r.sharePct > 0)
+          .reduce((s, r) => s + r.sharePct, 0);
         const residualPct = Math.max(0, 100 - totalSnapshotPct);
         if (residualPct > 0.001) {
           const residualAmt = round2(profitTotals.memberPool * residualPct / 100);
@@ -248,14 +249,12 @@ export default function ProjectDetailPage() {
         }
       }
     } else if (totals.loss > 0) {
-      // Loss distribution — proportional to snapshot share.
-      // Alive members bear their own share; deleted members' loss share is
-      // absorbed by the Fund (Fund debited), matching Islamic loan behavior.
+      // Loss distribution — only active, non-deleted, non-zero snapshot rows count.
+      // Deleted/0% rows are fully excluded; the remaining percentage gap is residual Fund loss.
       shareRows.forEach(r => {
         if (r.lossShare <= 0) return;
         if (r.isDeleted || !r.memberId) {
-          rows.push({ source_type: 'project', source_id: id, member_id: null, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'deleted_member_to_fund' });
-          fundTxRows.push({ type: 'out', amount: r.lossShare, reason: `Project ${project.code} — ${r.name} (deleted) loss share Fund থেকে বিয়োগ` });
+          return;
         } else {
           rows.push({ source_type: 'project', source_id: id, member_id: r.memberId, amount: -r.lossShare, share_percentage: r.sharePct, distribution_type: 'loss' });
           memberDelta.set(r.memberId, (memberDelta.get(r.memberId) || 0) - r.lossShare);
@@ -263,7 +262,9 @@ export default function ProjectDetailPage() {
       });
 
       // Residual — snapshot sum < 100 হলে বাকি loss অংশও Fund থেকে minus হবে
-      const totalSnapshotPct = shareRows.reduce((s, r) => s + r.sharePct, 0);
+      const totalSnapshotPct = shareRows
+        .filter(r => !r.isDeleted && r.memberId && r.sharePct > 0)
+        .reduce((s, r) => s + r.sharePct, 0);
       const residualPct = Math.max(0, 100 - totalSnapshotPct);
       if (residualPct > 0.001) {
         const residualAmt = round2(totals.loss * residualPct / 100);
@@ -420,7 +421,7 @@ export default function ProjectDetailPage() {
           <div className="bg-destructive/5 rounded-lg p-3 mb-4">
             <p className="text-xs text-muted-foreground mb-1">Total Loss</p>
             <p className="font-mono font-bold tabular-nums text-sm text-destructive">−{formatBDT(totals.loss)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী active members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ সরাসরি Fund থেকে বিয়োগ হবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Loss শুধুমাত্র active non-zero snapshot members-এর balance থেকে কাটা হবে। Deleted/0% members পুরোপুরি বাদ; বাকি residual অংশ Fund থেকে বিয়োগ হবে।</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">

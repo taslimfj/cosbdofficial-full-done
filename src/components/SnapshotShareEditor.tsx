@@ -15,8 +15,8 @@ type Row = { id: string; member_name: string; share_percentage: number; is_membe
  * Rules:
  *  - Total does NOT need to sum to 100. Any residual (100 − sum) is automatically
  *    absorbed by the Fund at distribution time.
- *  - Admin can Delete a member from the snapshot — that member's share also goes
- *    to Fund at distribution time.
+ *  - Admin can Delete a member from the snapshot — that member is fully removed
+ *    from this project/loan distribution; only the remaining active percentages count.
  */
 export function SnapshotShareEditor({
   open,
@@ -48,10 +48,6 @@ export function SnapshotShareEditor({
     if (removed.has(r.id)) return s;
     return s + (parseFloat(values[r.id]) || 0);
   }, 0);
-  const deletedTotal = rows.reduce((s, r) => {
-    if (!removed.has(r.id)) return s;
-    return s + (parseFloat(values[r.id]) || Number(r.share_percentage) || 0);
-  }, 0);
   const fundShare = Math.max(0, 100 - activeTotal);
 
   const save = async () => {
@@ -59,9 +55,7 @@ export function SnapshotShareEditor({
     try {
       for (const r of rows) {
         const isRemoved = removed.has(r.id);
-        const pct = isRemoved
-          ? Number(r.share_percentage)                 // keep original pct so Fund absorbs it
-          : parseFloat(values[r.id]) || 0;
+        const pct = isRemoved ? 0 : parseFloat(values[r.id]) || 0;
         const payload: any = { share_percentage: pct, is_member_deleted: isRemoved };
         const { error } = await (supabase as any).from(table).update(payload).eq('id', r.id);
         if (error) throw error;
@@ -95,7 +89,7 @@ export function SnapshotShareEditor({
           <p className="text-xs text-muted-foreground">
             যে member-দের rakhbo তাদের % এখানে সেট করুন। মোট 100% হওয়া বাধ্যতামূলক নয় —
             <span className="font-medium"> বাকি অংশ automatically Fund-এ চলে যাবে</span>।
-            কাউকে Delete করলে তার share-ও Fund-এ যাবে।
+            কাউকে Delete/0% করলে সে এই distribution থেকে পুরোপুরি বাদ যাবে।
           </p>
           {rows.map(r => {
             const isRemoved = removed.has(r.id);
@@ -106,7 +100,7 @@ export function SnapshotShareEditor({
               >
                 <div className={`flex-1 text-sm truncate ${isRemoved ? 'line-through' : ''}`}>
                   {r.member_name}
-                  {isRemoved && <span className="ml-1 text-[10px] text-destructive">→ Fund</span>}
+                  {isRemoved && <span className="ml-1 text-[10px] text-destructive">বাদ</span>}
                 </div>
                 <Input
                   type="number"
@@ -132,7 +126,7 @@ export function SnapshotShareEditor({
                     type="button" variant="ghost" size="icon"
                     className="h-8 w-8 text-destructive hover:text-destructive"
                     onClick={() => setRemoved(s => new Set(s).add(r.id))}
-                    title="Delete member (share → Fund)"
+                    title="Delete member from this distribution"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -146,15 +140,9 @@ export function SnapshotShareEditor({
               <span className="text-muted-foreground">Members active total</span>
               <span className="font-medium tabular-nums">{activeTotal.toFixed(2)}%</span>
             </div>
-            {deletedTotal > 0 && (
-              <div className="flex justify-between text-destructive">
-                <span>Deleted (→ Fund)</span>
-                <span className="tabular-nums">{deletedTotal.toFixed(2)}%</span>
-              </div>
-            )}
             <div className="flex justify-between text-emerald-600 font-medium">
-              <span>Fund gets (residual + deleted)</span>
-              <span className="tabular-nums">{(fundShare + deletedTotal).toFixed(2)}%</span>
+              <span>Fund gets residual</span>
+              <span className="tabular-nums">{fundShare.toFixed(2)}%</span>
             </div>
           </div>
         </div>
