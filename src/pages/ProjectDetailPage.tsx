@@ -483,7 +483,7 @@ export default function ProjectDetailPage() {
                   <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(t.created_at), 'PPp')}</p>
                 </div>
                 <span className={`font-mono font-bold tabular-nums text-sm shrink-0 ${t.type === 'income' ? 'text-emerald-600' : 'text-destructive'}`}>
-                  {t.type === 'income' ? '+' : '−'}{formatBDT(Number(t.amount))}
+                  {t.type === 'income' ? '+' : '−'}{formatBDTDecimal(Number(t.amount))}
                 </span>
               </div>
             ))}

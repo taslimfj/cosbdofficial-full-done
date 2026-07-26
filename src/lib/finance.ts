@@ -1,15 +1,16 @@
+// Default balance/total display — hides fractional পয়সা, keeps precision in DB.
+// Uses floor so partial paisa never "rounds up" to a taka it hasn't reached yet.
 export const formatBDT = (amount: number): string => {
-  return '৳' + new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  const n = Math.floor(Number(amount) || 0);
+  return '৳' + new Intl.NumberFormat('en-IN').format(n);
 };
 
+// Precise display — used for individual transaction rows and receipts where every paisa matters.
 export const formatBDTDecimal = (amount: number): string => {
   return '৳' + new Intl.NumberFormat('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number(amount) || 0);
 };
 
 export const generateCode = (prefix: string): string => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBDT } from '@/lib/finance';
+import { formatBDT, formatBDTDecimal } from '@/lib/finance';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -260,7 +260,7 @@ export default function MemberLoanDetailPage() {
             {repayments.map(r => (
               <div key={r.id} className="px-5 py-3 flex items-center gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground tabular-nums">{formatBDT(Number(r.amount))}</p>
+                  <p className="text-sm font-medium text-foreground tabular-nums">{formatBDTDecimal(Number(r.amount))}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(r.created_at), 'MMM d, yyyy')}
                     {r.payment_method && ` · ${r.payment_method}`}

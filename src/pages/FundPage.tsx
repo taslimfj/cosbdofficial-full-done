@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBDT } from '@/lib/finance';
+import { formatBDT, formatBDTDecimal } from '@/lib/finance';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,7 +163,7 @@ export default function FundPage() {
                   <p className="text-xs text-muted-foreground">{tx.created_at ? format(new Date(tx.created_at), 'MMM d, yyyy · h:mm a') : ''}</p>
                 </div>
                 <p className={`text-sm font-semibold tabular-nums ${tx.type === 'in' ? 'text-emerald-600' : 'text-destructive'}`}>
-                  {tx.type === 'in' ? '+' : '-'}{formatBDT(Number(tx.amount))}
+                  {tx.type === 'in' ? '+' : '-'}{formatBDTDecimal(Number(tx.amount))}
                 </p>
                 {role === 'admin' && (
                   <div className="flex gap-1 shrink-0">
