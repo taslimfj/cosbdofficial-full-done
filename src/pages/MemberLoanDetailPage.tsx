@@ -295,7 +295,7 @@ export default function MemberLoanDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>তারিখ</Label>
-              <Input type="date" value={payForm.date} onChange={e => setPayForm(p => ({ ...p, date: e.target.value }))} />
+              <DateField value={payForm.date} onChange={(v) => setPayForm(p => ({ ...p, date: v }))} />
             </div>
             <div className="space-y-2">
               <Label>পরিমাণ (৳)</Label>
