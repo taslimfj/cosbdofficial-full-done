@@ -421,7 +421,7 @@ export default function ProjectDetailPage() {
           <div className="bg-destructive/5 rounded-lg p-3 mb-4">
             <p className="text-xs text-muted-foreground mb-1">Total Loss</p>
             <p className="font-mono font-bold tabular-nums text-sm text-destructive">−{formatBDT(totals.loss)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Loss snapshot share অনুযায়ী active members-এর balance থেকে কাটা হবে। Deleted member-এর অংশ সরাসরি Fund থেকে বিয়োগ হবে।</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Loss শুধুমাত্র active non-zero snapshot members-এর balance থেকে কাটা হবে। Deleted/0% members পুরোপুরি বাদ; বাকি residual অংশ Fund থেকে বিয়োগ হবে।</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">

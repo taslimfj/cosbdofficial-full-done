@@ -983,13 +983,13 @@ export default function IslamicLoanDetailPage() {
                     <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(aliveSum))}</span>
                   </div>
                   <div className="flex justify-between text-emerald-600">
-                    <span>→ Fund (deleted + residual)</span>
+                    <span>→ Fund (residual only)</span>
                     <span className="font-mono tabular-nums font-medium">{profitTotals.isLoss ? '−' : ''}{formatBDTDecimal(Math.abs(fundGets))}</span>
                   </div>
                 </div>
               );
             })()}
-            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি member পান: Member Pool × তার % ÷ 100। Deleted members ও residual % → Fund (Loss হলে Fund থেকে বিয়োগ)।</p>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">প্রতি active member পান: Member Pool × তার % ÷ 100। Deleted/0% members পুরোপুরি বাদ; বাকি residual % Fund-এ যাবে।</p>
           </div>
         )}
       </div>
