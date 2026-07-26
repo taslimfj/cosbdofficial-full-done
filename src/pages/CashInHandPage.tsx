@@ -134,7 +134,6 @@ export default function CashInHandPage() {
       'Islamic Loan': { in: 0, out: 0, count: 0 },
       'Project': { in: 0, out: 0, count: 0 },
       'Member Loan': { in: 0, out: 0, count: 0 },
-      'Member Loan': { in: 0, out: 0, count: 0 },
       'Asset': { in: 0, out: 0, count: 0 },
     };
     rows.forEach(r => {
