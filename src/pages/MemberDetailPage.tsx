@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle } from 'lucide-react';
 import { generateMemberPDF } from '@/lib/pdfGenerator';
 import { computeMissedInstallments, statusBannerClass } from '@/lib/memberStatus';
+import { DateField } from '@/components/DateField';
 
 import { calculateSharePercentage } from '@/lib/finance';
 
