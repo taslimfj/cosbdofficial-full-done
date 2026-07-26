@@ -189,8 +189,8 @@ export default function ProjectDetailPage() {
           rows.push({ source_type: 'project', source_id: id, member_id: project.manager_id, amount: profitTotals.manager, share_percentage: managerPct, distribution_type: 'manager' });
           memberDelta.set(project.manager_id, (memberDelta.get(project.manager_id) || 0) + profitTotals.manager);
         } else if (project.secondary_manager_id && project.secondary_manager) {
-          const half = Math.round((profitTotals.manager / 2) * 100) / 100;
-          const other = Math.round((profitTotals.manager - half) * 100) / 100;
+          const half = round2(profitTotals.manager / 2);
+          const other = round2(profitTotals.manager - half);
           rows.push({ source_type: 'project', source_id: id, member_id: project.secondary_manager_id, amount: half, share_percentage: managerPct / 2, distribution_type: 'secondary_manager' });
           memberDelta.set(project.secondary_manager_id, (memberDelta.get(project.secondary_manager_id) || 0) + half);
           rows.push({ source_type: 'project', source_id: id, member_id: null, amount: other, share_percentage: managerPct / 2, distribution_type: 'manager_deleted_to_fund' });
