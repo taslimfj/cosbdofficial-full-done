@@ -22,6 +22,7 @@ import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 import { computeMissedInstallments } from '@/lib/memberStatus';
+import { DateField } from '@/components/DateField';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
