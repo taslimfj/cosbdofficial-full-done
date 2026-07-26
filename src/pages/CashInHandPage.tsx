@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBDT } from '@/lib/finance';
-import { Loader2, ArrowDownLeft, ArrowUpRight, Coins, Users, Wallet, Landmark, Briefcase, HandCoins } from 'lucide-react';
+import { Loader2, ArrowDownLeft, ArrowUpRight, Coins, Users, Wallet, Landmark, Briefcase, HandCoins, Package } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateCashInHandPDF } from '@/lib/pdfGenerator';
 
 type Row = {
   id: string;
   created_at: string | null;
-  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Member Loan';
+  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Member Loan' | 'Asset';
   direction: 'in' | 'out';
   amount: number;
   reason: string;
 };
 
-type SectionKey = 'Deposit' | 'Fund' | 'Islamic Loan' | 'Project' | 'Member Loan';
+type SectionKey = 'Deposit' | 'Fund' | 'Islamic Loan' | 'Project' | 'Member Loan' | 'Asset';
 
 const SECTIONS: { key: SectionKey; label: string; icon: any; description: string }[] = [
   { key: 'Deposit', label: 'Member Deposits', icon: Users, description: 'সদস্যদের deposit ও withdraw' },
@@ -22,6 +22,7 @@ const SECTIONS: { key: SectionKey; label: string; icon: any; description: string
   { key: 'Islamic Loan', label: 'Islamic Loan', icon: Landmark, description: 'পণ্য purchase ও installment / advance' },
   { key: 'Project', label: 'Project', icon: Briefcase, description: 'Project income ও expense' },
   { key: 'Member Loan', label: 'Member Loan', icon: HandCoins, description: 'Loan disbursement ও repayment' },
+  { key: 'Asset', label: 'Asset', icon: Package, description: 'Asset purchase ও scrap/sell' },
 ];
 
 export default function CashInHandPage() {
@@ -39,12 +40,13 @@ export default function CashInHandPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loans' }, fetchAll)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_loan_repayments' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
 
   const fetchAll = async () => {
-    const [fundRes, projRes, ilRes, ilPayRes, depRes, mlRes, mlPayRes] = await Promise.all([
+    const [fundRes, projRes, ilRes, ilPayRes, depRes, mlRes, mlPayRes, assetRes] = await Promise.all([
       supabase.from('fund_transactions').select('*'),
       supabase.from('project_transactions').select('*'),
       supabase.from('islamic_loans').select('id, purchase_price, created_at, product_name, code'),
@@ -52,7 +54,15 @@ export default function CashInHandPage() {
       supabase.from('deposits').select('*').eq('status', 'approved'),
       supabase.from('member_loans').select('*'),
       supabase.from('member_loan_repayments').select('*').eq('status', 'approved'),
+      supabase.from('assets').select('*').is('deleted_at', null),
     ]);
+
+    // Asset-linked fund_transactions ids — will be reclassified as "Asset" instead of "Fund"
+    const assetTxnIds = new Set<string>();
+    (assetRes.data || []).forEach((a: any) => {
+      if (a.purchase_txn_id) assetTxnIds.add(a.purchase_txn_id);
+      if (a.scrap_txn_id) assetTxnIds.add(a.scrap_txn_id);
+    });
 
     const merged: Row[] = [];
 
@@ -70,10 +80,11 @@ export default function CashInHandPage() {
       const reason: string = t.reason || '';
       const isProfitInternal = /profit share|Admin share.*Fund|Fund-এ যোগ|Fund থেকে বিয়োগ/i.test(reason);
       if (isProfitInternal) return;
+      const isAsset = assetTxnIds.has(t.id);
       merged.push({
-        id: `fund-${t.id}`, created_at: t.created_at, source: 'Fund',
+        id: `fund-${t.id}`, created_at: t.created_at, source: isAsset ? 'Asset' : 'Fund',
         direction: t.type === 'in' || t.type === 'income' ? 'in' : 'out',
-        amount: Number(t.amount || 0), reason: reason || 'Fund transaction',
+        amount: Number(t.amount || 0), reason: reason || (isAsset ? 'Asset transaction' : 'Fund transaction'),
       });
     });
 
@@ -123,6 +134,7 @@ export default function CashInHandPage() {
       'Islamic Loan': { in: 0, out: 0, count: 0 },
       'Project': { in: 0, out: 0, count: 0 },
       'Member Loan': { in: 0, out: 0, count: 0 },
+      'Asset': { in: 0, out: 0, count: 0 },
     };
     rows.forEach(r => {
       const s = stats[r.source as SectionKey];
