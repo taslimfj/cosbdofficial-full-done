@@ -1221,7 +1221,7 @@ export default function IslamicLoanDetailPage() {
             </div>
             <div>
               <Label>Payment Date</Label>
-              <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+              <DateField value={paymentDate} onChange={setPaymentDate} />
             </div>
           </div>
           <DialogFooter>
