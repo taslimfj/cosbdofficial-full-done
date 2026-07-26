@@ -79,6 +79,23 @@ export default function DashboardPage() {
     const fundOut = fundTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount), 0);
     const availableFund = fundIn - fundOut;
 
+    // Cash in Hand — mirror /cash-in-hand page exactly so both pages agree.
+    // Sum of REAL cash movements only. Fund auto-entries created from profit
+    // distributions (e.g. "Fund profit share", "Admin share ... Fund") are
+    // internal reallocations of already-counted installment money and MUST
+    // be excluded to avoid double counting.
+    const isProfitInternal = (reason: string) =>
+      /profit share|Admin share.*Fund/i.test(reason || '');
+
+    const depositsCash = deposits
+      .filter((d: any) => d.status === 'approved')
+      .reduce((s: number, d: any) => s + Number(d.amount || 0), 0); // signed: withdraw is negative
+    const fundManualIn = fundTxns
+      .filter((t: any) => (t.type === 'in' || t.type === 'income') && !isProfitInternal(t.reason))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const fundManualOut = fundTxns
+      .filter((t: any) => (t.type === 'out' || t.type === 'expense') && !isProfitInternal(t.reason))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectIncome = projTxns.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectExpense = projTxns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ilPurchases = ilLoans.reduce((s: number, l: any) => s + Number(l.purchase_price || 0), 0);
@@ -90,24 +107,12 @@ export default function DashboardPage() {
       .filter((r: any) => r.status === 'approved')
       .reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-    // Cash in Hand per user spec:
-    // = Total Capital + Fund Net Balance
-    //   + Project Income  - Project Expense
-    //   - Islamic Loan Purchases + Islamic Loan Installments
-    //   - Member Loans Disbursed + Member Loan Repayments
-    // NOTE: Profit distributions are INTERNAL allocations of installment cash
-    // already counted via ilInstallments — subtract them to avoid double count
-    // (they inflate both totalInvestment via members and availableFund via fund share).
-    const distributedProfitTotal = distributions.reduce(
-      (s: number, d: any) => s + Number(d.amount || 0),
-      0
-    );
     const cashInHand =
-      totalInvestment + availableFund
-      + projectIncome - projectExpense
-      - ilPurchases + ilInstallments
-      - mlDisbursed + mlRepaid
-      - distributedProfitTotal;
+      depositsCash
+      + (fundManualIn - fundManualOut)
+      + (projectIncome - projectExpense)
+      + (ilInstallments - ilPurchases)
+      + (mlRepaid - mlDisbursed);
 
 
     setStats({
