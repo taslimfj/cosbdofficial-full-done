@@ -138,7 +138,7 @@ function renderMonthBlock(
   if (showMonthTitle) y = monthTitle(doc, format(start, 'MMMM yyyy'), y);
 
   // Members: all active non-customer members, with month deposit/withdraw and cumulative balance up to end of month
-  const monthDeposits = data.deposits.filter(d => d.status === 'approved' && inRange(d.created_at, start, end));
+  const monthDeposits = data.deposits.filter(d => d.status === 'approved' && inRange(eff(d), start, end));
   const perMember = new Map<string, { deposit: number; withdraw: number }>();
   for (const d of monthDeposits) {
     const amt = Number(d.amount || 0);
@@ -151,12 +151,12 @@ function renderMonthBlock(
   const balanceByMember = new Map<string, number>();
   for (const d of data.deposits) {
     if (d.status !== 'approved') continue;
-    const dt = d.created_at ? new Date(d.created_at) : null;
+    const _de = eff(d); const dt = _de ? new Date(_de) : null;
     if (!dt || dt > end) continue;
     balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount || 0));
   }
   for (const r of (data.distributions || [])) {
-    const dt = r.created_at ? new Date(r.created_at) : null;
+    const _re = eff(r); const dt = _re ? new Date(_re) : null;
     if (!dt || dt > end) continue;
     balanceByMember.set(r.member_id, (balanceByMember.get(r.member_id) || 0) + Number(r.amount || 0));
   }
@@ -192,7 +192,7 @@ function renderMonthBlock(
 
 
   // Fund
-  const monthFund = data.fundTxns.filter(t => inRange(t.created_at, start, end));
+  const monthFund = data.fundTxns.filter(t => inRange(eff(t), start, end));
   const fundIn = monthFund.filter(t => t.type === 'in' || t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
   const fundOut = monthFund.filter(t => t.type === 'out' || t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0);
   y = sectionTitle(doc, 'Fund', y);
@@ -205,8 +205,8 @@ function renderMonthBlock(
   y = (doc as any).lastAutoTable.finalY + 5;
 
   // Islamic Loans — created + installments
-  const ilCreated = data.islamicLoans.filter(l => inRange(l.created_at, start, end));
-  const ilPays = data.islamicPayments.filter(p => inRange(p.created_at, start, end));
+  const ilCreated = data.islamicLoans.filter(l => inRange(eff(l), start, end));
+  const ilPays = data.islamicPayments.filter(p => inRange(eff(p), start, end));
   y = sectionTitle(doc, 'Islamic Loans', y);
   if (ilCreated.length === 0 && ilPays.length === 0) {
     doc.setFontSize(9); doc.setTextColor(120);
@@ -218,7 +218,7 @@ function renderMonthBlock(
       autoTable(doc, {
         startY: y,
         head: [['Date', 'Code', 'Borrower', 'Purchase (Out)']],
-        body: ilCreated.map(l => [fmtDate(l.created_at), l.code || '-', l.borrower_name || '-', fmt(Number(l.purchase_price || 0))]),
+        body: ilCreated.map(l => [fmtDate(eff(l)), l.code || '-', l.borrower_name || '-', fmt(Number(l.purchase_price || 0))]),
         ...tableStyle,
       });
       y = (doc as any).lastAutoTable.finalY + 3;
@@ -227,7 +227,7 @@ function renderMonthBlock(
       autoTable(doc, {
         startY: y,
         head: [['Date', 'Loan Code', 'Installment (In)', 'Method']],
-        body: ilPays.map(p => [fmtDate(p.created_at), islamicCodeById.get(p.loan_id) || '-', fmt(Number(p.amount || 0)), p.payment_method || '-']),
+        body: ilPays.map(p => [fmtDate(eff(p)), islamicCodeById.get(p.loan_id) || '-', fmt(Number(p.amount || 0)), p.payment_method || '-']),
         ...tableStyle,
       });
       y = (doc as any).lastAutoTable.finalY + 5;
@@ -237,7 +237,7 @@ function renderMonthBlock(
   }
 
   // Projects
-  const projTxns = data.projectTxns.filter(t => inRange(t.created_at, start, end));
+  const projTxns = data.projectTxns.filter(t => inRange(eff(t), start, end));
   y = sectionTitle(doc, 'Projects', y);
   if (projTxns.length === 0) {
     doc.setFontSize(9); doc.setTextColor(120);
@@ -249,7 +249,7 @@ function renderMonthBlock(
       startY: y,
       head: [['Date', 'Project', 'Type', 'Amount', 'Reason']],
       body: projTxns.map(t => [
-        fmtDate(t.created_at),
+        fmtDate(eff(t)),
         projectById.get(t.project_id) || '-',
         t.type === 'income' || t.type === 'in' ? 'In' : 'Out',
         fmt(Number(t.amount || 0)),
@@ -261,8 +261,8 @@ function renderMonthBlock(
   }
 
   // Member Loans — new + repayments
-  const mlNew = data.memberLoans.filter(l => inRange(l.created_at, start, end));
-  const mlPays = data.memberRepayments.filter(r => r.status === 'approved' && inRange(r.created_at, start, end));
+  const mlNew = data.memberLoans.filter(l => inRange(eff(l), start, end));
+  const mlPays = data.memberRepayments.filter(r => r.status === 'approved' && inRange(eff(r), start, end));
   y = sectionTitle(doc, 'Member Loans', y);
   if (mlNew.length === 0 && mlPays.length === 0) {
     doc.setFontSize(9); doc.setTextColor(120);
@@ -275,7 +275,7 @@ function renderMonthBlock(
         startY: y,
         head: [['Date', 'Member', 'Loan Amount (Out)', 'Status']],
         body: mlNew.map(l => [
-          fmtDate(l.created_at),
+          fmtDate(eff(l)),
           memberById.get(l.member_id) || '-',
           fmt(Number(l.approved_amount || l.requested_amount || 0)),
           l.status || '-',
@@ -289,7 +289,7 @@ function renderMonthBlock(
         startY: y,
         head: [['Date', 'Member', 'Repayment (In)']],
         body: mlPays.map(r => [
-          fmtDate(r.created_at),
+          fmtDate(eff(r)),
           loanMemberById.get(r.loan_id) || '-',
           fmt(Number(r.amount || 0)),
         ]),
