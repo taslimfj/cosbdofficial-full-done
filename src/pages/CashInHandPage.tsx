@@ -1,18 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { Loader2, ArrowDownLeft, ArrowUpRight, ChevronDown, Coins, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, ArrowDownLeft, ArrowUpRight, Coins, Users, Wallet, Landmark, Briefcase, HandCoins } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateCashInHandPDF } from '@/lib/pdfGenerator';
+
 
 type EditableTable =
   | 'fund_transactions'
