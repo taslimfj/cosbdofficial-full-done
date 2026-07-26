@@ -1095,6 +1095,10 @@ export default function IslamicLoanDetailPage() {
           <SheetHeader><SheetTitle>Edit Loan</SheetTitle></SheetHeader>
           {edit && (
             <div className="space-y-3 mt-6">
+              <div className="space-y-2">
+                <Label>Issue / Create Date <span className="text-xs text-muted-foreground">(past date সাপোর্টেড)</span></Label>
+                <DateField value={edit.issue_date || ''} onChange={(v) => setEdit({ ...edit, issue_date: v })} />
+              </div>
               <div className="space-y-2"><Label>Borrower Name</Label><Input value={edit.borrower_name} onChange={e => setEdit({ ...edit, borrower_name: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>পণ্যের নাম / Product Name</Label>
