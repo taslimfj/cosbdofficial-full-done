@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatBDT } from '@/lib/finance';
-import { Loader2, ArrowDownLeft, ArrowUpRight, Coins, Users, Wallet, Landmark, Briefcase, HandCoins } from 'lucide-react';
+import { Loader2, ArrowDownLeft, ArrowUpRight, Coins, Users, Wallet, Landmark, Briefcase, HandCoins, Package } from 'lucide-react';
 import { PdfPeriodButton } from '@/components/PdfPeriodButton';
 import { generateCashInHandPDF } from '@/lib/pdfGenerator';
 
 type Row = {
   id: string;
   created_at: string | null;
-  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Member Loan';
+  source: 'Fund' | 'Project' | 'Islamic Loan' | 'Deposit' | 'Member Loan' | 'Asset';
   direction: 'in' | 'out';
   amount: number;
   reason: string;
 };
 
-type SectionKey = 'Deposit' | 'Fund' | 'Islamic Loan' | 'Project' | 'Member Loan';
+type SectionKey = 'Deposit' | 'Fund' | 'Islamic Loan' | 'Project' | 'Member Loan' | 'Asset';
 
 const SECTIONS: { key: SectionKey; label: string; icon: any; description: string }[] = [
   { key: 'Deposit', label: 'Member Deposits', icon: Users, description: 'সদস্যদের deposit ও withdraw' },
@@ -22,6 +22,7 @@ const SECTIONS: { key: SectionKey; label: string; icon: any; description: string
   { key: 'Islamic Loan', label: 'Islamic Loan', icon: Landmark, description: 'পণ্য purchase ও installment / advance' },
   { key: 'Project', label: 'Project', icon: Briefcase, description: 'Project income ও expense' },
   { key: 'Member Loan', label: 'Member Loan', icon: HandCoins, description: 'Loan disbursement ও repayment' },
+  { key: 'Asset', label: 'Asset', icon: Package, description: 'Asset purchase ও scrap/sell' },
 ];
 
 export default function CashInHandPage() {
