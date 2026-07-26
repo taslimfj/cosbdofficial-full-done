@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBDT } from '@/lib/finance';
+import { formatBDT, formatBDTDecimal } from '@/lib/finance';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -481,7 +481,7 @@ export default function MemberDetailPage() {
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className={`text-sm font-medium ${Number(d.amount) < 0 ? 'text-destructive' : 'text-foreground'}`}>
-                      {Number(d.amount) < 0 ? '↓ Withdraw' : '↑ Deposit'} {formatBDT(Math.abs(Number(d.amount)))}
+                      {Number(d.amount) < 0 ? '↓ Withdraw' : '↑ Deposit'} {formatBDTDecimal(Math.abs(Number(d.amount)))}
                     </p>
                     <p className="text-xs text-muted-foreground">{d.payment_method} · {d.transaction_number}</p>
                   </div>
@@ -539,7 +539,7 @@ export default function MemberDetailPage() {
               {distributions.slice(0, distLimit).map(d => (
                 <div key={d.id} className="flex items-center justify-between px-5 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{formatBDT(Number(d.amount))}</p>
+                    <p className="text-sm font-medium text-foreground">{formatBDTDecimal(Number(d.amount))}</p>
                     <p className="text-xs text-muted-foreground">{d.distribution_type} · {d.share_percentage?.toFixed(1)}%</p>
                     {d.source ? (
                       <p className="text-xs text-primary mt-0.5 truncate">
