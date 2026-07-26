@@ -221,6 +221,7 @@ export default function IslamicLoanDetailPage() {
       remaining_amount: parseFloat(edit.remaining_amount) || 0,
       status: edit.status,
       comments: edit.comments,
+      issue_date: edit.issue_date || null,
       payment_methods: (edit.payment_methods || []).filter((m: PaymentMethod) => m.label?.trim() && m.value?.trim()),
     };
     const { error } = await supabase.from('islamic_loans').update(payload).eq('id', id!);
