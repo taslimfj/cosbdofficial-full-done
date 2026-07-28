@@ -364,15 +364,17 @@ ${body}
                                     variant="ghost"
                                     size="icon"
                                     className="h-7 w-7"
-                                    onClick={() =>
+                                    onClick={() => {
                                       setRuleForm({
                                         id: r.id,
                                         section_id: r.section_id,
                                         title: r.title,
                                         description: r.description || '',
                                         audiences: r.audiences || ['all'],
-                                      }) || setRuleOpen(true)
-                                    }
+                                      });
+                                      setRuleOpen(true);
+                                    }}
+
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </Button>
