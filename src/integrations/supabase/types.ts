@@ -1038,6 +1038,77 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rules: {
+        Row: {
+          audiences: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          section_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audiences?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          section_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audiences?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          section_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "rule_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutorials: {
         Row: {
           audiences: string[]
