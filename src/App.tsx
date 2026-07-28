@@ -22,6 +22,7 @@ import MemberLoanDetailPage from "@/pages/MemberLoanDetailPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
 import TutorialsPage from "@/pages/TutorialsPage";
+import RulesPage from "@/pages/RulesPage";
 import DefaultSettingsPage from "@/pages/DefaultSettingsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound.tsx";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="phone-book" element={<PhoneBookPage />} />
               <Route path="assets" element={<AssetsPage />} />
               <Route path="tutorials" element={<TutorialsPage />} />
+              <Route path="rules" element={<RulesPage />} />
               <Route path="default-settings" element={<DefaultSettingsPage />} />
               <Route path="payment-defaults" element={<DefaultSettingsPage />} />
               <Route path="profile" element={<ProfilePage />} />

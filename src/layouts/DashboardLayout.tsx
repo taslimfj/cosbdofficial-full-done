@@ -21,6 +21,7 @@ import {
   Package,
   GraduationCap,
   CreditCard,
+  ScrollText,
   Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ const navItems = [
   { to: '/phone-book', icon: BookUser, label: 'Phone Book', roles: ['admin', 'member'] },
   { to: '/assets', icon: Package, label: 'Assets', roles: ['admin', 'member'] },
   { to: '/tutorials', icon: GraduationCap, label: 'Tutorial', roles: ['admin', 'member'] },
+  { to: '/rules', icon: ScrollText, label: 'Rules', roles: ['admin', 'member'] },
   { to: '/default-settings', icon: Settings, label: 'Default Settings', roles: ['admin'] },
 ];
 
@@ -70,6 +72,7 @@ export default function DashboardLayout() {
     if (location.pathname.startsWith('/islamic-loans/')) return;
     if (location.pathname.startsWith('/tutorials')) return;
     if (location.pathname.startsWith('/profile')) return;
+    if (location.pathname.startsWith('/rules')) return;
     if (customerLoanId) navigate(`/islamic-loans/${customerLoanId}`, { replace: true });
   }, [isCustomer, user, location.pathname, navigate, customerLoanId]);
 
@@ -83,6 +86,7 @@ export default function DashboardLayout() {
       ? [{ to: `/islamic-loans/${customerLoanId}`, icon: Landmark, label: 'My Loan' }]
       : []),
     { to: '/tutorials', icon: GraduationCap, label: 'Tutorial' },
+    { to: '/rules', icon: ScrollText, label: 'Rules' },
   ];
 
   const filteredNav = isCustomer
