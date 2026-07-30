@@ -82,7 +82,7 @@ export default function IslamicLoanDetailPage() {
     ]);
     const members = (memRes.data || []).filter((m: any) => !m.is_deleted && !m.is_customer);
     const byId = new Map<string, any>(members.map((m: any) => [m.id, m]));
-    const loan = loanRes.data ? { ...loanRes.data, media_person: byId.get(loanRes.data.media_person_id) || null, secondary_media_person: byId.get((loanRes.data as any).secondary_media_person_id) || null } : null;
+    const loan = loanRes.data ? { ...loanRes.data, payments: payRes.data || [], media_person: byId.get(loanRes.data.media_person_id) || null, secondary_media_person: byId.get((loanRes.data as any).secondary_media_person_id) || null } : null;
     const distributions = (distRes.data || []).map((d: any) => ({ ...d, member: byId.get(d.member_id) || null }));
     setLoan(loan);
     setPayments(payRes.data || []);
@@ -124,10 +124,23 @@ export default function IslamicLoanDetailPage() {
         .from('islamic_loans')
         .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, advance_amount, created_at, issue_date, closed_at, months_paid_early, borrower_phone')
         .eq('borrower_phone', loan.borrower_phone);
-      setPhoneHistory(hist || []);
+      const histIds = (hist || []).map((h: any) => h.id);
+      let histPays: any[] = [];
+      if (histIds.length) {
+        const { data: hp } = await supabase
+          .from('islamic_loan_payments')
+          .select('loan_id, amount, payment_type, payment_date, created_at')
+          .in('loan_id', histIds);
+        histPays = hp || [];
+      }
+      setPhoneHistory((hist || []).map((h: any) => ({
+        ...h,
+        payments: histPays.filter((p: any) => p.loan_id === h.id),
+      })));
     } else {
       setPhoneHistory([]);
     }
+
 
     setLoading(false);
   };

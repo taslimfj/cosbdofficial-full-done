@@ -112,10 +112,16 @@ export default function IslamicLoansPage() {
     ]).then(([loansRes, membersRes, paymentsRes, depRes]: any[]) => {
       const allMembers = membersRes.data || [];
       const byId = new Map<string, any>(allMembers.map((m: any) => [m.id, m]));
-      const loans = (loansRes.data || []).map((l: any) => ({ ...l, media_person: byId.get(l.media_person_id) || null }));
+      const allPays = paymentsRes.data || [];
+      const loans = (loansRes.data || []).map((l: any) => ({
+        ...l,
+        media_person: byId.get(l.media_person_id) || null,
+        payments: allPays.filter((p: any) => p.loan_id === l.id),
+      }));
       setLoans(loans);
       setMembers(allMembers.filter((m: any) => !m.is_deleted && !m.is_customer));
-      setPayments(paymentsRes.data || []);
+      setPayments(allPays);
+
       setDeposits(depRes.data || []);
       setLoading(false);
     });
@@ -265,7 +271,10 @@ export default function IslamicLoansPage() {
     setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', relativeName: '', relationship: '', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr(), customerPassword: '123456' } as any);
     setExcludedMemberIds([]);
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
-    setLoans(data || []);
+    const { data: freshPays } = await supabase.from('islamic_loan_payments').select('*');
+    setPayments(freshPays || []);
+    setLoans((data || []).map((l: any) => ({ ...l, payments: (freshPays || []).filter((p: any) => p.loan_id === l.id) })));
+
   };
 
   // Load admin's default payment methods for customers (used to auto-populate new loans)
