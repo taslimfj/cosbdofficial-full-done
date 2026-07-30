@@ -28,6 +28,7 @@ import { DateField } from '@/components/DateField';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
+  const navigate = useNavigate();
   const [loans, setLoans] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
