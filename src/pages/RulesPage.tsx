@@ -51,6 +51,7 @@ export default function RulesPage() {
   const queryClient = useQueryClient();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [ruleOpen, setRuleOpen] = useState(false);
   const [ruleForm, setRuleForm] = useState({ ...emptyRuleForm });
   const [sectionOpen, setSectionOpen] = useState(false);
