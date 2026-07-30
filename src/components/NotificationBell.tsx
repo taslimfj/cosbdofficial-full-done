@@ -16,7 +16,16 @@ interface Notif {
   is_read: boolean;
   url: string | null;
   created_at: string;
+  tag?: string | null;
 }
+
+// কাস্টমার শুধুমাত্র নিজের কিস্তি সংক্রান্ত notification দেখবে
+const CUSTOMER_TAG_PREFIXES = ['cust-month-start-', 'cust-overdue-', 'cpr-decision-'];
+function isCustomerNotif(n: Notif) {
+  if (!n.tag) return n.title.includes('কিস্তি'); // ৫ দিন আগের reminder-এ tag থাকে না
+  return CUSTOMER_TAG_PREFIXES.some(p => n.tag!.startsWith(p));
+}
+
 
 export function NotificationBell() {
   const { user } = useAuth();
