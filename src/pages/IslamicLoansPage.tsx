@@ -573,7 +573,7 @@ export default function IslamicLoansPage() {
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">End</p><p className="text-xs font-medium text-foreground">{format(endDate, 'dd MMM yyyy')}</p></div>
               </div>
 
-            </Link>
+            </div>
           );
         };
         const mineFirst = (arr: any[]) => [...arr].sort((a, b) => {
