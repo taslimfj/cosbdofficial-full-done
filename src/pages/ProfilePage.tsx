@@ -248,7 +248,15 @@ export default function ProfilePage() {
                     <Trash2 className="w-4 h-4 mr-2" /> Delete
                   </Button>
                 )}
-                <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                <ImageCropperDialog
+                  open={!!cropSrc}
+                  imageSrc={cropSrc}
+                  saving={savingPhoto}
+                  onCancel={() => setCropSrc(null)}
+                  onCropped={handlePhotoUpload}
+                />
+
               </div>
               <p className="text-xs text-muted-foreground">বড় ছবি আপলোড করলে স্বয়ংক্রিয়ভাবে 150 KB-এর মধ্যে compress হবে।</p>
             </div>
