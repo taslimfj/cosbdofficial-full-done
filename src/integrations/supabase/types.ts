@@ -1203,6 +1203,7 @@ export type Database = {
           admin_profit_pct: number | null
           advance_amount: number | null
           borrower_name: string | null
+          borrower_phone: string | null
           closed_at: string | null
           code: string | null
           comments: string | null
@@ -1211,6 +1212,8 @@ export type Database = {
           discount_credit_from_loan: string | null
           discount_credit_used: boolean | null
           discount_pct: number | null
+          excluded_member_ids: string[] | null
+          exclusion_reasons: Json | null
           fund_profit_pct: number | null
           id: string | null
           issue_date: string | null
@@ -1218,9 +1221,13 @@ export type Database = {
           media_person_profit_pct: number | null
           monthly_installment: number | null
           months_paid_early: number | null
+          payment_methods: Json | null
           product_name: string | null
           profit_percentage: number | null
           purchase_price: number | null
+          relationship: string | null
+          relative_name: string | null
+          relative_phone: string | null
           remaining_amount: number | null
           secondary_media_person_id: string | null
           sell_price: number | null
@@ -1231,6 +1238,7 @@ export type Database = {
           admin_profit_pct?: number | null
           advance_amount?: number | null
           borrower_name?: string | null
+          borrower_phone?: string | null
           closed_at?: string | null
           code?: string | null
           comments?: string | null
@@ -1239,6 +1247,8 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
+          excluded_member_ids?: string[] | null
+          exclusion_reasons?: Json | null
           fund_profit_pct?: number | null
           id?: string | null
           issue_date?: string | null
@@ -1246,9 +1256,13 @@ export type Database = {
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
           months_paid_early?: number | null
+          payment_methods?: Json | null
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
+          relationship?: string | null
+          relative_name?: string | null
+          relative_phone?: string | null
           remaining_amount?: number | null
           secondary_media_person_id?: string | null
           sell_price?: number | null
@@ -1259,6 +1273,7 @@ export type Database = {
           admin_profit_pct?: number | null
           advance_amount?: number | null
           borrower_name?: string | null
+          borrower_phone?: string | null
           closed_at?: string | null
           code?: string | null
           comments?: string | null
@@ -1267,6 +1282,8 @@ export type Database = {
           discount_credit_from_loan?: string | null
           discount_credit_used?: boolean | null
           discount_pct?: number | null
+          excluded_member_ids?: string[] | null
+          exclusion_reasons?: Json | null
           fund_profit_pct?: number | null
           id?: string | null
           issue_date?: string | null
@@ -1274,9 +1291,13 @@ export type Database = {
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
           months_paid_early?: number | null
+          payment_methods?: Json | null
           product_name?: string | null
           profit_percentage?: number | null
           purchase_price?: number | null
+          relationship?: string | null
+          relative_name?: string | null
+          relative_phone?: string | null
           remaining_amount?: number | null
           secondary_media_person_id?: string | null
           sell_price?: number | null
