@@ -563,29 +563,60 @@ export default function IslamicLoanDetailPage() {
             📺 Tutorial ভিডিও দেখুন
           </Link>
         </div>
-        {/* Other active loans for this customer — quick switcher */}
+        {/* Other loans for this customer — Active / Closed tabs */}
         {siblingLoans.length > 0 && (
-          <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 shadow-sm">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <Layers className="w-4 h-4 text-warning" />
-              <p className="text-sm font-semibold text-warning">আপনার অন্যান্য চলমান Islamic Loan</p>
+              <Layers className="w-4 h-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">আপনার অন্যান্য Islamic Loan ({siblingLoans.length})</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {siblingLoans.map(s => (
-                <Link
-                  key={s.id}
-                  to={`/islamic-loans/${s.id}`}
-                  className="flex-1 min-w-[160px] bg-background border border-warning/20 rounded-lg p-3 hover:border-warning/40 hover:bg-warning/5 transition-colors shadow-subtle"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono bg-warning/10 text-warning px-1.5 py-0.5 rounded">{s.code}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{s.status}</span>
-                  </div>
-                  {s.product_name && <p className="text-xs font-medium mt-1.5 truncate text-foreground">{s.product_name}</p>}
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Due: <span className="font-mono text-foreground">{formatBDT(Number(s.remaining_amount))}</span></p>
-                </Link>
-              ))}
-            </div>
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList>
+                <TabsTrigger value="active">Active ({siblingLoans.filter(s => s.status === 'active').length})</TabsTrigger>
+                <TabsTrigger value="closed">Closed ({siblingLoans.filter(s => s.status !== 'active').length})</TabsTrigger>
+              </TabsList>
+              {(['active', 'closed'] as const).map(tab => {
+                const list = siblingLoans.filter(s => tab === 'active' ? s.status === 'active' : s.status !== 'active');
+                return (
+                  <TabsContent key={tab} value={tab} className="mt-3">
+                    {list.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-6">No {tab} loans.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {list.map(s => {
+                          const sStart = new Date(s.issue_date || s.created_at);
+                          const sEnd = s.closed_at ? new Date(s.closed_at) : addMonths(sStart, Number(s.tenure_months) || 0);
+                          return (
+                            <Link
+                              key={s.id}
+                              to={`/islamic-loans/${s.id}`}
+                              className="block bg-background border border-border rounded-lg p-3 hover:border-primary/40 transition-colors shadow-subtle"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-mono bg-secondary px-1.5 py-0.5 rounded text-foreground">{s.code}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>{s.status}</span>
+                              </div>
+                              {s.product_name && <p className="text-xs font-medium mt-1.5 truncate text-foreground">{s.product_name}</p>}
+                              <p className="text-[11px] text-muted-foreground mt-0.5">Due: <span className="font-mono text-foreground">{formatBDT(Number(s.remaining_amount))}</span></p>
+                              <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Start</p>
+                                  <p className="text-[11px] font-medium text-foreground">{format(sStart, 'dd MMM yyyy')}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">End</p>
+                                  <p className="text-[11px] font-medium text-foreground">{format(sEnd, 'dd MMM yyyy')}</p>
+                                </div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
           </div>
         )}
 
