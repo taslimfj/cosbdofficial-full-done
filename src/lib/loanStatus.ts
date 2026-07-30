@@ -16,6 +16,7 @@ export type LoanLike = {
   monthly_installment: number | string;
   sell_price: number | string;
   remaining_amount: number | string;
+  advance_amount?: number | string | null;
   closed_at?: string | null;
   months_paid_early?: number | null;
   discount_credit_used?: boolean | null;
@@ -47,11 +48,14 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
     (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   if (monthsElapsed < 1) return false; // grace: first month never overdue
 
-  // Expected installments = full months elapsed, +1 if this month's due-day already passed
-  let expected = monthsElapsed + (now.getDate() >= dueDay ? 1 : 0);
+  // Count only due dates that have actually passed. The first installment is due
+  // one month after issue_date (e.g. 13 Jun → first due date 13 Jul).
+  let expected = monthsElapsed - (now.getDate() < dueDay ? 1 : 0);
+  expected = Math.max(0, expected);
   expected = Math.min(expected, tenure);
 
-  const paidAmount = Number(loan.sell_price) - remaining;
+  // Advance is an upfront deposit, never an installment.
+  const paidAmount = Math.max(0, Number(loan.sell_price) - remaining - Number(loan.advance_amount || 0));
   const paidInstallments = Math.floor(paidAmount / monthly);
 
   return expected > paidInstallments;

@@ -122,7 +122,7 @@ export default function IslamicLoanDetailPage() {
     if (loan?.borrower_phone) {
       const { data: hist } = await supabase
         .from('islamic_loans')
-        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, created_at, issue_date, closed_at, months_paid_early, borrower_phone')
+        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, advance_amount, created_at, issue_date, closed_at, months_paid_early, borrower_phone')
         .eq('borrower_phone', loan.borrower_phone);
       setPhoneHistory(hist || []);
     } else {
