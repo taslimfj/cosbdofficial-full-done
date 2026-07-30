@@ -221,12 +221,21 @@ export default function AssetsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {removed.map(a => (
               <div key={a.id} className="bg-card border border-border rounded-xl p-5 shadow-subtle opacity-75">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
-                    <Package className="w-4 h-4" />
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-semibold text-foreground truncate">{a.name}</h3>
                   </div>
-                  <h3 className="font-semibold text-foreground truncate">{a.name}</h3>
+                  {role === 'admin' && (
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                      title="History থেকে মুছুন" onClick={() => setPurgeTarget(a)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
+
                 {a.description && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{a.description}</p>}
                 <div className="space-y-1.5 pt-3 border-t border-border text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Purchase</span><span className="tabular-nums">{formatBDT(Number(a.purchase_price))}</span></div>
