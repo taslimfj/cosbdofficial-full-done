@@ -28,7 +28,7 @@ function isCustomerNotif(n: Notif) {
 
 
 export function NotificationBell() {
-  const { user } = useAuth();
+  const { user, isCustomer } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
@@ -42,12 +42,14 @@ export function NotificationBell() {
     if (!user) return;
     const { data } = await supabase
       .from('notifications')
-      .select('id, title, message, is_read, url, created_at')
+      .select('id, title, message, is_read, url, created_at, tag')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(30);
-    setItems((data || []) as Notif[]);
+      .limit(50);
+    const all = (data || []) as Notif[];
+    setItems((isCustomer ? all.filter(isCustomerNotif) : all).slice(0, 30));
   };
+
 
   useEffect(() => {
     if (!user) return;
