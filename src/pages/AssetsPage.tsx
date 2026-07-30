@@ -34,6 +34,8 @@ export default function AssetsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
   const [scrapValue, setScrapValue] = useState('');
+  const [purgeTarget, setPurgeTarget] = useState<Asset | null>(null);
+
 
   useEffect(() => { fetchAssets(); }, []);
 
@@ -114,6 +116,18 @@ export default function AssetsPage() {
     toast.success(scrap > 0 ? `Asset removed; ৳${scrap} added to fund` : 'Asset removed');
     setDeleteTarget(null);
     setScrapValue('');
+    fetchAssets();
+  };
+
+  // History থেকে স্থায়ীভাবে মুছে ফেলা (fund transaction অপরিবর্তিত থাকবে)
+  const handlePurge = async () => {
+    if (!purgeTarget) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('assets' as any).delete().eq('id', purgeTarget.id);
+    setSubmitting(false);
+    if (error) return toast.error(error.message);
+    toast.success('History থেকে মুছে ফেলা হয়েছে');
+    setPurgeTarget(null);
     fetchAssets();
   };
 
@@ -207,12 +221,21 @@ export default function AssetsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {removed.map(a => (
               <div key={a.id} className="bg-card border border-border rounded-xl p-5 shadow-subtle opacity-75">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
-                    <Package className="w-4 h-4" />
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-semibold text-foreground truncate">{a.name}</h3>
                   </div>
-                  <h3 className="font-semibold text-foreground truncate">{a.name}</h3>
+                  {role === 'admin' && (
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                      title="History থেকে মুছুন" onClick={() => setPurgeTarget(a)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
+
                 {a.description && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{a.description}</p>}
                 <div className="space-y-1.5 pt-3 border-t border-border text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Purchase</span><span className="tabular-nums">{formatBDT(Number(a.purchase_price))}</span></div>
@@ -247,6 +270,28 @@ export default function AssetsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* History permanently delete dialog */}
+      <Dialog open={!!purgeTarget} onOpenChange={(o) => { if (!o) setPurgeTarget(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>History থেকে মুছে ফেলুন</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{purgeTarget?.name}</span> — এই record টি Removed Assets history থেকে স্থায়ীভাবে মুছে যাবে। এটি ফেরানো যাবে না।
+            </p>
+            <p className="text-xs text-muted-foreground">
+              আগে হওয়া fund transaction (purchase / scrap) গুলো অপরিবর্তিত থাকবে, শুধু asset record টি মুছে যাবে।
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPurgeTarget(null)}>Cancel</Button>
+              <Button variant="destructive" className="flex-1" onClick={handlePurge} disabled={submitting}>
+                {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Delete Permanently
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
