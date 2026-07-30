@@ -490,6 +490,11 @@ export default function IslamicLoansPage() {
           const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
           const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
           const overdue = isLoanOverdue(loan);
+          const startDate = loan.issue_date ? new Date(loan.issue_date) : new Date(loan.created_at);
+          const endDate = loan.closed_at
+            ? new Date(loan.closed_at)
+            : addMonths(startDate, Number(loan.tenure_months) || 0);
+
           return (
             <Link
               key={loan.id}
