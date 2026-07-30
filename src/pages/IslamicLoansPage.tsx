@@ -19,7 +19,7 @@ import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
-import { AlertCircle, Sparkles, Star, Search } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Sparkles, Star, Search } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
