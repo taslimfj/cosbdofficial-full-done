@@ -311,7 +311,7 @@ export default function LoginPage() {
 
 
           <p className="text-center text-xs text-muted-foreground mt-6">
-            Contact your fund administrator for member access
+            Contact the admin for your member account
           </p>
         </div>
       </div>
