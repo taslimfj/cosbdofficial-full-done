@@ -112,10 +112,16 @@ export default function IslamicLoansPage() {
     ]).then(([loansRes, membersRes, paymentsRes, depRes]: any[]) => {
       const allMembers = membersRes.data || [];
       const byId = new Map<string, any>(allMembers.map((m: any) => [m.id, m]));
-      const loans = (loansRes.data || []).map((l: any) => ({ ...l, media_person: byId.get(l.media_person_id) || null }));
+      const allPays = paymentsRes.data || [];
+      const loans = (loansRes.data || []).map((l: any) => ({
+        ...l,
+        media_person: byId.get(l.media_person_id) || null,
+        payments: allPays.filter((p: any) => p.loan_id === l.id),
+      }));
       setLoans(loans);
       setMembers(allMembers.filter((m: any) => !m.is_deleted && !m.is_customer));
-      setPayments(paymentsRes.data || []);
+      setPayments(allPays);
+
       setDeposits(depRes.data || []);
       setLoading(false);
     });
