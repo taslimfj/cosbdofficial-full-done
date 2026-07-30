@@ -381,18 +381,28 @@ export default function IslamicLoansPage() {
 
 
                     )}
-                    <div className="border border-border bg-secondary/40 rounded-lg p-3 flex items-center justify-between">
+                    <div className={`border rounded-lg p-3 ${phoneHistory.rating.score < 6 ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-secondary/40'}`}>
                       <div className="flex items-center gap-2 text-xs">
-                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <Star className={`w-4 h-4 ${phoneHistory.rating.score < 6 ? 'text-destructive fill-destructive' : 'text-yellow-500 fill-yellow-500'}`} />
                         <div>
                           <p className="font-semibold">Customer Rating: {phoneHistory.rating.score}/10</p>
                           <p className="text-muted-foreground">
                             {phoneHistory.rating.totalLoans} loan · {phoneHistory.rating.closedLoans} closed
-                            {phoneHistory.rating.overdueActive > 0 && <span className="text-destructive"> · {phoneHistory.rating.overdueActive} overdue</span>}
+                            {phoneHistory.rating.violations > 0 && <span className="text-destructive"> · {phoneHistory.rating.violations} issue (−{(phoneHistory.rating.violations * 0.25).toFixed(2)})</span>}
+                            {phoneHistory.rating.overrunMonths > 0 && <span className="text-destructive"> · {phoneHistory.rating.overrunMonths} মাস অতিরিক্ত (−{(phoneHistory.rating.overrunMonths * 0.5).toFixed(2)})</span>}
                           </p>
                         </div>
                       </div>
+                      {phoneHistory.rating.score < 6 && (
+                        <div className="mt-2 flex gap-2 items-start text-xs text-destructive border-t border-destructive/20 pt-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <p className="font-semibold">
+                            সতর্কতা: এই customer-এর rating ideal (৬/১০)-এর থেকে কম। Loan দেওয়ার আগে ভালোভাবে বিবেচনা করুন।
+                          </p>
+                        </div>
+                      )}
                     </div>
+
                   </div>
                 )}
                 <div className="space-y-2">
