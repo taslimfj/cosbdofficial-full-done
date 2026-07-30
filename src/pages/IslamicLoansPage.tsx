@@ -20,6 +20,8 @@ import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
+
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 import { computeMissedInstallments } from '@/lib/memberStatus';
 import { DateField } from '@/components/DateField';
