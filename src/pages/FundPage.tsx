@@ -24,8 +24,8 @@ export default function FundPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [balance, setBalance] = useState({ totalIn: 0, totalOut: 0 });
-  const [showAll, setShowAll] = useState(false);
-  const PREVIEW_LIMIT = 10;
+  const [visibleCount, setVisibleCount] = useState(3);
+  const PREVIEW_STEP = 5;
 
   useEffect(() => {
     fetchTransactions();
@@ -151,7 +151,7 @@ export default function FundPage() {
           <div className="p-12 text-center"><p className="text-sm text-muted-foreground">No transactions recorded yet.</p></div>
         ) : (
           <div className="divide-y divide-border">
-            {transactions.slice(0, showAll ? undefined : PREVIEW_LIMIT).map(tx => (
+            {transactions.slice(0, visibleCount).map(tx => (
               <div key={tx.id} className="flex items-center gap-3 px-5 py-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   tx.type === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'

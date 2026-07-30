@@ -282,7 +282,7 @@ export default function MembersPage() {
             </table>
             {filtered.length > visibleCount && (
               <button
-                onClick={() => setVisibleCount(c => c + 10)}
+                onClick={() => setVisibleCount(c => c + 5)}
                 className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border"
               >
                 See more ({filtered.length - visibleCount} বাকি)
