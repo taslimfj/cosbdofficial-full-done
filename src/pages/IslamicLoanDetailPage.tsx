@@ -811,7 +811,7 @@ export default function IslamicLoanDetailPage() {
 
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
-  const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
+  const rating = computeCustomerRating(phoneHistory as any, (phoneHistory[0] as any)?.borrower_phone || borrowerPhone || '');
   const isMediaPerson = !!user?.id && (
     loan?.media_person_id === user.id ||
     (loan as any)?.secondary_media_person_id === user.id
