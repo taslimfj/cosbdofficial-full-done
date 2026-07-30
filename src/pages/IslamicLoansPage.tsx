@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT, buildEntityCode, calculateProfitPercentage, calculateSellPrice, calculateMonthlyInstallment } from '@/lib/finance';
@@ -28,6 +28,7 @@ import { DateField } from '@/components/DateField';
 
 export default function IslamicLoansPage() {
   const { role, isCustomer, user } = useAuth();
+  const navigate = useNavigate();
   const [loans, setLoans] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -532,10 +533,13 @@ export default function IslamicLoansPage() {
             : addMonths(startDate, Number(loan.tenure_months) || 0);
 
           return (
-            <Link
+            <div
               key={loan.id}
-              to={`/islamic-loans/${loan.id}`}
-              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border ${
+              role="link"
+              tabIndex={0}
+              onClick={() => navigate(`/islamic-loans/${loan.id}`)}
+              onKeyDown={e => { if (e.key === 'Enter') navigate(`/islamic-loans/${loan.id}`); }}
+              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border cursor-pointer ${
                 overdue
                   ? 'bg-destructive/10 border-destructive/50 hover:border-destructive'
                   : 'bg-card border-border hover:border-primary/30'
@@ -570,7 +574,7 @@ export default function IslamicLoansPage() {
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">End</p><p className="text-xs font-medium text-foreground">{format(endDate, 'dd MMM yyyy')}</p></div>
               </div>
 
-            </Link>
+            </div>
           );
         };
         const mineFirst = (arr: any[]) => [...arr].sort((a, b) => {
