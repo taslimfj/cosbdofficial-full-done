@@ -748,6 +748,9 @@ export default function IslamicLoanDetailPage() {
             </div>
           </div>
         )}
+        </>)}
+
+
 
         <Dialog open={showRequest} onOpenChange={setShowRequest}>
           <DialogContent>
