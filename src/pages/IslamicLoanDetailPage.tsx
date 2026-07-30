@@ -859,22 +859,29 @@ export default function IslamicLoanDetailPage() {
 
       {/* Customer rating badge */}
       {rating.totalLoans > 0 && (
-        <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+        <div className={`border rounded-xl p-3 ${rating.score < 6 ? 'bg-destructive/5 border-destructive/40' : 'bg-card border-border'}`}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${rating.score < 6 ? 'bg-destructive/10' : 'bg-yellow-500/10'}`}>
+              <Star className={`w-6 h-6 ${rating.score < 6 ? 'text-destructive fill-destructive' : 'text-yellow-500 fill-yellow-500'}`} />
             </div>
             <div>
               <p className="text-sm font-semibold">Customer Rating: {rating.score}/10</p>
               <p className="text-xs text-muted-foreground">
                 {rating.totalLoans} loan · {rating.closedLoans} closed
-                {rating.totalMonthsEarly > 0 && <span className="text-emerald-600"> · {rating.totalMonthsEarly} মাস early payoff</span>}
+                {rating.violations > 0 && <span className="text-destructive"> · {rating.violations} issue (−{(rating.violations * 0.25).toFixed(2)})</span>}
+                {rating.overrunMonths > 0 && <span className="text-destructive"> · {rating.overrunMonths} মাস অতিরিক্ত (−{(rating.overrunMonths * 0.5).toFixed(2)})</span>}
                 {rating.overdueActive > 0 && <span className="text-destructive"> · {rating.overdueActive} overdue</span>}
               </p>
             </div>
           </div>
+          {rating.score < 6 && (
+            <p className="text-xs font-semibold text-destructive mt-2 border-t border-destructive/20 pt-2">
+              সতর্কতা: rating ideal (৬/১০)-এর থেকে কম — নতুন loan দেওয়ার আগে বিবেচনা করুন।
+            </p>
+          )}
         </div>
       )}
+
 
       {/* Other active loans for this customer — quick switcher */}
       {siblingLoans.length > 0 && (
