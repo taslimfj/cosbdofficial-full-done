@@ -544,8 +544,21 @@ export default function IslamicLoansPage() {
           const bMine = user?.id && (b.media_person_id === user.id || b.secondary_media_person_id === user.id) ? 1 : 0;
           return bMine - aMine;
         });
-        const active = mineFirst(loans.filter(l => l.status === 'active'));
-        const closed = mineFirst(loans.filter(l => l.status !== 'active'));
+        const q = search.trim().toLowerCase();
+        const qDigits = q.replace(/[^0-9]/g, '');
+        const matches = (l: any) => {
+          if (!q) return true;
+          const name = (l.borrower_name || l.media_person?.full_name || '').toLowerCase();
+          const phone = (l.borrower_phone || l.media_person?.phone || '').replace(/[^0-9]/g, '');
+          const code = (l.code || '').toLowerCase();
+          const product = (l.product_name || '').toLowerCase();
+          return name.includes(q) || code.includes(q) || product.includes(q) ||
+            (qDigits.length >= 3 && phone.includes(qDigits));
+        };
+        const filtered = loans.filter(matches);
+        const active = mineFirst(filtered.filter(l => l.status === 'active'));
+        const closed = mineFirst(filtered.filter(l => l.status !== 'active'));
+
         return (
           <Tabs defaultValue="active" className="w-full">
             <TabsList>
