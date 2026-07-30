@@ -73,7 +73,11 @@ export function NotificationBell() {
       .channel(`notif-${user.id}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        (p) => setItems(prev => [p.new as any, ...prev].slice(0, 30)))
+        (p) => setItems(prev => {
+          const n = p.new as Notif;
+          if (isCustomer && !isCustomerNotif(n)) return prev;
+          return [n, ...prev].slice(0, 30);
+        }))
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         () => fetchItems())
