@@ -100,7 +100,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !user) return;
@@ -110,7 +110,16 @@ export default function ProfilePage() {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(String(reader.result || ''));
+    reader.onerror = () => toast.error('ছবি পড়া যায়নি');
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user) return;
     setSavingPhoto(true);
+
     try {
       const MAX = 150 * 1024;
       const dataUrl = await compressImage(file, MAX);
