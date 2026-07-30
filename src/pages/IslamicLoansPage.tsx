@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, Phone, MessageCircle, MessageSquare, Loader2 } from 'lucide-react';
@@ -305,12 +305,12 @@ export default function IslamicLoansPage() {
           <PdfPeriodButton onDownload={(p) => generateIslamicLoansPDF(loans, payments, p)} />
 
         {!!user && !isCustomer && (
-          <Sheet open={showSheet} onOpenChange={setShowSheet}>
-            <SheetTrigger asChild>
+          <Dialog open={showSheet} onOpenChange={setShowSheet}>
+            <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Loan</Button>
-            </SheetTrigger>
-            <SheetContent className="overflow-y-auto">
-              <SheetHeader><SheetTitle>Create Islamic Loan</SheetTitle></SheetHeader>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Create Islamic Loan</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-6">
                 {role === 'admin' && (() => {
                   const d = form.issueDate ? new Date(form.issueDate) : new Date();
@@ -501,8 +501,8 @@ export default function IslamicLoansPage() {
                   {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Create Loan
                 </Button>
               </div>
-            </SheetContent>
-          </Sheet>
+            </DialogContent>
+          </Dialog>
         )}
         </div>
       </div>
