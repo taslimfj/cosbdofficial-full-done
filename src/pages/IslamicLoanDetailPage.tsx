@@ -106,7 +106,7 @@ export default function IslamicLoanDetailPage() {
     if (loan?.customer_user_id) {
       const { data: sibs } = await supabase
         .from('islamic_loans')
-        .select('id, code, borrower_name, product_name, status, remaining_amount, sell_price, monthly_installment')
+        .select('id, code, borrower_name, product_name, status, remaining_amount, sell_price, monthly_installment, tenure_months, created_at, issue_date, closed_at')
         .eq('customer_user_id', loan.customer_user_id)
         .neq('id', id)
         .order('created_at', { ascending: false });
