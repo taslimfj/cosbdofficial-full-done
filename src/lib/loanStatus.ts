@@ -6,6 +6,14 @@
 //   • unused early-payoff discount credit lookup by phone
 // ─────────────────────────────────────────────────────────────
 
+export type PaymentLike = {
+  amount?: number | string;
+  payment_type?: string | null;
+  status?: string | null;
+  payment_date?: string | null;
+  created_at?: string | null;
+};
+
 export type LoanLike = {
   id: string;
   code?: string;
@@ -21,16 +29,33 @@ export type LoanLike = {
   months_paid_early?: number | null;
   discount_credit_used?: boolean | null;
   borrower_phone?: string | null;
+  payments?: PaymentLike[];
 };
 
 const loanStartDate = (loan: LoanLike) => new Date(loan.issue_date || loan.created_at);
 
 const normPhone = (p?: string | null) => (p || '').replace(/[^0-9]/g, '').slice(-11);
 
+/** Distinct payment-months (based on user-selected payment_date) = installments paid. */
+export function countPaidInstallments(loan: LoanLike): number | null {
+  if (!loan.payments) return null;
+  const months = new Set<string>();
+  for (const p of loan.payments) {
+    if ((p.payment_type || 'installment') === 'advance') continue;
+    if ((p.status ?? 'approved') !== 'approved') continue;
+    const d = p.payment_date || p.created_at;
+    if (!d) continue;
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) continue;
+    months.add(`${dt.getFullYear()}-${dt.getMonth()}`);
+  }
+  return months.size;
+}
+
 /**
- * A loan is "overdue this month" if today's date has passed the installment
- * due-day (day-of-month from the user-selected issue_date) AND the number of expected
- * installments by now exceeds the number actually paid.
+ * A loan is "overdue" only if a due date has actually passed without a payment
+ * recorded for that cycle. Installments are counted by distinct payment months
+ * (user-selected payment_date), never by amount.
  */
 export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
   if (!loan || loan.status !== 'active') return false;
@@ -49,17 +74,22 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
   if (monthsElapsed < 1) return false; // grace: first month never overdue
 
   // Count only due dates that have actually passed. The first installment is due
-  // one month after issue_date (e.g. 13 Jun → first due date 13 Jul).
+  // one month after issue_date (e.g. 9 May → first due date 9 Jun).
   let expected = monthsElapsed - (now.getDate() < dueDay ? 1 : 0);
   expected = Math.max(0, expected);
   expected = Math.min(expected, tenure);
 
-  // Advance is an upfront deposit, never an installment.
-  const paidAmount = Math.max(0, Number(loan.sell_price) - remaining - Number(loan.advance_amount || 0));
-  const paidInstallments = Math.floor(paidAmount / monthly);
+  const byMonths = countPaidInstallments(loan);
+  const paidInstallments = byMonths !== null
+    ? byMonths
+    // Fallback (no payment rows loaded): derive from amount, advance excluded.
+    : Math.floor(
+        Math.max(0, Number(loan.sell_price) - remaining - Number(loan.advance_amount || 0)) / monthly
+      );
 
   return expected > paidInstallments;
 }
+
 
 /**
  * How many months earlier than tenure the loan was fully paid off.
