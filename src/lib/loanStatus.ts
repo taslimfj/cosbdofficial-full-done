@@ -131,14 +131,68 @@ export function findDiscountCreditForPhone(
   return { months: c.months_paid_early || 0, fromLoanId: c.id, fromLoanCode: c.code };
 }
 
+/** Distinct approved payment months (YYYY-M), advance excluded. */
+function paidMonthKeys(loan: LoanLike): Set<string> {
+  const months = new Set<string>();
+  for (const p of loan.payments || []) {
+    if ((p.payment_type || 'installment') === 'advance') continue;
+    if ((p.status ?? 'approved') !== 'approved') continue;
+    const d = p.payment_date || p.created_at;
+    if (!d) continue;
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) continue;
+    months.add(`${dt.getFullYear()}-${dt.getMonth()}`);
+  }
+  return months;
+}
+
+function addMonthsClamped(base: Date, months: number): Date {
+  const first = new Date(base.getFullYear(), base.getMonth() + months, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  return new Date(first.getFullYear(), first.getMonth(), Math.min(base.getDate(), lastDay));
+}
+
+function monthsBetween(a: Date, b: Date): number {
+  let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) m -= 1;
+  return m;
+}
+
 /**
- * Loyalty rating out of 10 based on full history + loan count.
+ * Violations for one loan:
+ *  • missed  — প্রতিটি due month যেখানে কোনো payment record নেই (প্রতিটি −0.25)
+ *  • overrun — tenure শেষ হওয়ার পরেও প্রতি অতিরিক্ত মাস (প্রতিটি −0.5)
+ */
+export function computeLoanViolations(
+  loan: LoanLike,
+  now: Date = new Date()
+): { missed: number; overrun: number } {
+  const start = loanStartDate(loan);
+  const tenure = Number(loan.tenure_months) || 0;
+  if (isNaN(start.getTime()) || tenure <= 0) return { missed: 0, overrun: 0 };
+
+  const endRef = loan.status === 'closed' && loan.closed_at ? new Date(loan.closed_at) : now;
+
+  // কত কিস্তির due date ইতিমধ্যে পার হয়েছে
+  let duePassed = monthsBetween(start, endRef);
+  duePassed = Math.max(0, Math.min(duePassed, tenure));
+
+  const paid = Math.min(paidMonthKeys(loan).size, tenure);
+  const missed = Math.max(0, duePassed - paid);
+
+  // tenure শেষ তারিখের পরেও যত মাস অতিরিক্ত লেগেছে/লাগছে
+  const finalDue = addMonthsClamped(start, tenure);
+  const overrun = Math.max(0, monthsBetween(finalDue, endRef));
+
+  return { missed, overrun };
+}
+
+/**
+ * Customer rating out of 10 — শুধুমাত্র penalty ভিত্তিক।
  *   • Base 10
- *   • +0.4 per month early (each closed loan, capped +2 per loan)
- *   • +0.3 per additional successfully-closed loan (loyalty, cap +1.5)
- *   • −1 per late-close month (closed after tenure)
- *   • −2 per currently-overdue active loan
- * Result clamped 0..10, one decimal.
+ *   • প্রতিটি missed/late installment (violation) → −0.25
+ *   • tenure শেষের পরে প্রতি অতিরিক্ত মাস → −0.5
+ * Result clamped 0..10, two decimals.
  */
 export function computeCustomerRating(loans: LoanLike[], phone: string): {
   score: number;
@@ -146,6 +200,9 @@ export function computeCustomerRating(loans: LoanLike[], phone: string): {
   closedLoans: number;
   overdueActive: number;
   totalMonthsEarly: number;
+  violations: number;
+  overrunMonths: number;
+  penalty: number;
 } {
   const target = normPhone(phone);
   const own = loans.filter(l => normPhone(l.borrower_phone) === target);
@@ -154,32 +211,25 @@ export function computeCustomerRating(loans: LoanLike[], phone: string): {
   const overdueActive = active.filter(l => isLoanOverdue(l)).length;
 
   if (own.length === 0) {
-    return { score: 10, totalLoans: 0, closedLoans: 0, overdueActive: 0, totalMonthsEarly: 0 };
+    return {
+      score: 10, totalLoans: 0, closedLoans: 0, overdueActive: 0,
+      totalMonthsEarly: 0, violations: 0, overrunMonths: 0, penalty: 0,
+    };
   }
 
-  let bonuses = 0;
-  let penalties = overdueActive * 2;
+  let violations = 0;
+  let overrunMonths = 0;
   let totalMonthsEarly = 0;
 
-  closed.forEach(l => {
-    const early = l.months_paid_early || 0;
-    if (early > 0) {
-      totalMonthsEarly += early;
-      bonuses += Math.min(early * 0.4, 2);
-    } else if (l.closed_at) {
-      // Late close?
-      const start = loanStartDate(l);
-      const end = new Date(l.closed_at);
-      const monthsUsed =
-        (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-      const late = monthsUsed - Number(l.tenure_months);
-      if (late > 0) penalties += late;
-    }
+  own.forEach(l => {
+    const v = computeLoanViolations(l);
+    violations += v.missed;
+    overrunMonths += v.overrun;
+    if (l.status === 'closed') totalMonthsEarly += l.months_paid_early || 0;
   });
 
-  const loyalty = Math.min(Math.max(0, closed.length - 1) * 0.3, 1.5);
-  const raw = 10 + bonuses + loyalty - penalties;
-  const score = Math.max(0, Math.min(10, Math.round(raw * 10) / 10));
+  const penalty = violations * 0.25 + overrunMonths * 0.5;
+  const score = Math.max(0, Math.min(10, Math.round((10 - penalty) * 100) / 100));
 
   return {
     score,
@@ -187,5 +237,12 @@ export function computeCustomerRating(loans: LoanLike[], phone: string): {
     closedLoans: closed.length,
     overdueActive,
     totalMonthsEarly,
+    violations,
+    overrunMonths,
+    penalty: Math.round(penalty * 100) / 100,
   };
 }
+
+/** Rating ideal (৬) এর নিচে হলে loan দেওয়ার আগে সতর্কতা। */
+export const RATING_WARN_THRESHOLD = 6;
+
