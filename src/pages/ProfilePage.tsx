@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneInput } from '@/components/PhoneInput';
+import { ImageCropperDialog } from '@/components/ImageCropperDialog';
 import { toast } from 'sonner';
 import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera, Trash2 } from 'lucide-react';
 
