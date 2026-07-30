@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { usePersistentState } from '@/hooks/usePersistentState';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT, buildEntityCode } from '@/lib/finance';
@@ -28,12 +29,12 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
+  const [excludedMemberIds, setExcludedMemberIds, clearExcludedDraft] = usePersistentState<string[]>('project-create-excluded', []);
   const todayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
-  const [form, setForm] = useState({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
+  const [form, setForm, clearFormDraft] = usePersistentState('project-create', { name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
   const [pctDefaults, setPctDefaults] = useState({ fund: 5, manager: 10, admin: 5 });
 
   useEffect(() => {
@@ -117,8 +118,8 @@ export default function ProjectsPage() {
     setSubmitting(false);
     toast.success(`Project ${code} created — খরচ Cash in Hand থেকে হবে`);
     setShowSheet(false);
-    setForm({ name: '', managerId: '', managerProfitPct: '10', fundProfitPct: '5', issueDate: todayStr() });
-    setExcludedMemberIds([]);
+    clearFormDraft();
+    clearExcludedDraft();
     const { data } = await supabase.from('projects').select('*, manager:profiles!projects_manager_id_fkey(*)').order('created_at', { ascending: false });
     setProjects(data || []);
   };
