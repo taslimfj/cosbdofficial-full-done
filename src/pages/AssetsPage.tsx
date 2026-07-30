@@ -34,6 +34,8 @@ export default function AssetsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
   const [scrapValue, setScrapValue] = useState('');
+  const [purgeTarget, setPurgeTarget] = useState<Asset | null>(null);
+
 
   useEffect(() => { fetchAssets(); }, []);
 
