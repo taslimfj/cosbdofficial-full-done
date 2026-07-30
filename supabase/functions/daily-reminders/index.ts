@@ -145,8 +145,9 @@ Deno.serve(async (req) => {
       const paidPrev = rowsPrev.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const paidAmount = rowsThis.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-      // Overdue warning: previous month's installment was not paid
-      if (previousDue && paidPrev < monthlyAmount) {
+      // Overdue warning: previous cycle had NO payment recorded at all
+      if (previousDue && rowsPrev.length === 0) {
+
         const previousKey = `${previousDue.getUTCFullYear()}-${String(previousDue.getUTCMonth() + 1).padStart(2, '0')}-${String(previousDue.getUTCDate()).padStart(2, '0')}`;
         rows.push({
           user_id: uid,
