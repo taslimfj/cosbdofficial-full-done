@@ -118,12 +118,20 @@ export default function IslamicLoanDetailPage() {
       setSiblingLoans([]);
     }
 
-    // Fetch full loan history for this phone (for rating computation)
-    if (loan?.borrower_phone) {
+    // Fetch full loan history for this phone (for rating computation).
+    // Member view loads the loan from the public view (phone masked) → resolve phone separately.
+    let ratingPhone: string | null = loan?.borrower_phone || null;
+    if (!ratingPhone && loan) {
+      const { data: phoneRow } = await supabase
+        .from('islamic_loans').select('borrower_phone').eq('id', id).maybeSingle();
+      ratingPhone = (phoneRow as any)?.borrower_phone || null;
+    }
+    if (ratingPhone) {
       const { data: hist } = await supabase
         .from('islamic_loans')
         .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, advance_amount, created_at, issue_date, closed_at, months_paid_early, borrower_phone')
-        .eq('borrower_phone', loan.borrower_phone);
+        .eq('borrower_phone', ratingPhone);
+
       const histIds = (hist || []).map((h: any) => h.id);
       let histPays: any[] = [];
       if (histIds.length) {
@@ -803,7 +811,7 @@ export default function IslamicLoanDetailPage() {
 
   // ───────── Admin & Member view ─────────
   const pendingRequests = payRequests.filter(r => r.status === 'pending');
-  const rating = computeCustomerRating(phoneHistory as any, borrowerPhone || '');
+  const rating = computeCustomerRating(phoneHistory as any, (phoneHistory[0] as any)?.borrower_phone || borrowerPhone || '');
   const isMediaPerson = !!user?.id && (
     loan?.media_person_id === user.id ||
     (loan as any)?.secondary_media_person_id === user.id
