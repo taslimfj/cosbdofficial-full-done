@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT } from '@/lib/finance';
@@ -34,6 +35,7 @@ interface UnifiedTx {
   reason?: string;
   type?: string;
   groupKey?: { source_type: string; source_id: string; isLoss: boolean };
+  link?: string;
 }
 
 const PAGE_SIZE = 3;
@@ -41,6 +43,7 @@ const PAGE_STEP = 5;
 
 export function RecentActivity() {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<UnifiedTx[]>([]);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [editing, setEditing] = useState<UnifiedTx | null>(null);
@@ -62,12 +65,12 @@ export function RecentActivity() {
         islamicLoansRes,
       ] = await Promise.all([
         supabase.from('fund_transactions').select('id, amount, type, reason, created_at').order('created_at', { ascending: false }).limit(100),
-        supabase.from('deposits').select('id, amount, status, created_at, member:profiles!deposits_member_id_fkey(full_name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
+        supabase.from('deposits').select('id, member_id, amount, status, created_at, member:profiles!deposits_member_id_fkey(full_name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
         supabase.from('profit_distributions').select('id, amount, distribution_type, source_type, source_id, created_at').order('created_at', { ascending: false }).limit(500),
-        supabase.from('project_transactions').select('id, amount, type, reason, created_at, project:projects(name, code)').order('created_at', { ascending: false }).limit(100),
-        supabase.from('islamic_loan_payments').select('id, amount, payment_type, created_at, loan:islamic_loans(borrower_name, code)').order('created_at', { ascending: false }).limit(100),
-        supabase.from('member_loan_repayments').select('id, amount, status, created_at, loan:member_loans(member:profiles!member_loans_member_id_fkey(full_name))').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
-        supabase.from('customer_payment_requests').select('id, amount, status, created_at, loan:islamic_loans(borrower_name, code)').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
+        supabase.from('project_transactions').select('id, project_id, amount, type, reason, created_at, project:projects(name, code)').order('created_at', { ascending: false }).limit(100),
+        supabase.from('islamic_loan_payments').select('id, loan_id, amount, payment_type, created_at, loan:islamic_loans(borrower_name, code)').order('created_at', { ascending: false }).limit(100),
+        supabase.from('member_loan_repayments').select('id, loan_id, amount, status, created_at, loan:member_loans(member:profiles!member_loans_member_id_fkey(full_name))').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
+        supabase.from('customer_payment_requests').select('id, loan_id, amount, status, created_at, loan:islamic_loans(borrower_name, code)').eq('status', 'approved').order('created_at', { ascending: false }).limit(100),
         supabase.from('projects').select('id, name, code'),
         supabase.from('islamic_loans').select('id, borrower_name, code'),
       ]);
@@ -82,7 +85,7 @@ export function RecentActivity() {
           date: r.created_at, amount: Number(r.amount || 0),
           direction: r.type === 'in' || r.type === 'income' ? 'in' : 'out',
           label: r.reason || 'Fund Transaction', category: 'Fund',
-          reason: r.reason || '', type: r.type,
+          reason: r.reason || '', type: r.type, link: '/fund',
         });
       });
 
@@ -90,6 +93,7 @@ export function RecentActivity() {
         id: `dep-${r.id}`, rawId: r.id, table: 'deposits',
         date: r.created_at, amount: Number(r.amount || 0), direction: 'in',
         label: `${r.member?.full_name || 'Member'} deposit`, category: 'Deposit',
+        link: r.member_id ? `/members/${r.member_id}` : '/members',
       }));
 
       const projectMap = new Map<string, any>();
@@ -127,6 +131,7 @@ export function RecentActivity() {
           label: `${g.isLoss ? 'Loss' : 'Profit'} distribution — ${sourceLabel}`,
           category: g.isLoss ? 'Loss' : 'Profit',
           groupKey: { source_type: g.source_type, source_id: g.source_id, isLoss: g.isLoss },
+          link: g.source_type === 'project' ? `/projects/${g.source_id}` : g.source_type === 'islamic_loan' ? `/islamic-loans/${g.source_id}` : undefined,
         });
       });
 
@@ -136,6 +141,7 @@ export function RecentActivity() {
         direction: r.type === 'income' ? 'in' : 'out',
         label: `Project ${r.project?.code || r.project?.name || ''} — ${r.reason || r.type}`,
         category: 'Project', reason: r.reason || '', type: r.type,
+        link: r.project_id ? `/projects/${r.project_id}` : '/projects',
       }));
 
       (islamicPayRes.data || []).forEach((r: any) => all.push({
@@ -143,6 +149,7 @@ export function RecentActivity() {
         date: r.created_at, amount: Number(r.amount || 0), direction: 'in',
         label: `${r.loan?.borrower_name || 'Customer'} — Loan Payment${r.loan?.code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Loan',
+        link: r.loan_id ? `/islamic-loans/${r.loan_id}` : '/islamic-loans',
       }));
 
       (memberRepayRes.data || []).forEach((r: any) => all.push({
@@ -150,6 +157,7 @@ export function RecentActivity() {
         date: r.created_at, amount: Number(r.amount || 0), direction: 'in',
         label: `${r.loan?.member?.full_name || 'Member'} — Loan Repayment`,
         category: 'Member Loan',
+        link: r.loan_id ? `/member-loans/${r.loan_id}` : '/member-loans',
       }));
 
       (custPayRes.data || []).forEach((r: any) => all.push({
@@ -157,6 +165,7 @@ export function RecentActivity() {
         date: r.created_at, amount: Number(r.amount || 0), direction: 'in',
         label: `${r.loan?.borrower_name || 'Customer'} — Payment${r.loan?.code ? ` (${r.loan.code})` : ''}`,
         category: 'Customer Payment',
+        link: r.loan_id ? `/islamic-loans/${r.loan_id}` : '/islamic-loans',
       }));
 
       all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -231,7 +240,14 @@ export function RecentActivity() {
         <>
           <div className="divide-y divide-border">
             {shown.map(tx => (
-              <div key={tx.id} className="flex items-start gap-3 px-4 sm:px-5 py-3">
+              <div
+                key={tx.id}
+                role={tx.link ? 'button' : undefined}
+                tabIndex={tx.link ? 0 : undefined}
+                onClick={() => tx.link && navigate(tx.link)}
+                onKeyDown={(e) => { if (tx.link && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(tx.link); } }}
+                className={`flex items-start gap-3 px-4 sm:px-5 py-3 ${tx.link ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`}
+              >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   tx.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-destructive/10 text-destructive'
                 }`}>
@@ -255,7 +271,7 @@ export function RecentActivity() {
                   {tx.direction === 'in' ? '+' : '-'}{formatBDT(tx.amount)}
                 </p>
                 {isAdmin && (
-                  <div className="flex gap-1 shrink-0">
+                  <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {tx.table !== 'profit_distributions_group' && (
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(tx)}>
                         <Pencil className="w-3.5 h-3.5" />
