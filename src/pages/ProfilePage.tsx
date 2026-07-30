@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneInput } from '@/components/PhoneInput';
+import { ImageCropperDialog } from '@/components/ImageCropperDialog';
 import { toast } from 'sonner';
 import { Loader2, User as UserIcon, Lock, Mail, Phone, IdCard, Camera, Trash2 } from 'lucide-react';
 
@@ -22,6 +23,8 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (profile) {
@@ -97,7 +100,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !user) return;
@@ -107,7 +110,16 @@ export default function ProfilePage() {
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(String(reader.result || ''));
+    reader.onerror = () => toast.error('ছবি পড়া যায়নি');
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user) return;
     setSavingPhoto(true);
+
     try {
       const MAX = 150 * 1024;
       const dataUrl = await compressImage(file, MAX);
@@ -127,6 +139,7 @@ export default function ProfilePage() {
         return;
       }
       setAvatarUrl(dataUrl);
+      setCropSrc(null);
       toast.success('Profile photo updated');
       refreshProfile();
     } catch (err: any) {
@@ -235,7 +248,15 @@ export default function ProfilePage() {
                     <Trash2 className="w-4 h-4 mr-2" /> Delete
                   </Button>
                 )}
-                <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                <Input id="profile-photo" type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                <ImageCropperDialog
+                  open={!!cropSrc}
+                  imageSrc={cropSrc}
+                  saving={savingPhoto}
+                  onCancel={() => setCropSrc(null)}
+                  onCropped={handlePhotoUpload}
+                />
+
               </div>
               <p className="text-xs text-muted-foreground">বড় ছবি আপলোড করলে স্বয়ংক্রিয়ভাবে 150 KB-এর মধ্যে compress হবে।</p>
             </div>
