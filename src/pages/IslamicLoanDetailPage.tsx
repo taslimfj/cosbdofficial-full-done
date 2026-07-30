@@ -624,7 +624,9 @@ export default function IslamicLoanDetailPage() {
               })}
             </Tabs>
           </div>
-        )}
+          );
+        })()}
+
 
         {/* Payment methods FIRST — most important for the customer */}
         {!isClosed && methods.length > 0 && (
