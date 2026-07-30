@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Shield, UserPlus, Users, ShoppingBag } from 'lucide-react';
+import { Loader2, Shield, Users, ShoppingBag } from 'lucide-react';
 import { BRAND } from '@/lib/brand';
 
 type LoginType = 'admin' | 'member' | 'customer';
@@ -309,23 +309,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            {mode === 'login' ? (
-              <button
-                onClick={() => setMode('signup')}
-                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Create Admin Account
-              </button>
-            ) : (
-              <button
-                onClick={() => setMode('login')}
-                className="text-sm text-primary hover:underline"
-              >
-                Already have an account? Sign in
-              </button>
-            )}
-          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             Contact your fund administrator for member access
