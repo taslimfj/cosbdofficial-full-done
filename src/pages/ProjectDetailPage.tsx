@@ -489,7 +489,7 @@ export default function ProjectDetailPage() {
             ))}
             {txs.length > txLimit && (
               <button
-                onClick={() => setTxLimit(l => l + 10)}
+                onClick={() => setTxLimit(l => l + 5)}
                 className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg"
               >
                 See more ({txs.length - txLimit} বাকি)

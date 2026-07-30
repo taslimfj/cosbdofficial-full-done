@@ -518,7 +518,7 @@ export default function MemberDetailPage() {
               ))}
             </div>
             {deposits.length > depositLimit && (
-              <button onClick={() => setDepositLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+              <button onClick={() => setDepositLimit(l => l + 5)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
                 See more ({deposits.length - depositLimit} বাকি)
               </button>
             )}
@@ -575,7 +575,7 @@ export default function MemberDetailPage() {
               ))}
             </div>
             {distributions.length > distLimit && (
-              <button onClick={() => setDistLimit(l => l + 10)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
+              <button onClick={() => setDistLimit(l => l + 5)} className="w-full py-3 text-xs font-medium text-primary hover:bg-primary/5 border-t border-border">
                 See more ({distributions.length - distLimit} বাকি)
               </button>
             )}
