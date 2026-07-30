@@ -11,21 +11,25 @@ export type LoanLike = {
   code?: string;
   status?: string | null;
   created_at: string;
+  issue_date?: string | null;
   tenure_months: number;
   monthly_installment: number | string;
   sell_price: number | string;
   remaining_amount: number | string;
+  advance_amount?: number | string | null;
   closed_at?: string | null;
   months_paid_early?: number | null;
   discount_credit_used?: boolean | null;
   borrower_phone?: string | null;
 };
 
+const loanStartDate = (loan: LoanLike) => new Date(loan.issue_date || loan.created_at);
+
 const normPhone = (p?: string | null) => (p || '').replace(/[^0-9]/g, '').slice(-11);
 
 /**
  * A loan is "overdue this month" if today's date has passed the installment
- * due-day (day-of-month from created_at) AND the number of expected
+ * due-day (day-of-month from the user-selected issue_date) AND the number of expected
  * installments by now exceeds the number actually paid.
  */
 export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
@@ -36,7 +40,7 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
   const monthly = Number(loan.monthly_installment) || 0;
   if (monthly <= 0) return false;
 
-  const start = new Date(loan.created_at);
+  const start = loanStartDate(loan);
   const tenure = Number(loan.tenure_months) || 0;
   const dueDay = start.getDate();
 
@@ -44,11 +48,14 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
     (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   if (monthsElapsed < 1) return false; // grace: first month never overdue
 
-  // Expected installments = full months elapsed, +1 if this month's due-day already passed
-  let expected = monthsElapsed + (now.getDate() >= dueDay ? 1 : 0);
+  // Count only due dates that have actually passed. The first installment is due
+  // one month after issue_date (e.g. 13 Jun → first due date 13 Jul).
+  let expected = monthsElapsed - (now.getDate() < dueDay ? 1 : 0);
+  expected = Math.max(0, expected);
   expected = Math.min(expected, tenure);
 
-  const paidAmount = Number(loan.sell_price) - remaining;
+  // Advance is an upfront deposit, never an installment.
+  const paidAmount = Math.max(0, Number(loan.sell_price) - remaining - Number(loan.advance_amount || 0));
   const paidInstallments = Math.floor(paidAmount / monthly);
 
   return expected > paidInstallments;
@@ -60,7 +67,7 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
  */
 export function computeMonthsEarly(loan: LoanLike): number {
   if (loan.status !== 'closed' || !loan.closed_at) return 0;
-  const start = new Date(loan.created_at);
+  const start = loanStartDate(loan);
   const end = new Date(loan.closed_at);
   const monthsUsed =
     (end.getFullYear() - start.getFullYear()) * 12 +
@@ -131,7 +138,7 @@ export function computeCustomerRating(loans: LoanLike[], phone: string): {
       bonuses += Math.min(early * 0.4, 2);
     } else if (l.closed_at) {
       // Late close?
-      const start = new Date(l.created_at);
+      const start = loanStartDate(l);
       const end = new Date(l.closed_at);
       const monthsUsed =
         (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());

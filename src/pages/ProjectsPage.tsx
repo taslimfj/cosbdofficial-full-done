@@ -89,20 +89,22 @@ export default function ProjectsPage() {
 
     setSubmitting(true);
 
-    const now = new Date();
-    const yStart = new Date(now.getFullYear(), 0, 1).toISOString();
+    const businessDate = form.issueDate ? new Date(`${form.issueDate}T00:00:00`) : new Date();
+    const yearStart = `${businessDate.getFullYear()}-01-01`;
+    const yearEnd = `${businessDate.getFullYear()}-12-31`;
     const { count: yearCount } = await supabase
       .from('projects')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', yStart);
-    const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, now);
+      .gte('issue_date', yearStart)
+      .lte('issue_date', yearEnd);
+    const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, businessDate);
     const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('projects').insert({
       code, name: form.name.trim(), manager_id: form.managerId,
       manager_profit_pct: pctDefaults.manager,
       fund_profit_pct: pctDefaults.fund,
       admin_profit_pct: pctDefaults.admin,
-      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
+      issue_date: form.issueDate || todayStr(),
     } as any).select('id').single();
     if (error || !inserted) { setSubmitting(false); toast.error(error?.message || 'Failed'); return; }
 

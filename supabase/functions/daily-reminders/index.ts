@@ -16,6 +16,12 @@ function fmtDate(d: Date) {
   return d.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' });
 }
 function lastDayOfMonth(y: number, mZero: number) { return new Date(Date.UTC(y, mZero + 1, 0)); }
+function addMonthsClamped(dateText: string, months: number) {
+  const [year, month, day] = dateText.slice(0, 10).split('-').map(Number);
+  const targetFirst = new Date(Date.UTC(year, month - 1 + months, 1));
+  const lastDay = new Date(Date.UTC(targetFirst.getUTCFullYear(), targetFirst.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(targetFirst.getUTCFullYear(), targetFirst.getUTCMonth(), Math.min(day, lastDay)));
+}
 
 async function insertNotifs(sb: any, rows: any[]) {
   if (!rows.length) return;
@@ -89,20 +95,11 @@ Deno.serve(async (req) => {
 
     // --- Customer islamic-loan reminders ---
     const { data: loans } = await sb.from('islamic_loans')
-      .select('id, code, customer_user_id, monthly_installment, remaining_amount, status')
+      .select('id, code, customer_user_id, monthly_installment, remaining_amount, status, issue_date, created_at, tenure_months')
       .eq('status', 'active')
       .not('customer_user_id', 'is', null);
 
-    const yEnd = now.getUTCFullYear();
-    const mZeroEnd = now.getUTCMonth();
-    const dueDate = lastDayOfMonth(yEnd, mZeroEnd);
-    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (24 * 3600 * 1000));
-
-    // Previous month window (for overdue warnings)
-    const prevMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-    const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const prevDue = lastDayOfMonth(prevMonthStart.getUTCFullYear(), prevMonthStart.getUTCMonth());
-    const prevKey = ym(prevMonthStart);
+    let lastDaysUntilDue: number | null = null;
 
     for (const l of (loans || [])) {
       const monthlyAmount = Math.min(Number(l.monthly_installment || 0), Number(l.remaining_amount || 0));
@@ -110,25 +107,53 @@ Deno.serve(async (req) => {
 
       const uid = l.customer_user_id;
       const link = `/islamic-loans/${l.id}`;
+      const issueText = String(l.issue_date || l.created_at).slice(0, 10);
+      const issueDate = new Date(`${issueText}T00:00:00Z`);
+      if (now < issueDate) continue;
+
+      const elapsedMonths = Math.max(0,
+        (now.getUTCFullYear() - issueDate.getUTCFullYear()) * 12 +
+        (now.getUTCMonth() - issueDate.getUTCMonth()));
+      let installmentNo = Math.max(1, elapsedMonths);
+      let dueDate = addMonthsClamped(issueText, installmentNo);
+      if (now.getTime() > dueDate.getTime()) {
+        installmentNo += 1;
+        dueDate = addMonthsClamped(issueText, installmentNo);
+      }
+      installmentNo = Math.min(installmentNo, Number(l.tenure_months || installmentNo));
+      dueDate = addMonthsClamped(issueText, installmentNo);
+      const cycleStart = installmentNo === 1 ? issueDate : addMonthsClamped(issueText, installmentNo - 1);
+      const previousCycleStart = installmentNo <= 1 ? null : addMonthsClamped(issueText, installmentNo - 2);
+      const previousDue = installmentNo <= 1 ? null : cycleStart;
+      const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (24 * 3600 * 1000));
+      lastDaysUntilDue = daysUntilDue;
       const dueStr = fmtDate(dueDate);
 
       const { data: allPaidRows } = await sb.from('islamic_loan_payments')
-        .select('amount, created_at')
+        .select('amount, payment_date, created_at, payment_type')
         .eq('loan_id', l.id)
-        .gte('created_at', prevMonthStart.toISOString());
-      const rowsPrev = (allPaidRows || []).filter((r: any) => new Date(r.created_at) < thisMonthStart);
-      const rowsThis = (allPaidRows || []).filter((r: any) => new Date(r.created_at) >= thisMonthStart);
+        .neq('payment_type', 'advance');
+      const paidDate = (r: any) => new Date(`${String(r.payment_date || r.created_at).slice(0, 10)}T00:00:00Z`);
+      const rowsThis = (allPaidRows || []).filter((r: any) => {
+        const d = paidDate(r);
+        return d >= cycleStart && d <= dueDate;
+      });
+      const rowsPrev = previousCycleStart && previousDue ? (allPaidRows || []).filter((r: any) => {
+        const d = paidDate(r);
+        return d >= previousCycleStart && d < previousDue;
+      }) : [];
       const paidPrev = rowsPrev.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       const paidAmount = rowsThis.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
       // Overdue warning: previous month's installment was not paid
-      if (paidPrev < monthlyAmount) {
+      if (previousDue && paidPrev < monthlyAmount) {
+        const previousKey = `${previousDue.getUTCFullYear()}-${String(previousDue.getUTCMonth() + 1).padStart(2, '0')}-${String(previousDue.getUTCDate()).padStart(2, '0')}`;
         rows.push({
           user_id: uid,
           title: '⚠️ কিস্তি বকেয়া',
-          message: `Loan ${l.code || ''} — ${fmtDate(prevDue)} তারিখের মধ্যে আপনি ৳${Math.max(0, monthlyAmount - paidPrev).toLocaleString('en-IN')} কিস্তিটি পরিশোধ করেননি। অনুগ্রহ করে যত দ্রুত সম্ভব পরিশোধ করুন, অন্যথায় যথাযথ আইনানুগ ব্যবস্থা গ্রহণ করা হবে।`,
+          message: `Loan ${l.code || ''} — ${fmtDate(previousDue)} তারিখের মধ্যে আপনি ৳${Math.max(0, monthlyAmount - paidPrev).toLocaleString('en-IN')} কিস্তিটি পরিশোধ করেননি। অনুগ্রহ করে যত দ্রুত সম্ভব পরিশোধ করুন, অন্যথায় যথাযথ আইনানুগ ব্যবস্থা গ্রহণ করা হবে।`,
           url: link,
-          tag: `cust-overdue-${l.id}-${prevKey}-${dayOfMonth}`,
+          tag: `cust-overdue-${l.id}-${previousKey}-${dayOfMonth}`,
         });
       }
 
@@ -136,13 +161,13 @@ Deno.serve(async (req) => {
       const remaining = Math.max(0, monthlyAmount - paidAmount);
 
       // মাসের ১ তারিখে: এই মাসের কিস্তির পরিমাণ
-      if (dayOfMonth === 1) {
+      if (now.getUTCDate() === cycleStart.getUTCDate() && now.getUTCMonth() === cycleStart.getUTCMonth()) {
         rows.push({
           user_id: uid,
           title: 'এই মাসের কিস্তি',
           message: `Loan ${l.code || ''} — এই মাসে আপনার ৳${remaining.toLocaleString('en-IN')} কিস্তি পরিশোধ করতে হবে। শেষ তারিখ: ${dueStr}।`,
           url: link,
-          tag: `cust-month-start-${l.id}-${monthKey}`,
+          tag: `cust-cycle-start-${l.id}-${installmentNo}`,
         });
         continue;
       }
@@ -161,7 +186,7 @@ Deno.serve(async (req) => {
 
 
     await insertNotifs(sb, rows);
-    return new Response(JSON.stringify({ inserted: rows.length, dayOfMonth, daysUntilDue }),
+    return new Response(JSON.stringify({ inserted: rows.length, dayOfMonth, daysUntilDue: lastDaysUntilDue }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e: any) {
     console.error('daily-reminders error', e);
