@@ -139,6 +139,7 @@ export default function ProfilePage() {
         return;
       }
       setAvatarUrl(dataUrl);
+      setCropSrc(null);
       toast.success('Profile photo updated');
       refreshProfile();
     } catch (err: any) {
