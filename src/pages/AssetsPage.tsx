@@ -119,6 +119,18 @@ export default function AssetsPage() {
     fetchAssets();
   };
 
+  // History থেকে স্থায়ীভাবে মুছে ফেলা (fund transaction অপরিবর্তিত থাকবে)
+  const handlePurge = async () => {
+    if (!purgeTarget) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('assets' as any).delete().eq('id', purgeTarget.id);
+    setSubmitting(false);
+    if (error) return toast.error(error.message);
+    toast.success('History থেকে মুছে ফেলা হয়েছে');
+    setPurgeTarget(null);
+    fetchAssets();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   const active = assets.filter(a => a.status === 'active');
