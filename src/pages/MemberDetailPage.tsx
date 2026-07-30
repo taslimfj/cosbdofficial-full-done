@@ -320,7 +320,7 @@ export default function MemberDetailPage() {
               {/* Deposit Dialog */}
               <Dialog open={showDepositDialog} onOpenChange={setShowDepositDialog}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2"><Plus className="w-4 h-4" /> {isAdmin ? 'Deposit' : 'Deposit Request'}</Button>
+                  <Button size="sm" variant="success" className="gap-2"><Plus className="w-4 h-4" /> {isAdmin ? 'Deposit' : 'Deposit Request'}</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>{isAdmin ? `Record Deposit for ${member.full_name}` : 'Send Deposit Request'}</DialogTitle></DialogHeader>
