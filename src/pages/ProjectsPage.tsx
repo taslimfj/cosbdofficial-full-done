@@ -218,6 +218,21 @@ export default function ProjectsPage() {
                       <span>Manager: {proj.manager_profit_pct}%</span>
                       <span>Fund: {proj.fund_profit_pct}%</span>
                     </div>
+                    <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Start</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {format(new Date(proj.issue_date || proj.created_at), 'dd MMM yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">End</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {proj.closed_at ? format(new Date(proj.closed_at), 'dd MMM yyyy') : '—'}
+                        </p>
+                      </div>
+                    </div>
+
                   </Link>
                 ))}
               </div>
