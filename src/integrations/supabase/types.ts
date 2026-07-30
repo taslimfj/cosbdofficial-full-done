@@ -1201,6 +1201,7 @@ export type Database = {
       islamic_loans_public: {
         Row: {
           admin_profit_pct: number | null
+          advance_amount: number | null
           borrower_name: string | null
           closed_at: string | null
           code: string | null
@@ -1212,6 +1213,7 @@ export type Database = {
           discount_pct: number | null
           fund_profit_pct: number | null
           id: string | null
+          issue_date: string | null
           media_person_id: string | null
           media_person_profit_pct: number | null
           monthly_installment: number | null
@@ -1220,12 +1222,14 @@ export type Database = {
           profit_percentage: number | null
           purchase_price: number | null
           remaining_amount: number | null
+          secondary_media_person_id: string | null
           sell_price: number | null
           status: string | null
           tenure_months: number | null
         }
         Insert: {
           admin_profit_pct?: number | null
+          advance_amount?: number | null
           borrower_name?: string | null
           closed_at?: string | null
           code?: string | null
@@ -1237,6 +1241,7 @@ export type Database = {
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string | null
+          issue_date?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
@@ -1245,12 +1250,14 @@ export type Database = {
           profit_percentage?: number | null
           purchase_price?: number | null
           remaining_amount?: number | null
+          secondary_media_person_id?: string | null
           sell_price?: number | null
           status?: string | null
           tenure_months?: number | null
         }
         Update: {
           admin_profit_pct?: number | null
+          advance_amount?: number | null
           borrower_name?: string | null
           closed_at?: string | null
           code?: string | null
@@ -1262,6 +1269,7 @@ export type Database = {
           discount_pct?: number | null
           fund_profit_pct?: number | null
           id?: string | null
+          issue_date?: string | null
           media_person_id?: string | null
           media_person_profit_pct?: number | null
           monthly_installment?: number | null
@@ -1270,6 +1278,7 @@ export type Database = {
           profit_percentage?: number | null
           purchase_price?: number | null
           remaining_amount?: number | null
+          secondary_media_person_id?: string | null
           sell_price?: number | null
           status?: string | null
           tenure_months?: number | null
@@ -1299,6 +1308,20 @@ export type Database = {
           {
             foreignKeyName: "islamic_loans_media_person_id_fkey"
             columns: ["media_person_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "islamic_loans_secondary_media_person_id_fkey"
+            columns: ["secondary_media_person_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
