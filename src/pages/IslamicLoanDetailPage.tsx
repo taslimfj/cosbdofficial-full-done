@@ -657,7 +657,7 @@ export default function IslamicLoanDetailPage() {
 
           <div className="mb-2">
             <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-              <span>Progress</span><span>{Math.round(progressPct)}%</span>
+              <span>Progress</span><span>{installmentsPaid}/{loan.tenure_months} installments</span>
             </div>
             <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
               <div className="bg-primary h-full" style={{ width: `${progressPct}%` }} />
