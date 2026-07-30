@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBDT, formatBDTDecimal, round2, calculateProfitPercentage, calculateSellPrice, calculateMonthlyInstallment } from '@/lib/finance';
@@ -60,6 +60,8 @@ export default function IslamicLoanDetailPage() {
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [siblingLoans, setSiblingLoans] = useState<any[]>([]);
   const [phoneHistory, setPhoneHistory] = useState<any[]>([]);
+  const [searchParams] = useSearchParams();
+  const showCustomerDetail = searchParams.get('detail') === '1';
 
   const [edit, setEdit] = useState<any>(null);
 
@@ -565,7 +567,7 @@ export default function IslamicLoanDetailPage() {
           </Link>
         </div>
         {/* All loans for this customer — Active / Closed tabs (current loan included) */}
-        {(() => {
+        {!showCustomerDetail && (() => {
           const allLoans = [loan as any, ...siblingLoans.filter(s => s.id !== loan.id)];
           const activeCount = allLoans.filter(s => s.status === 'active').length;
           const closedCount = allLoans.length - activeCount;
@@ -595,7 +597,7 @@ export default function IslamicLoanDetailPage() {
                           return (
                             <Link
                               key={s.id}
-                              to={`/islamic-loans/${s.id}`}
+                              to={`/islamic-loans/${s.id}?detail=1`}
                               className="block bg-background border border-border rounded-lg p-3 hover:border-primary/40 transition-colors shadow-subtle"
                             >
                               <div className="flex items-center justify-between gap-2">
@@ -627,17 +629,24 @@ export default function IslamicLoanDetailPage() {
           );
         })()}
 
+        {showCustomerDetail && (
+          <Link to={`/islamic-loans/${loan.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            ← আপনার সব Loan
+          </Link>
+        )}
 
-        {/* Payment methods FIRST — most important for the customer */}
-        {!isClosed && methods.length > 0 && (
+        {/* Payment methods — always available for the customer */}
+        {methods.length > 0 && (!showCustomerDetail || !isClosed) && (
           <PaymentMethodsCard
             methods={methods}
             title="এখানে টাকা পাঠান"
-            subtitle="Tap to copy · তারপর নিচে Request Installment দিন"
+            subtitle="Tap to copy"
           />
         )}
 
+        {showCustomerDetail && (<>
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
+
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
@@ -739,6 +748,9 @@ export default function IslamicLoanDetailPage() {
             </div>
           </div>
         )}
+        </>)}
+
+
 
         <Dialog open={showRequest} onOpenChange={setShowRequest}>
           <DialogContent>
