@@ -40,40 +40,21 @@ export async function registerPWA() {
     return;
   }
   try {
-    let refreshing = false;
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-
+    // গুরুত্বপূর্ণ: app চালু অবস্থায় (বা minimize থেকে ফিরে আসার সময়) কখনোই
+    // জোর করে reload করা হবে না — তাতে form-এ লেখা data হারিয়ে যায়।
+    // নতুন version পাওয়া গেলে সেটা পরের বার app পুরোপুরি বন্ধ করে খুললে active হবে।
     const reg = await navigator.serviceWorker.register(SW_URL, {
       scope: '/',
       updateViaCache: 'none',
     });
 
-    const applyWaitingWorker = () => {
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    };
+    // কোনো page নিয়ন্ত্রণে না থাকলে (একদম fresh start) সঙ্গে সঙ্গে নতুন worker activate করা নিরাপদ।
+    if (!navigator.serviceWorker.controller && reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
 
-    reg.addEventListener('updatefound', () => {
-      const worker = reg.installing;
-      if (!worker) return;
-      worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-          worker.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-    });
-
-    applyWaitingWorker();
-    await reg.update();
-
-    window.addEventListener('focus', () => { reg.update().then(applyWaitingWorker).catch(() => {}); });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') reg.update().then(applyWaitingWorker).catch(() => {});
-    });
+    // Background-এ শুধু update check — কোনো skipWaiting/reload নয়।
+    reg.update().catch(() => {});
   } catch (e) {
     console.warn('SW registration failed', e);
   }
