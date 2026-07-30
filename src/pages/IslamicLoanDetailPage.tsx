@@ -700,7 +700,7 @@ export default function IslamicLoanDetailPage() {
             </div>
           </div>
 
-          <Button className="w-full" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }} disabled={isClosed}>
+          <Button variant="success" className="w-full" onClick={() => { setDepositAmt(String(monthly || '')); setShowRequest(true); }} disabled={isClosed}>
             <Plus className="w-4 h-4 mr-1" /> Request Installment Payment
           </Button>
         </div>
