@@ -448,8 +448,10 @@ ${body}
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                  </div>
+                )}
+              </div>
+
             );
           })}
         </div>
