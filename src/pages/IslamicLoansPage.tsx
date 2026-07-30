@@ -19,7 +19,7 @@ import { LoanCalculator } from '@/components/LoanCalculator';
 import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
-import { AlertCircle, Sparkles, Star } from 'lucide-react';
+import { AlertCircle, Sparkles, Star, Search } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
@@ -34,6 +34,8 @@ export default function IslamicLoansPage() {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
+  const [search, setSearch] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
@@ -484,6 +486,18 @@ export default function IslamicLoansPage() {
         </div>
       </div>
 
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="নাম, ফোন, code বা product দিয়ে search করুন..."
+          className="pl-9"
+        />
+      </div>
+
+
+
       {(() => {
         const renderLoan = (loan: any) => {
           const remaining = Number(loan.remaining_amount);
@@ -544,8 +558,21 @@ export default function IslamicLoansPage() {
           const bMine = user?.id && (b.media_person_id === user.id || b.secondary_media_person_id === user.id) ? 1 : 0;
           return bMine - aMine;
         });
-        const active = mineFirst(loans.filter(l => l.status === 'active'));
-        const closed = mineFirst(loans.filter(l => l.status !== 'active'));
+        const q = search.trim().toLowerCase();
+        const qDigits = q.replace(/[^0-9]/g, '');
+        const matches = (l: any) => {
+          if (!q) return true;
+          const name = (l.borrower_name || l.media_person?.full_name || '').toLowerCase();
+          const phone = (l.borrower_phone || l.media_person?.phone || '').replace(/[^0-9]/g, '');
+          const code = (l.code || '').toLowerCase();
+          const product = (l.product_name || '').toLowerCase();
+          return name.includes(q) || code.includes(q) || product.includes(q) ||
+            (qDigits.length >= 3 && phone.includes(qDigits));
+        };
+        const filtered = loans.filter(matches);
+        const active = mineFirst(filtered.filter(l => l.status === 'active'));
+        const closed = mineFirst(filtered.filter(l => l.status !== 'active'));
+
         return (
           <Tabs defaultValue="active" className="w-full">
             <TabsList>
