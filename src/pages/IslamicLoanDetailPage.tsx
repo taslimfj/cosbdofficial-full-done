@@ -567,7 +567,7 @@ export default function IslamicLoanDetailPage() {
           </Link>
         </div>
         {/* All loans for this customer — Active / Closed tabs (current loan included) */}
-        {(() => {
+        {!showCustomerDetail && (() => {
           const allLoans = [loan as any, ...siblingLoans.filter(s => s.id !== loan.id)];
           const activeCount = allLoans.filter(s => s.status === 'active').length;
           const closedCount = allLoans.length - activeCount;
