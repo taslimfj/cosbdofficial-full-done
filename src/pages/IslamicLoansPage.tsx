@@ -34,6 +34,8 @@ export default function IslamicLoansPage() {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
+  const [search, setSearch] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
   const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
