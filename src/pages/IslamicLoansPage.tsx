@@ -39,7 +39,7 @@ export default function IslamicLoansPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
-  const [excludedMemberIds, setExcludedMemberIds] = useState<string[]>([]);
+  const [excludedMemberIds, setExcludedMemberIds, clearExcludedDraft] = usePersistentState<string[]>('islamic-loan-create-excluded', []);
   const todayStr = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -47,7 +47,7 @@ export default function IslamicLoansPage() {
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   };
-  const [form, setForm] = useState({
+  const [form, setForm, clearFormDraft] = usePersistentState('islamic-loan-create', {
     borrowerName: '',
     borrowerPhone: '+880',
     relativePhone: '+880',
@@ -269,8 +269,8 @@ export default function IslamicLoansPage() {
     setSubmitting(false);
     toast.success(`Loan ${code} created`);
     setShowSheet(false);
-    setForm({ borrowerName: '', borrowerPhone: '+880', relativePhone: '+880', relativeName: '', relationship: '', productName: '', purchasePrice: '', advanceAmount: '', tenure: '3', mediaPersonId: '', secondaryMediaPersonId: '', comments: '', mediaPersonProfitPct: '10', fundProfitPct: '5', discountPct: '0', issueDate: todayStr(), customerPassword: '123456' } as any);
-    setExcludedMemberIds([]);
+    clearFormDraft();
+    clearExcludedDraft();
     const { data } = await supabase.from('islamic_loans').select('*, media_person:profiles!islamic_loans_media_person_id_fkey(*)').order('created_at', { ascending: false });
     const { data: freshPays } = await supabase.from('islamic_loan_payments').select('*');
     setPayments(freshPays || []);
