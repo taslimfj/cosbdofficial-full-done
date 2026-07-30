@@ -597,7 +597,7 @@ export default function IslamicLoanDetailPage() {
                           return (
                             <Link
                               key={s.id}
-                              to={`/islamic-loans/${s.id}`}
+                              to={`/islamic-loans/${s.id}?detail=1`}
                               className="block bg-background border border-border rounded-lg p-3 hover:border-primary/40 transition-colors shadow-subtle"
                             >
                               <div className="flex items-center justify-between gap-2">
