@@ -98,57 +98,67 @@ Deno.serve(async (req) => {
     const dueDate = lastDayOfMonth(yEnd, mZeroEnd);
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (24 * 3600 * 1000));
 
+    // Previous month window (for overdue warnings)
+    const prevMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const prevDue = lastDayOfMonth(prevMonthStart.getUTCFullYear(), prevMonthStart.getUTCMonth());
+    const prevKey = ym(prevMonthStart);
+
     for (const l of (loans || [])) {
       const monthlyAmount = Math.min(Number(l.monthly_installment || 0), Number(l.remaining_amount || 0));
       if (monthlyAmount <= 0) continue;
 
-      // Paid this month?
-      const { data: paidRows } = await sb.from('islamic_loan_payments')
-        .select('amount, created_at')
-        .eq('loan_id', l.id)
-        .gte('created_at', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString());
-      const paidAmount = (paidRows || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
-      if (paidAmount >= monthlyAmount) continue; // fully paid this month → skip
-
-      const remaining = Math.max(0, monthlyAmount - paidAmount);
-      const dueStr = fmtDate(dueDate);
       const uid = l.customer_user_id;
       const link = `/islamic-loans/${l.id}`;
+      const dueStr = fmtDate(dueDate);
 
+      const { data: allPaidRows } = await sb.from('islamic_loan_payments')
+        .select('amount, created_at')
+        .eq('loan_id', l.id)
+        .gte('created_at', prevMonthStart.toISOString());
+      const rowsPrev = (allPaidRows || []).filter((r: any) => new Date(r.created_at) < thisMonthStart);
+      const rowsThis = (allPaidRows || []).filter((r: any) => new Date(r.created_at) >= thisMonthStart);
+      const paidPrev = rowsPrev.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const paidAmount = rowsThis.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+
+      // Overdue warning: previous month's installment was not paid
+      if (paidPrev < monthlyAmount) {
+        rows.push({
+          user_id: uid,
+          title: '⚠️ কিস্তি বকেয়া',
+          message: `Loan ${l.code || ''} — ${fmtDate(prevDue)} তারিখের মধ্যে আপনি ৳${Math.max(0, monthlyAmount - paidPrev).toLocaleString('en-IN')} কিস্তিটি পরিশোধ করেননি। অনুগ্রহ করে যত দ্রুত সম্ভব পরিশোধ করুন, অন্যথায় যথাযথ আইনানুগ ব্যবস্থা গ্রহণ করা হবে।`,
+          url: link,
+          tag: `cust-overdue-${l.id}-${prevKey}-${dayOfMonth}`,
+        });
+      }
+
+      if (paidAmount >= monthlyAmount) continue; // এই মাসের কিস্তি পরিশোধ হয়ে গেছে
+      const remaining = Math.max(0, monthlyAmount - paidAmount);
+
+      // মাসের ১ তারিখে: এই মাসের কিস্তির পরিমাণ
       if (dayOfMonth === 1) {
         rows.push({
           user_id: uid,
           title: 'এই মাসের কিস্তি',
-          message: `Loan ${l.code || ''} — এই মাসে ৳${remaining.toLocaleString('en-IN')} কিস্তি বাকি। পরিশোধের শেষ তারিখ: ${dueStr}।`,
+          message: `Loan ${l.code || ''} — এই মাসে আপনার ৳${remaining.toLocaleString('en-IN')} কিস্তি পরিশোধ করতে হবে। শেষ তারিখ: ${dueStr}।`,
           url: link,
           tag: `cust-month-start-${l.id}-${monthKey}`,
         });
         continue;
       }
 
-      // 5 days before due date → twice daily
+      // শেষ তারিখের ৫ দিন আগে থেকে → দিনে দুইবার
       if (daysUntilDue >= 0 && daysUntilDue <= 5) {
         rows.push({
           user_id: uid,
           title: '⏰ কিস্তি পরিশোধের সময়',
-          message: `Loan ${l.code || ''} — ৳${remaining.toLocaleString('en-IN')} বাকি। শেষ তারিখ: ${dueStr}। দ্রুত পরিশোধ করুন।`,
+          message: `Loan ${l.code || ''} — আপনার এই মাসের ৳${remaining.toLocaleString('en-IN')} কিস্তি বাকি আছে। পরিশোধের শেষ তারিখ: ${dueStr}।`,
           url: link,
-          // tag varies per run so we can send twice daily without dedup
-        });
-        continue;
-      }
-
-      // Every 5 days (5,10,15,20,25) throughout the month
-      if ([5, 10, 15, 20, 25].includes(dayOfMonth)) {
-        rows.push({
-          user_id: uid,
-          title: 'কিস্তি reminder',
-          message: `Loan ${l.code || ''} — এই মাসে ৳${remaining.toLocaleString('en-IN')} বাকি। শেষ তারিখ: ${dueStr}।`,
-          url: link,
-          tag: `cust-5day-${l.id}-${monthKey}-${dayOfMonth}`,
+          // tag নেই → দিনে দুইবার পাঠানো যায়
         });
       }
     }
+
 
     await insertNotifs(sb, rows);
     return new Response(JSON.stringify({ inserted: rows.length, dayOfMonth, daysUntilDue }),
