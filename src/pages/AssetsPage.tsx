@@ -270,6 +270,28 @@ export default function AssetsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* History permanently delete dialog */}
+      <Dialog open={!!purgeTarget} onOpenChange={(o) => { if (!o) setPurgeTarget(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>History থেকে মুছে ফেলুন</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{purgeTarget?.name}</span> — এই record টি Removed Assets history থেকে স্থায়ীভাবে মুছে যাবে। এটি ফেরানো যাবে না।
+            </p>
+            <p className="text-xs text-muted-foreground">
+              আগে হওয়া fund transaction (purchase / scrap) গুলো অপরিবর্তিত থাকবে, শুধু asset record টি মুছে যাবে।
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPurgeTarget(null)}>Cancel</Button>
+              <Button variant="destructive" className="flex-1" onClick={handlePurge} disabled={submitting}>
+                {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Delete Permanently
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
