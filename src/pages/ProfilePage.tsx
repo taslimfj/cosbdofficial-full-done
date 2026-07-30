@@ -23,6 +23,8 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (profile) {
