@@ -721,7 +721,7 @@ export default function IslamicLoanDetailPage() {
                 );
               })}
               {payments.length > payLimit && (
-                <button onClick={() => setPayLimit(l => l + 10)} className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg">
+                <button onClick={() => setPayLimit(l => l + 5)} className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg">
                   See more ({payments.length - payLimit} বাকি)
                 </button>
               )}
@@ -1148,7 +1148,7 @@ export default function IslamicLoanDetailPage() {
             })}
             {payments.length > payLimit && (
               <button
-                onClick={() => setPayLimit(l => l + 10)}
+                onClick={() => setPayLimit(l => l + 5)}
                 className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg"
               >
                 See more ({payments.length - payLimit} বাকি)

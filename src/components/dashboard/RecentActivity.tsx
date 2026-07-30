@@ -36,7 +36,8 @@ interface UnifiedTx {
   groupKey?: { source_type: string; source_id: string; isLoss: boolean };
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 3;
+const PAGE_STEP = 5;
 
 export function RecentActivity() {
   const { role } = useAuth();
@@ -289,7 +290,7 @@ export function RecentActivity() {
           {hasMore && (
             <div className="px-5 py-3 border-t border-border">
               <button
-                onClick={() => setVisible(v => v + PAGE_SIZE)}
+                onClick={() => setVisible(v => v + PAGE_STEP)}
                 className="w-full text-sm font-medium text-primary hover:underline"
               >
                 See more

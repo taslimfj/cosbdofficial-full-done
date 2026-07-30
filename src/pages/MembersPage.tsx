@@ -28,7 +28,7 @@ export default function MembersPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMember, setNewMember] = useState({ fullName: '', phone: '+880' });
   const [adding, setAdding] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(3);
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
   const [memberStatuses, setMemberStatuses] = useState<Map<string, MissedStatus>>(new Map());
