@@ -175,13 +175,15 @@ export default function IslamicLoansPage() {
     if (!purchasePrice) { toast.error('Enter purchase price'); return; }
     if (!form.mediaPersonId) { toast.error('Select media person'); return; }
     setSubmitting(true);
-    const now = new Date();
-    const yStart = new Date(now.getFullYear(), 0, 1).toISOString();
+    const businessDate = form.issueDate ? new Date(`${form.issueDate}T00:00:00`) : new Date();
+    const yearStart = `${businessDate.getFullYear()}-01-01`;
+    const yearEnd = `${businessDate.getFullYear()}-12-31`;
     const { count: yearCount } = await supabase
       .from('islamic_loans')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', yStart);
-    const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, now);
+      .gte('issue_date', yearStart)
+      .lte('issue_date', yearEnd);
+    const code = buildEntityCode('IL', form.borrowerName.trim(), (yearCount || 0) + 1, businessDate);
     const usingCredit = phoneHistory?.credit && discountPct > 0 && Math.abs(discountPct - phoneHistory.credit.months) < 0.01;
     const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('islamic_loans').insert({
@@ -208,8 +210,7 @@ export default function IslamicLoansPage() {
       monthly_installment: monthlyInstallment,
       comments: form.comments,
       discount_credit_from_loan: usingCredit ? phoneHistory!.credit!.fromLoanId : null,
-      // Admin-only: allow custom issue date; members always use today (default)
-      ...(isAdmin && form.issueDate ? { issue_date: form.issueDate } : {}),
+      issue_date: form.issueDate || todayStr(),
       // Auto-populate admin's default payment methods so customer sees them immediately
       payment_methods: defaultMethods.filter(m => m.label.trim() && m.value.trim()),
     } as any).select('id').single();
@@ -225,7 +226,7 @@ export default function IslamicLoansPage() {
           _payment_type: 'advance',
           _payment_method: 'advance',
           _transaction_id: `ADV-${code}`,
-          _payment_date: (isAdmin && form.issueDate) ? form.issueDate : new Date().toISOString().split('T')[0],
+           _payment_date: form.issueDate || todayStr(),
         } as any);
       } catch (e: any) { console.warn('Advance auto-record failed:', e?.message); }
     }

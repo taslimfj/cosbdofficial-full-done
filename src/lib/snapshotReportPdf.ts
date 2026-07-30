@@ -208,7 +208,7 @@ export async function generateProjectSnapshotPDF(data: ProjectSnapshotData) {
     },
     body: [
       ['Name', project.name || '-', 'Status', String(project.status || '-').toUpperCase()],
-      ['Created', project.created_at ? format(new Date(project.created_at), 'dd MMM yyyy') : '-',
+      ['Created', (project.issue_date || project.created_at) ? format(new Date(project.issue_date || project.created_at), 'dd MMM yyyy') : '-',
        'Closed', project.closed_at ? format(new Date(project.closed_at), 'dd MMM yyyy') : '-'],
     ],
   });

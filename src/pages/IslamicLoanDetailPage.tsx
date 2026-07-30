@@ -122,7 +122,7 @@ export default function IslamicLoanDetailPage() {
     if (loan?.borrower_phone) {
       const { data: hist } = await supabase
         .from('islamic_loans')
-        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, created_at, closed_at, months_paid_early, borrower_phone')
+        .select('id, status, tenure_months, monthly_installment, sell_price, remaining_amount, created_at, issue_date, closed_at, months_paid_early, borrower_phone')
         .eq('borrower_phone', loan.borrower_phone);
       setPhoneHistory(hist || []);
     } else {
@@ -264,15 +264,15 @@ export default function IslamicLoanDetailPage() {
     const currentRemaining = Number(loan.remaining_amount) - justPaid;
     if (currentRemaining > 0.01) return;
     if (loan.closed_at) return;
-    const now = new Date();
+    const closeDate = paymentDate ? new Date(`${paymentDate}T00:00:00`) : new Date();
     const start = new Date((loan as any).issue_date || loan.created_at);
     const monthsUsed =
-      (now.getFullYear() - start.getFullYear()) * 12 +
-      (now.getMonth() - start.getMonth()) +
-      (now.getDate() >= start.getDate() ? 0 : -1);
+      (closeDate.getFullYear() - start.getFullYear()) * 12 +
+      (closeDate.getMonth() - start.getMonth()) +
+      (closeDate.getDate() >= start.getDate() ? 0 : -1);
     const monthsEarly = Math.max(0, Number(loan.tenure_months) - Math.max(0, monthsUsed));
     await supabase.from('islamic_loans').update({
-      closed_at: now.toISOString(),
+      closed_at: closeDate.toISOString(),
       months_paid_early: monthsEarly,
       status: 'closed',
     } as any).eq('id', id!);

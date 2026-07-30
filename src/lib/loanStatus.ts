@@ -11,6 +11,7 @@ export type LoanLike = {
   code?: string;
   status?: string | null;
   created_at: string;
+  issue_date?: string | null;
   tenure_months: number;
   monthly_installment: number | string;
   sell_price: number | string;
@@ -21,11 +22,13 @@ export type LoanLike = {
   borrower_phone?: string | null;
 };
 
+const loanStartDate = (loan: LoanLike) => new Date(loan.issue_date || loan.created_at);
+
 const normPhone = (p?: string | null) => (p || '').replace(/[^0-9]/g, '').slice(-11);
 
 /**
  * A loan is "overdue this month" if today's date has passed the installment
- * due-day (day-of-month from created_at) AND the number of expected
+ * due-day (day-of-month from the user-selected issue_date) AND the number of expected
  * installments by now exceeds the number actually paid.
  */
 export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
@@ -36,7 +39,7 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
   const monthly = Number(loan.monthly_installment) || 0;
   if (monthly <= 0) return false;
 
-  const start = new Date(loan.created_at);
+  const start = loanStartDate(loan);
   const tenure = Number(loan.tenure_months) || 0;
   const dueDay = start.getDate();
 
@@ -60,7 +63,7 @@ export function isLoanOverdue(loan: LoanLike, now: Date = new Date()): boolean {
  */
 export function computeMonthsEarly(loan: LoanLike): number {
   if (loan.status !== 'closed' || !loan.closed_at) return 0;
-  const start = new Date(loan.created_at);
+  const start = loanStartDate(loan);
   const end = new Date(loan.closed_at);
   const monthsUsed =
     (end.getFullYear() - start.getFullYear()) * 12 +
@@ -131,7 +134,7 @@ export function computeCustomerRating(loans: LoanLike[], phone: string): {
       bonuses += Math.min(early * 0.4, 2);
     } else if (l.closed_at) {
       // Late close?
-      const start = new Date(l.created_at);
+      const start = loanStartDate(l);
       const end = new Date(l.closed_at);
       const monthsUsed =
         (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
