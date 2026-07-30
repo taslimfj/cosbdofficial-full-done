@@ -16,10 +16,19 @@ interface Notif {
   is_read: boolean;
   url: string | null;
   created_at: string;
+  tag?: string | null;
 }
 
+// কাস্টমার শুধুমাত্র নিজের কিস্তি সংক্রান্ত notification দেখবে
+const CUSTOMER_TAG_PREFIXES = ['cust-month-start-', 'cust-overdue-', 'cpr-decision-'];
+function isCustomerNotif(n: Notif) {
+  if (!n.tag) return n.title.includes('কিস্তি'); // ৫ দিন আগের reminder-এ tag থাকে না
+  return CUSTOMER_TAG_PREFIXES.some(p => n.tag!.startsWith(p));
+}
+
+
 export function NotificationBell() {
-  const { user } = useAuth();
+  const { user, isCustomer } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
@@ -33,12 +42,14 @@ export function NotificationBell() {
     if (!user) return;
     const { data } = await supabase
       .from('notifications')
-      .select('id, title, message, is_read, url, created_at')
+      .select('id, title, message, is_read, url, created_at, tag')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(30);
-    setItems((data || []) as Notif[]);
+      .limit(50);
+    const all = (data || []) as Notif[];
+    setItems((isCustomer ? all.filter(isCustomerNotif) : all).slice(0, 30));
   };
+
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +73,11 @@ export function NotificationBell() {
       .channel(`notif-${user.id}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        (p) => setItems(prev => [p.new as any, ...prev].slice(0, 30)))
+        (p) => setItems(prev => {
+          const n = p.new as Notif;
+          if (isCustomer && !isCustomerNotif(n)) return prev;
+          return [n, ...prev].slice(0, 30);
+        }))
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         () => fetchItems())
