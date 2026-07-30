@@ -290,55 +290,87 @@ ${body}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {visibleSections.map(section => {
             const rules = visibleRules.filter(r => r.section_id === section.id);
+            const colorIdx = (sections.findIndex(s => s.id === section.id) % 8) + 1;
+            const c = `hsl(var(--rule-${colorIdx}))`;
+            const open = !!openSections[section.id];
             return (
-              <Card key={section.id}>
-                <CardContent className="p-4 sm:p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
-                    <div className="min-w-0">
-                      <h2 className="text-lg font-semibold text-foreground">{section.name}</h2>
-                      {section.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => downloadPdf(section.id)} title="এই section এর PDF">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      {isAdmin && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setSectionForm({ id: section.id, name: section.name, description: section.description || '' });
-                              setSectionOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => {
-                              if (confirm('এই section ও এর সব rule মুছে ফেলবেন?')) deleteSection.mutate(section.id);
-                            }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
+              <div
+                key={section.id}
+                className="rounded-xl overflow-hidden border shadow-sm transition-colors"
+                style={{ borderColor: `hsl(var(--rule-${colorIdx}) / 0.35)` }}
+              >
+                <div
+                  className="flex items-center gap-3 p-4 cursor-pointer"
+                  style={{ background: `linear-gradient(90deg, hsl(var(--rule-${colorIdx}) / 0.16), hsl(var(--rule-${colorIdx}) / 0.04))`, borderLeft: `6px solid ${c}` }}
+                  onClick={() => setOpenSections(s => ({ ...s, [section.id]: !s[section.id] }))}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: `hsl(var(--rule-${colorIdx}) / 0.18)` }}
+                  >
+                    <ScrollText className="w-4.5 h-4.5" style={{ color: c, width: 18, height: 18 }} />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-lg font-semibold truncate" style={{ color: c }}>
+                      {section.name}
+                    </h2>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {section.description || `${rules.length} টি নিয়ম`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                    <span
+                      className="hidden sm:inline text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      style={{ background: `hsl(var(--rule-${colorIdx}) / 0.15)`, color: c }}
+                    >
+                      {rules.length}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => downloadPdf(section.id)} title="এই section এর PDF">
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setSectionForm({ id: section.id, name: section.name, description: section.description || '' });
+                            setSectionOpen(true);
+                          }}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            if (confirm('এই section ও এর সব rule মুছে ফেলবেন?')) deleteSection.mutate(section.id);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    <ChevronDown
+                      className={cn('w-5 h-5 transition-transform', open && 'rotate-180')}
+                      style={{ color: c }}
+                      onClick={() => setOpenSections(s => ({ ...s, [section.id]: !s[section.id] }))}
+                    />
+                  </div>
+                </div>
 
+                {open && (
+                  <div className="p-4 bg-card space-y-2">
                   {rules.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-2">এই section এ কোনো rule নেই।</p>
                   ) : (
                     <div className="space-y-2">
+
                       {rules.map((r, idx) => {
                         const isOpen = !!expanded[r.id];
                         return (
