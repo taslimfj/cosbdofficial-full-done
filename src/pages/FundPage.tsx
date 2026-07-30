@@ -191,15 +191,15 @@ export default function FundPage() {
                 )}
               </div>
             ))}
-            {transactions.length > PREVIEW_LIMIT && (
+            {transactions.length > visibleCount && (
               <div className="px-5 py-3">
                 <Button
                   variant="ghost"
                   className="w-full gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowAll(s => !s)}
+                  onClick={() => setVisibleCount(c => c + PREVIEW_STEP)}
                 >
-                  {showAll ? 'See less' : 'See more'}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showAll ? 'rotate-180' : ''}`} />
+                  See more ({transactions.length - visibleCount} বাকি)
+                  <ChevronDown className="w-4 h-4" />
                 </Button>
               </div>
             )}
