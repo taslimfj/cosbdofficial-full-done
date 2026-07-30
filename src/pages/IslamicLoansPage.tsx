@@ -20,6 +20,8 @@ import { snapshotMemberShares, persistExclusions } from '@/lib/snapshotShares';
 import type { PaymentMethod } from '@/components/PaymentMethodsCard';
 import { isLoanOverdue, findDiscountCreditForPhone, computeCustomerRating } from '@/lib/loanStatus';
 import { AlertCircle, Sparkles, Star } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
+
 import { MemberMultiSelect } from '@/components/MemberMultiSelect';
 import { computeMissedInstallments } from '@/lib/memberStatus';
 import { DateField } from '@/components/DateField';
@@ -490,6 +492,11 @@ export default function IslamicLoansPage() {
           const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
           const phoneDigits = borrowerPhone?.replace(/[^0-9]/g, '');
           const overdue = isLoanOverdue(loan);
+          const startDate = loan.issue_date ? new Date(loan.issue_date) : new Date(loan.created_at);
+          const endDate = loan.closed_at
+            ? new Date(loan.closed_at)
+            : addMonths(startDate, Number(loan.tenure_months) || 0);
+
           return (
             <Link
               key={loan.id}
@@ -524,6 +531,11 @@ export default function IslamicLoansPage() {
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(Number(loan.purchase_price))}</p></div>
                 <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly</p><p className="font-mono font-bold text-foreground tabular-nums text-sm">{formatBDT(monthly)}</p></div>
               </div>
+              <div className={`grid grid-cols-2 gap-2 mt-3 pt-3 border-t ${overdue ? 'border-destructive/30' : 'border-border'}`}>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Start</p><p className="text-xs font-medium text-foreground">{format(startDate, 'dd MMM yyyy')}</p></div>
+                <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">End</p><p className="text-xs font-medium text-foreground">{format(endDate, 'dd MMM yyyy')}</p></div>
+              </div>
+
             </Link>
           );
         };
