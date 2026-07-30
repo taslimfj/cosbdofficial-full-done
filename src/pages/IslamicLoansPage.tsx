@@ -532,10 +532,13 @@ export default function IslamicLoansPage() {
             : addMonths(startDate, Number(loan.tenure_months) || 0);
 
           return (
-            <Link
+            <div
               key={loan.id}
-              to={`/islamic-loans/${loan.id}`}
-              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border ${
+              role="link"
+              tabIndex={0}
+              onClick={() => navigate(`/islamic-loans/${loan.id}`)}
+              onKeyDown={e => { if (e.key === 'Enter') navigate(`/islamic-loans/${loan.id}`); }}
+              className={`group p-5 rounded-xl hover:shadow-md transition-all flex flex-col border cursor-pointer ${
                 overdue
                   ? 'bg-destructive/10 border-destructive/50 hover:border-destructive'
                   : 'bg-card border-border hover:border-primary/30'
