@@ -564,20 +564,25 @@ export default function IslamicLoanDetailPage() {
             📺 Tutorial ভিডিও দেখুন
           </Link>
         </div>
-        {/* Other loans for this customer — Active / Closed tabs */}
-        {siblingLoans.length > 0 && (
+        {/* All loans for this customer — Active / Closed tabs (current loan included) */}
+        {(() => {
+          const allLoans = [loan as any, ...siblingLoans.filter(s => s.id !== loan.id)];
+          const activeCount = allLoans.filter(s => s.status === 'active').length;
+          const closedCount = allLoans.length - activeCount;
+          return (
           <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <Layers className="w-4 h-4 text-primary" />
-              <p className="text-sm font-semibold text-foreground">আপনার অন্যান্য Islamic Loan ({siblingLoans.length})</p>
+              <p className="text-sm font-semibold text-foreground">আপনার Islamic Loan ({allLoans.length})</p>
             </div>
-            <Tabs defaultValue="active" className="w-full">
+            <Tabs defaultValue={loan.status === 'active' ? 'active' : 'closed'} className="w-full">
               <TabsList>
-                <TabsTrigger value="active">Active ({siblingLoans.filter(s => s.status === 'active').length})</TabsTrigger>
-                <TabsTrigger value="closed">Closed ({siblingLoans.filter(s => s.status !== 'active').length})</TabsTrigger>
+                <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
+                <TabsTrigger value="closed">Closed ({closedCount})</TabsTrigger>
               </TabsList>
               {(['active', 'closed'] as const).map(tab => {
-                const list = siblingLoans.filter(s => tab === 'active' ? s.status === 'active' : s.status !== 'active');
+                const list = allLoans.filter(s => tab === 'active' ? s.status === 'active' : s.status !== 'active');
+
                 return (
                   <TabsContent key={tab} value={tab} className="mt-3">
                     {list.length === 0 ? (
@@ -619,7 +624,9 @@ export default function IslamicLoanDetailPage() {
               })}
             </Tabs>
           </div>
-        )}
+          );
+        })()}
+
 
         {/* Payment methods FIRST — most important for the customer */}
         {!isClosed && methods.length > 0 && (
