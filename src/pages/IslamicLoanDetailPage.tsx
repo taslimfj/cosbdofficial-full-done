@@ -250,7 +250,7 @@ export default function IslamicLoanDetailPage() {
     } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    await maybeMarkClosed(amt);
+    await maybeMarkClosed(amt, paymentDate || null);
     toast.success('Deposit recorded');
     setShowDeposit(false);
     setDepositAmt(''); setPaymentMethod(''); setTransactionId('');
@@ -259,12 +259,12 @@ export default function IslamicLoanDetailPage() {
   };
 
   // After a payment, if remaining reaches 0, freeze closed_at + months_paid_early
-  const maybeMarkClosed = async (justPaid: number) => {
+  const maybeMarkClosed = async (justPaid: number, effectivePaymentDate?: string | null) => {
     if (!loan) return;
     const currentRemaining = Number(loan.remaining_amount) - justPaid;
     if (currentRemaining > 0.01) return;
     if (loan.closed_at) return;
-    const closeDate = paymentDate ? new Date(`${paymentDate}T00:00:00`) : new Date();
+    const closeDate = effectivePaymentDate ? new Date(`${effectivePaymentDate}T00:00:00`) : new Date();
     const start = new Date((loan as any).issue_date || loan.created_at);
     const monthsUsed =
       (closeDate.getFullYear() - start.getFullYear()) * 12 +
@@ -414,8 +414,7 @@ export default function IslamicLoanDetailPage() {
       note: requestNote || null,
       payment_method: paymentMethod,
       transaction_id: transactionId.trim(),
-      // Customer cannot pick a date → null. Media person picks explicitly.
-      payment_date: isCustomer ? null : (paymentDate || null),
+      payment_date: paymentDate || null,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -439,7 +438,7 @@ export default function IslamicLoanDetailPage() {
     await (supabase as any).from('customer_payment_requests').update({
       status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id,
     }).eq('id', req.id);
-    await maybeMarkClosed(Number(req.amount));
+    await maybeMarkClosed(Number(req.amount), req.payment_date || null);
     setBusy(false);
     toast.success('Approved & recorded');
     load();
