@@ -629,17 +629,24 @@ export default function IslamicLoanDetailPage() {
           );
         })()}
 
+        {showCustomerDetail && (
+          <Link to={`/islamic-loans/${loan.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            ← আপনার সব Loan
+          </Link>
+        )}
 
-        {/* Payment methods FIRST — most important for the customer */}
-        {!isClosed && methods.length > 0 && (
+        {/* Payment methods — always available for the customer */}
+        {methods.length > 0 && (!showCustomerDetail || !isClosed) && (
           <PaymentMethodsCard
             methods={methods}
             title="এখানে টাকা পাঠান"
-            subtitle="Tap to copy · তারপর নিচে Request Installment দিন"
+            subtitle="Tap to copy"
           />
         )}
 
+        {showCustomerDetail && (<>
         <div className="bg-card border border-border rounded-xl p-6 space-y-5">
+
           <div>
             <span className="text-xs font-mono bg-secondary px-2 py-1 rounded">{loan.code}</span>
             <h1 className="text-2xl font-bold mt-2">{borrowerName}</h1>
