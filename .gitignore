@@ -15,6 +15,7 @@ dist-ssr
 # Secrets / migration artifacts
 .env
 .env.*
+!.env.example
 exports/
 
 # Editor directories and files
