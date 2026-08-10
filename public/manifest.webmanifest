@@ -12,19 +12,19 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "src": "/images/cos-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "src": "/images/cos-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png",
+      "src": "/images/cos-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

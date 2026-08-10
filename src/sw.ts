@@ -4,7 +4,7 @@
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, setCatchHandler } from 'workbox-routing';
-import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -31,12 +31,6 @@ registerRoute(
     url.origin === self.location.origin &&
     ['style', 'script', 'worker', 'font', 'image'].includes(request.destination),
   new StaleWhileRevalidate({ cacheName: 'static-assets-v1' })
-);
-
-// CDN-hosted Lovable assets (immutable, hashed URLs).
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/__l5e/assets-v1/'),
-  new CacheFirst({ cacheName: 'lovable-assets-v1' })
 );
 
 // Do NOT cache Supabase API or edge function calls.
@@ -72,7 +66,7 @@ self.addEventListener('push', (event: PushEvent) => {
   try { data = event.data ? event.data.json() : {}; }
   catch { data = { title: 'Notification', body: event.data ? event.data.text() : '' }; }
 
-  const LOGO = '/__l5e/assets-v1/3d234c89-fccc-424c-80cd-b6dec15f3a4a/cos-logo.png';
+  const LOGO = '/images/cos-logo.png';
   const title = data.title || 'Circle of Success';
   const options: NotificationOptions = {
     body: data.body || '',

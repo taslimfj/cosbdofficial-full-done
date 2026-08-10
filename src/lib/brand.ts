@@ -1,10 +1,11 @@
-import logoAsset from '@/assets/cos-logo.png.asset.json';
+import logoUrl from '@/assets/cos-logo.png';
 
 export const BRAND = {
   name: 'Circle of Success',
   short: 'Circle of Success',
   slogan: 'Investing together, prospering together.',
-  logoUrl: logoAsset.url,
+  /** Bundled local logo (migrated off Lovable /__l5e asset hosting). */
+  logoUrl,
 } as const;
 
 let cachedLogoDataUrl: string | null = null;
