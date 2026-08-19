@@ -441,7 +441,7 @@ export default function IslamicLoansPage() {
                 </div>
                 {purchasePrice > 0 && (
                   <div className="bg-secondary rounded-lg p-4 space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Profit %</span><span className="font-semibold">{profitPct}%</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Profit %</span><span className="font-semibold">{discountPct > 0 ? `${baseProfitPct}% − ${discountPct}% = ${profitPct}%` : `${profitPct}%`}</span></div>
                     {advanceAmount > 0 && (
                       <>
                         <div className="flex justify-between"><span className="text-muted-foreground">Advance</span><span className="font-semibold tabular-nums text-emerald-600">−{formatBDT(advanceAmount)}</span></div>
@@ -450,10 +450,11 @@ export default function IslamicLoansPage() {
                     )}
                     {discountPct > 0 && (
                       <>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Before Discount</span><span className="font-semibold tabular-nums">{formatBDT(baseSellPrice)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Discount ছাড়া ({baseProfitPct}%)</span><span className="font-semibold tabular-nums">{formatBDT(baseSellPrice)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Discount (profit rate থেকে)</span><span className="font-semibold tabular-nums text-destructive">−{discountPct}%</span></div>
                       </>
                     )}
+
                     <div className="flex justify-between"><span className="text-muted-foreground">Sell Price (Advance সহ)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice + advanceAmount)}</span></div>
                     {advanceAmount > 0 && (
                       <div className="flex justify-between"><span className="text-muted-foreground">Financed বাকি ({tenure} মাস)</span><span className="font-semibold tabular-nums">{formatBDT(sellPrice)}</span></div>
