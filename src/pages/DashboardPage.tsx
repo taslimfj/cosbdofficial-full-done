@@ -130,7 +130,7 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
-  const handleOverallPdf = async (period: OverallPeriod) => {
+  const handleOverallPdf = async (period: OverallPeriod, customRange?: { from: Date; to: Date }) => {
     try {
       const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes, distRes] = await Promise.all([
         supabase.from('fund_transactions').select('*'),
