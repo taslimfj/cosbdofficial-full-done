@@ -22,6 +22,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalInvestment: 0, availableFund: 0, cashInHand: 0, totalMembers: 0, activeLoans: 0 });
   const [members, setMembers] = useState<any[]>([]);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [range, setRange] = useState<DateRange | undefined>();
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetchData();
