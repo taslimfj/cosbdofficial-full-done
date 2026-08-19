@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { BRAND, loadLogoDataUrl } from './brand';
 
 const fmt = (n: number) => `TK ${new Intl.NumberFormat('en-IN').format(Math.round(n))}`;
@@ -13,6 +13,15 @@ export type OverallPeriod = 'month' | 'year';
 
 export const overallPeriodLabel = (p: OverallPeriod) =>
   p === 'month' ? 'This Month' : 'This Year';
+
+/** Fiscal year: Aug 1 → Jul 30 of the next year */
+export function fiscalYearRange(now: Date = new Date()) {
+  const y = now.getFullYear();
+  const startYear = now.getMonth() >= 7 ? y : y - 1; // Aug = 7
+  const start = new Date(startYear, 7, 1, 0, 0, 0, 0);
+  const end = new Date(startYear + 1, 6, 30, 23, 59, 59, 999);
+  return { start, end };
+}
 
 const tableStyle = {
   styles: { fontSize: 8, cellPadding: 1.5 },
@@ -304,29 +313,46 @@ function renderMonthBlock(
   return y + 4;
 }
 
-export async function generateOverallSummaryPDF(data: OverallSummaryData, period: OverallPeriod) {
+export async function generateOverallSummaryPDF(
+  data: OverallSummaryData,
+  period: OverallPeriod,
+  customRange?: { from: Date; to: Date }
+) {
   const doc = new jsPDF();
   const now = new Date();
 
   if (period === 'month') {
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-    await drawHeader(doc, 'Overall Summary — Monthly', `${format(start, 'MMMM yyyy')}  (${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')})`);
+    const start = customRange
+      ? new Date(customRange.from.getFullYear(), customRange.from.getMonth(), customRange.from.getDate(), 0, 0, 0, 0)
+      : startOfMonth(now);
+    const end = customRange
+      ? new Date(customRange.to.getFullYear(), customRange.to.getMonth(), customRange.to.getDate(), 23, 59, 59, 999)
+      : endOfMonth(now);
+    await drawHeader(
+      doc,
+      'Overall Summary — Date Range',
+      `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`
+    );
     renderMonthBlock(doc, data, start, end, 46, false);
-  } else {
-    const yearStart = startOfYear(now);
-    const yearEnd = endOfYear(now);
-    await drawHeader(doc, 'Overall Summary — Yearly', `${format(yearStart, 'yyyy')}  (Jan – Dec, month-by-month)`);
-    let y = 46;
-    for (let i = 0; i < 12; i++) {
-      const mStart = addMonths(yearStart, i);
-      const mEnd = endOfMonth(mStart);
-      if (mStart > yearEnd) break;
-      y = renderMonthBlock(doc, data, mStart, mEnd, y, true);
-    }
+    drawFooter(doc);
+    doc.save(`overall-summary-${format(start, 'yyyy-MM-dd')}_to_${format(end, 'yyyy-MM-dd')}.pdf`);
+    return;
+  }
+
+  const { start: yearStart, end: yearEnd } = fiscalYearRange(now);
+  await drawHeader(
+    doc,
+    'Overall Summary — Fiscal Year',
+    `${format(yearStart, 'MMM d, yyyy')} – ${format(yearEnd, 'MMM d, yyyy')} (month-by-month)`
+  );
+  let y = 46;
+  for (let i = 0; i < 12; i++) {
+    const mStart = addMonths(yearStart, i);
+    if (mStart > yearEnd) break;
+    const mEnd = endOfMonth(mStart) > yearEnd ? yearEnd : endOfMonth(mStart);
+    y = renderMonthBlock(doc, data, mStart, mEnd, y, true);
   }
 
   drawFooter(doc);
-  const suffix = period === 'month' ? format(now, 'yyyy-MM') : format(now, 'yyyy');
-  doc.save(`overall-summary-${period}-${suffix}.pdf`);
+  doc.save(`overall-summary-fy-${format(yearStart, 'yyyy')}-${format(yearEnd, 'yyyy')}.pdf`);
 }

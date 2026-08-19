@@ -10,14 +10,21 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download } from 'lucide-react';
-import { generateOverallSummaryPDF, type OverallPeriod } from '@/lib/overallSummaryPdf';
+import { generateOverallSummaryPDF, fiscalYearRange, type OverallPeriod } from '@/lib/overallSummaryPdf';
 import { toast } from 'sonner';
+import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 
 export default function DashboardPage() {
   const { role } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalInvestment: 0, availableFund: 0, cashInHand: 0, totalMembers: 0, activeLoans: 0 });
   const [members, setMembers] = useState<any[]>([]);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [range, setRange] = useState<DateRange | undefined>();
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -126,7 +133,7 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
-  const handleOverallPdf = async (period: OverallPeriod) => {
+  const handleOverallPdf = async (period: OverallPeriod, customRange?: { from: Date; to: Date }) => {
     try {
       const [fundRes, depsRes, ilRes, ilPayRes, projRes, projTxRes, mlRes, mlRepayRes, distRes] = await Promise.all([
         supabase.from('fund_transactions').select('*'),
@@ -150,9 +157,23 @@ export default function DashboardPage() {
         memberLoans: mlRes.data || [],
         memberRepayments: mlRepayRes.data || [],
         distributions: distRes.data || [],
-      }, period);
+      }, period, customRange);
     } catch (e: any) {
       toast.error(e?.message || 'PDF তৈরি করা যায়নি');
+    }
+  };
+
+  const confirmRangeDownload = async () => {
+    if (!range?.from) {
+      toast.error('অন্তত একটি তারিখ নির্বাচন করুন');
+      return;
+    }
+    setGenerating(true);
+    try {
+      await handleOverallPdf('month', { from: range.from, to: range.to || range.from });
+      setRangeOpen(false);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -177,14 +198,48 @@ export default function DashboardPage() {
               <Download className="w-4 h-4" /> Overall Summary PDF
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleOverallPdf('month')}>This Month</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>This Year</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setRange(undefined); setRangeOpen(true); }}>
+              This Month / Date Range
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>
+              This Year ({format(fiscalYearRange().start, 'MMM yyyy')} – {format(fiscalYearRange().end, 'MMM yyyy')})
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={rangeOpen} onOpenChange={setRangeOpen}>
+        <DialogContent className="sm:max-w-fit">
+          <DialogHeader>
+            <DialogTitle>তারিখ নির্বাচন করুন</DialogTitle>
+            <DialogDescription>
+              প্রথমে শুরুর তারিখ, তারপর শেষ তারিখ সিলেক্ট করুন — আগের যেকোনো মাসও বেছে নিতে পারবেন।
+            </DialogDescription>
+          </DialogHeader>
+          <Calendar
+            mode="range"
+            selected={range}
+            onSelect={setRange}
+            numberOfMonths={1}
+            defaultMonth={range?.from}
+            className="p-3 pointer-events-auto"
+          />
+          <p className="text-sm text-muted-foreground text-center">
+            {range?.from
+              ? `${format(range.from, 'dd/MM/yyyy')} – ${range.to ? format(range.to, 'dd/MM/yyyy') : '...'}`
+              : 'কোনো তারিখ নির্বাচন করা হয়নি'}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRangeOpen(false)}>বাতিল</Button>
+            <Button onClick={confirmRangeDownload} disabled={!range?.from || generating} className="gap-2">
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <DashboardStats stats={stats} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
