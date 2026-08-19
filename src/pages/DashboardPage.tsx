@@ -198,14 +198,48 @@ export default function DashboardPage() {
               <Download className="w-4 h-4" /> Overall Summary PDF
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleOverallPdf('month')}>This Month</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>This Year</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setRange(undefined); setRangeOpen(true); }}>
+              This Month / Date Range
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleOverallPdf('year')}>
+              This Year ({format(fiscalYearRange().start, 'MMM yyyy')} – {format(fiscalYearRange().end, 'MMM yyyy')})
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={rangeOpen} onOpenChange={setRangeOpen}>
+        <DialogContent className="sm:max-w-fit">
+          <DialogHeader>
+            <DialogTitle>তারিখ নির্বাচন করুন</DialogTitle>
+            <DialogDescription>
+              প্রথমে শুরুর তারিখ, তারপর শেষ তারিখ সিলেক্ট করুন — আগের যেকোনো মাসও বেছে নিতে পারবেন।
+            </DialogDescription>
+          </DialogHeader>
+          <Calendar
+            mode="range"
+            selected={range}
+            onSelect={setRange}
+            numberOfMonths={1}
+            defaultMonth={range?.from}
+            className="p-3 pointer-events-auto"
+          />
+          <p className="text-sm text-muted-foreground text-center">
+            {range?.from
+              ? `${format(range.from, 'dd/MM/yyyy')} – ${range.to ? format(range.to, 'dd/MM/yyyy') : '...'}`
+              : 'কোনো তারিখ নির্বাচন করা হয়নি'}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRangeOpen(false)}>বাতিল</Button>
+            <Button onClick={confirmRangeDownload} disabled={!range?.from || generating} className="gap-2">
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <DashboardStats stats={stats} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
