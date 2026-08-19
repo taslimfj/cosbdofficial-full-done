@@ -14,6 +14,15 @@ export type OverallPeriod = 'month' | 'year';
 export const overallPeriodLabel = (p: OverallPeriod) =>
   p === 'month' ? 'This Month' : 'This Year';
 
+/** Fiscal year: Aug 1 → Jul 30 of the next year */
+export function fiscalYearRange(now: Date = new Date()) {
+  const y = now.getFullYear();
+  const startYear = now.getMonth() >= 7 ? y : y - 1; // Aug = 7
+  const start = new Date(startYear, 7, 1, 0, 0, 0, 0);
+  const end = new Date(startYear + 1, 6, 30, 23, 59, 59, 999);
+  return { start, end };
+}
+
 const tableStyle = {
   styles: { fontSize: 8, cellPadding: 1.5 },
   headStyles: { fillColor: [41, 98, 255] as [number, number, number], fontSize: 8 },
