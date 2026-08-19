@@ -135,11 +135,14 @@ export default function IslamicLoansPage() {
   const advanceAmount = Math.max(0, Math.min(purchasePrice, parseFloat(form.advanceAmount) || 0));
   const financedAmount = Math.max(0, purchasePrice - advanceAmount);
   const discountPct = Math.max(0, Math.min(100, parseFloat(form.discountPct) || 0));
-  const profitPct = (tenureOptions.find(o => o.months === tenure)?.profit_pct) ?? calculateProfitPercentage(tenure);
-  const baseSellPrice = calculateSellPrice(financedAmount, profitPct);
-  const rawSellPrice = baseSellPrice * (1 - discountPct / 100);
+  const baseProfitPct = (tenureOptions.find(o => o.months === tenure)?.profit_pct) ?? calculateProfitPercentage(tenure);
+  // Discount কমে profit rate থেকে (যেমন 25% − 5% = 20%), sell price-এর উপরে নয়।
+  const profitPct = Math.max(0, baseProfitPct - discountPct);
+  const baseSellPrice = calculateSellPrice(financedAmount, baseProfitPct);
+  const rawSellPrice = calculateSellPrice(financedAmount, profitPct);
   const monthlyInstallment = calculateMonthlyInstallment(rawSellPrice, tenure);
   const sellPrice = monthlyInstallment * (tenure || 0); // financed portion — customer's remaining
+
 
 
   const criticalMemberIds = useMemo(() => {
