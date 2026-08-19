@@ -313,29 +313,46 @@ function renderMonthBlock(
   return y + 4;
 }
 
-export async function generateOverallSummaryPDF(data: OverallSummaryData, period: OverallPeriod) {
+export async function generateOverallSummaryPDF(
+  data: OverallSummaryData,
+  period: OverallPeriod,
+  customRange?: { from: Date; to: Date }
+) {
   const doc = new jsPDF();
   const now = new Date();
 
   if (period === 'month') {
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-    await drawHeader(doc, 'Overall Summary — Monthly', `${format(start, 'MMMM yyyy')}  (${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')})`);
+    const start = customRange
+      ? new Date(customRange.from.getFullYear(), customRange.from.getMonth(), customRange.from.getDate(), 0, 0, 0, 0)
+      : startOfMonth(now);
+    const end = customRange
+      ? new Date(customRange.to.getFullYear(), customRange.to.getMonth(), customRange.to.getDate(), 23, 59, 59, 999)
+      : endOfMonth(now);
+    await drawHeader(
+      doc,
+      'Overall Summary — Date Range',
+      `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`
+    );
     renderMonthBlock(doc, data, start, end, 46, false);
-  } else {
-    const yearStart = startOfYear(now);
-    const yearEnd = endOfYear(now);
-    await drawHeader(doc, 'Overall Summary — Yearly', `${format(yearStart, 'yyyy')}  (Jan – Dec, month-by-month)`);
-    let y = 46;
-    for (let i = 0; i < 12; i++) {
-      const mStart = addMonths(yearStart, i);
-      const mEnd = endOfMonth(mStart);
-      if (mStart > yearEnd) break;
-      y = renderMonthBlock(doc, data, mStart, mEnd, y, true);
-    }
+    drawFooter(doc);
+    doc.save(`overall-summary-${format(start, 'yyyy-MM-dd')}_to_${format(end, 'yyyy-MM-dd')}.pdf`);
+    return;
+  }
+
+  const { start: yearStart, end: yearEnd } = fiscalYearRange(now);
+  await drawHeader(
+    doc,
+    'Overall Summary — Fiscal Year',
+    `${format(yearStart, 'MMM d, yyyy')} – ${format(yearEnd, 'MMM d, yyyy')} (month-by-month)`
+  );
+  let y = 46;
+  for (let i = 0; i < 12; i++) {
+    const mStart = addMonths(yearStart, i);
+    if (mStart > yearEnd) break;
+    const mEnd = endOfMonth(mStart) > yearEnd ? yearEnd : endOfMonth(mStart);
+    y = renderMonthBlock(doc, data, mStart, mEnd, y, true);
   }
 
   drawFooter(doc);
-  const suffix = period === 'month' ? format(now, 'yyyy-MM') : format(now, 'yyyy');
-  doc.save(`overall-summary-${period}-${suffix}.pdf`);
+  doc.save(`overall-summary-fy-${format(yearStart, 'yyyy')}-${format(yearEnd, 'yyyy')}.pdf`);
 }
