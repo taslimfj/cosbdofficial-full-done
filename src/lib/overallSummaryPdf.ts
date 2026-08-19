@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { BRAND, loadLogoDataUrl } from './brand';
 
 const fmt = (n: number) => `TK ${new Intl.NumberFormat('en-IN').format(Math.round(n))}`;
