@@ -154,9 +154,23 @@ export default function DashboardPage() {
         memberLoans: mlRes.data || [],
         memberRepayments: mlRepayRes.data || [],
         distributions: distRes.data || [],
-      }, period);
+      }, period, customRange);
     } catch (e: any) {
       toast.error(e?.message || 'PDF তৈরি করা যায়নি');
+    }
+  };
+
+  const confirmRangeDownload = async () => {
+    if (!range?.from) {
+      toast.error('অন্তত একটি তারিখ নির্বাচন করুন');
+      return;
+    }
+    setGenerating(true);
+    try {
+      await handleOverallPdf('month', { from: range.from, to: range.to || range.from });
+      setRangeOpen(false);
+    } finally {
+      setGenerating(false);
     }
   };
 
