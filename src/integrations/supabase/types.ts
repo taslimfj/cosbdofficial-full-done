@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1108,6 +1108,115 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_assignees: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_responses: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          note: string | null
+          status: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          note?: string | null
+          status: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          note?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_responses_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          details: string | null
+          id: string
+          status: string
+          task_date: string
+          task_type: string
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          details?: string | null
+          id?: string
+          status?: string
+          task_date: string
+          task_type?: string
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          details?: string | null
+          id?: string
+          status?: string
+          task_date?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
       }
       tutorials: {
         Row: {
