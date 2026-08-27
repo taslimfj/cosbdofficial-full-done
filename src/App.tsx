@@ -55,6 +55,7 @@ const App = () => (
               <Route path="phone-book" element={<PhoneBookPage />} />
               <Route path="assets" element={<AssetsPage />} />
               <Route path="tutorials" element={<TutorialsPage />} />
+              <Route path="tasks" element={<TasksPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="default-settings" element={<DefaultSettingsPage />} />
               <Route path="payment-defaults" element={<DefaultSettingsPage />} />
