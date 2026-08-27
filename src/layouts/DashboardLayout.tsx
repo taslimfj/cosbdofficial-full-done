@@ -37,6 +37,7 @@ const navItems = [
   { to: '/member-loans', icon: HandCoins, label: 'Member Loans', roles: ['admin', 'member'] },
   { to: '/phone-book', icon: BookUser, label: 'Phone Book', roles: ['admin', 'member'] },
   { to: '/assets', icon: Package, label: 'Assets', roles: ['admin', 'member'] },
+  { to: '/tasks', icon: CheckSquare, label: 'Tasks', roles: ['admin', 'member'] },
   { to: '/tutorials', icon: GraduationCap, label: 'Tutorial', roles: ['admin', 'member'] },
   { to: '/rules', icon: ScrollText, label: 'Rules', roles: ['admin', 'member'] },
   { to: '/default-settings', icon: Settings, label: 'Default Settings', roles: ['admin'] },

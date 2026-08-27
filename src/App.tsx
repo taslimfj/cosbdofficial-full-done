@@ -22,6 +22,7 @@ import MemberLoanDetailPage from "@/pages/MemberLoanDetailPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
 import TutorialsPage from "@/pages/TutorialsPage";
+import TasksPage from "@/pages/TasksPage";
 import RulesPage from "@/pages/RulesPage";
 import DefaultSettingsPage from "@/pages/DefaultSettingsPage";
 import ProfilePage from "@/pages/ProfilePage";
