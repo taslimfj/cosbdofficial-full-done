@@ -22,6 +22,7 @@ import MemberLoanDetailPage from "@/pages/MemberLoanDetailPage";
 import PhoneBookPage from "@/pages/PhoneBookPage";
 import AssetsPage from "@/pages/AssetsPage";
 import TutorialsPage from "@/pages/TutorialsPage";
+import TasksPage from "@/pages/TasksPage";
 import RulesPage from "@/pages/RulesPage";
 import DefaultSettingsPage from "@/pages/DefaultSettingsPage";
 import ProfilePage from "@/pages/ProfilePage";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="phone-book" element={<PhoneBookPage />} />
               <Route path="assets" element={<AssetsPage />} />
               <Route path="tutorials" element={<TutorialsPage />} />
+              <Route path="tasks" element={<TasksPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="default-settings" element={<DefaultSettingsPage />} />
               <Route path="payment-defaults" element={<DefaultSettingsPage />} />
