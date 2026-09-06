@@ -1515,6 +1515,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_discount_credit_used: {
+        Args: { _loan_id: string }
+        Returns: undefined
+      }
       notify_admins: {
         Args: { _message: string; _tag?: string; _title: string; _url?: string }
         Returns: undefined
@@ -1542,6 +1546,10 @@ export type Database = {
             Returns: string
           }
       reject_welfare_deduction: { Args: { _id: string }; Returns: undefined }
+      snapshot_islamic_loan_shares: {
+        Args: { _excluded?: Json; _loan_id: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "member"
