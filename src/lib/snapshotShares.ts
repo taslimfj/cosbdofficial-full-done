@@ -109,6 +109,8 @@ export async function persistExclusions(opts: {
   excluded: ExcludedMemberInfo[];
 }) {
   if (!opts.excluded.length) return;
+  // Islamic loans persist exclusions inside the snapshot RPC (works for members too).
+  if (opts.type === 'islamic_loan') return;
   const ids = opts.excluded.map((e) => e.id);
   const reasons: Record<string, ExclusionReason> = {};
   opts.excluded.forEach((e) => { reasons[e.id] = e.reason; });
