@@ -1058,7 +1058,27 @@ export default function IslamicLoanDetailPage() {
         )}
 
         {shareRows.filter(r => !r.isDeleted).length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No member deposits at loan creation time</p>
+          <div className="text-center py-6 space-y-3">
+            <p className="text-sm text-muted-foreground">No member deposits at loan creation time</p>
+            {isAdmin && !alreadyDistributed && (
+              <Button size="sm" onClick={async () => {
+                try {
+                  setBusy(true);
+                  const { snapshotMemberShares, persistExclusions } = await import('@/lib/snapshotShares');
+                  const snap = await snapshotMemberShares({ type: 'islamic_loan', sourceId: id!, excludeMemberIds: (loan as any).excluded_member_ids || [] });
+                  await persistExclusions({ type: 'islamic_loan', sourceId: id!, excluded: snap.excluded });
+                  toast.success('Snapshot shares generated successfully');
+                  load();
+                } catch (e: any) {
+                  toast.error(e?.message || 'Failed to generate snapshot');
+                } finally {
+                  setBusy(false);
+                }
+              }} disabled={busy}>
+                {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Generate Shares Snapshot
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-1">
             <div className="grid grid-cols-12 gap-2 text-[10px] uppercase text-muted-foreground px-2">

@@ -23,10 +23,10 @@ export async function snapshotMemberShares(opts: {
 }) {
   const manualExcluded = new Set((opts.excludeMemberIds || []).filter(Boolean));
 
-  const [{ data: members }, { data: deposits }, { data: distributions }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, full_name, deleted_name, created_at')
+  const [{ data: membersDirectory }, { data: deposits }, { data: distributions }] = await Promise.all([
+    (supabase as any)
+      .from('member_directory')
+      .select('id, full_name, deleted_name, total_deposited, created_at')
       .eq('is_deleted', false)
       .eq('is_customer', false),
     supabase
@@ -35,17 +35,27 @@ export async function snapshotMemberShares(opts: {
     supabase.from('profit_distributions').select('member_id, amount'),
   ]);
 
-  const approvedDeposits = (deposits || []).filter((d: any) => d.status === 'approved');
-
   const balanceByMember = new Map<string, number>();
-  approvedDeposits.forEach((d: any) => {
-    if (!d.member_id) return;
-    balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount || 0));
+  (membersDirectory || []).forEach((m: any) => {
+    if (m.id) balanceByMember.set(m.id, Number(m.total_deposited || 0));
   });
-  (distributions || []).forEach((d: any) => {
-    if (!d.member_id) return;
-    balanceByMember.set(d.member_id, (balanceByMember.get(d.member_id) || 0) + Number(d.amount || 0));
-  });
+
+  // If deposits query returned rows (e.g. admin), calculate precise balance/deposits;
+  // otherwise fallback to total_deposited from member_directory.
+  const hasDepositsRead = (deposits || []).length > 0;
+  if (hasDepositsRead) {
+    const approvedDeposits = (deposits || []).filter((d: any) => d.status === 'approved');
+    const exactBalance = new Map<string, number>();
+    approvedDeposits.forEach((d: any) => {
+      if (!d.member_id) return;
+      exactBalance.set(d.member_id, (exactBalance.get(d.member_id) || 0) + Number(d.amount || 0));
+    });
+    (distributions || []).forEach((d: any) => {
+      if (!d.member_id) return;
+      exactBalance.set(d.member_id, (exactBalance.get(d.member_id) || 0) + Number(d.amount || 0));
+    });
+    exactBalance.forEach((val, id) => balanceByMember.set(id, val));
+  }
 
   const depositsByMember = new Map<string, any[]>();
   (deposits || []).forEach((d: any) => {
@@ -58,17 +68,21 @@ export async function snapshotMemberShares(opts: {
   const excluded: ExcludedMemberInfo[] = [];
   const live: any[] = [];
 
-  (members || []).forEach((m) => {
+  (membersDirectory || []).forEach((m: any) => {
     const name = m.full_name || m.deleted_name || 'Unknown';
-    if (Number(balanceByMember.get(m.id) || 0) <= 0) return;
+    const bal = Number(balanceByMember.get(m.id) || 0);
+    if (bal <= 0) return;
     if (manualExcluded.has(m.id)) {
       excluded.push({ id: m.id, name, reason: 'manual' });
       return;
     }
-    const status = computeMissedInstallments(depositsByMember.get(m.id) || [], m.created_at);
-    if (status.level === 'critical') {
-      excluded.push({ id: m.id, name, reason: 'critical' });
-      return;
+    // Only check missed installments if deposits could be read (avoid false critical when RLS blocks deposits)
+    if (hasDepositsRead) {
+      const status = computeMissedInstallments(depositsByMember.get(m.id) || [], m.created_at);
+      if (status.level === 'critical') {
+        excluded.push({ id: m.id, name, reason: 'critical' });
+        return;
+      }
     }
     live.push(m);
   });
