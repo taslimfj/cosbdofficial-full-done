@@ -73,6 +73,18 @@ export async function snapshotMemberShares(opts: {
     live.push(m);
   });
 
+  if (opts.type === 'islamic_loan') {
+    // Server-side snapshot (SECURITY DEFINER) so member-created loans work too.
+    const reasons: Record<string, ExclusionReason> = {};
+    excluded.forEach((e) => { reasons[e.id] = e.reason; });
+    const { data, error } = await (supabase as any).rpc('snapshot_islamic_loan_shares', {
+      _loan_id: opts.sourceId,
+      _excluded: reasons,
+    });
+    if (error) throw error;
+    return { count: Number(data || 0), excluded };
+  }
+
   const total = live.reduce((s, m) => s + Number(balanceByMember.get(m.id) || 0), 0);
   if (!live.length || total <= 0) return { count: 0, excluded };
 
@@ -83,17 +95,10 @@ export async function snapshotMemberShares(opts: {
     share_percentage: Math.round((Number(balanceByMember.get(m.id) || 0) / total) * 10000) / 100,
   }));
 
-  if (opts.type === 'islamic_loan') {
-    const { error } = await supabase
-      .from('islamic_loan_member_shares')
-      .insert(rows.map((r) => ({ ...r, loan_id: opts.sourceId })));
-    if (error) throw error;
-  } else {
-    const { error } = await supabase
-      .from('project_member_shares')
-      .insert(rows.map((r) => ({ ...r, project_id: opts.sourceId })));
-    if (error) throw error;
-  }
+  const { error } = await supabase
+    .from('project_member_shares')
+    .insert(rows.map((r) => ({ ...r, project_id: opts.sourceId })));
+  if (error) throw error;
   return { count: rows.length, excluded };
 }
 
@@ -104,11 +109,12 @@ export async function persistExclusions(opts: {
   excluded: ExcludedMemberInfo[];
 }) {
   if (!opts.excluded.length) return;
+  // Islamic loans persist exclusions inside the snapshot RPC (works for members too).
+  if (opts.type === 'islamic_loan') return;
   const ids = opts.excluded.map((e) => e.id);
   const reasons: Record<string, ExclusionReason> = {};
   opts.excluded.forEach((e) => { reasons[e.id] = e.reason; });
-  const table = opts.type === 'islamic_loan' ? 'islamic_loans' : 'projects';
-  await (supabase as any).from(table)
+  await (supabase as any).from('projects')
     .update({ excluded_member_ids: ids, exclusion_reasons: reasons })
     .eq('id', opts.sourceId);
 }
