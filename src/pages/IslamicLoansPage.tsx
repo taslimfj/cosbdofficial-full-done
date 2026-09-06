@@ -245,9 +245,10 @@ export default function IslamicLoansPage() {
 
     // Mark the previous loan's discount credit as used (one-shot)
     if (usingCredit) {
-      await supabase.from('islamic_loans')
-        .update({ discount_credit_used: true } as any)
-        .eq('id', phoneHistory!.credit!.fromLoanId);
+      const { error: creditErr } = await (supabase as any).rpc('mark_discount_credit_used', {
+        _loan_id: phoneHistory!.credit!.fromLoanId,
+      });
+      if (creditErr) console.warn('Discount credit mark failed:', creditErr.message);
     }
 
     // Snapshot current member shares — locked at creation
