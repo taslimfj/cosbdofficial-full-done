@@ -37,6 +37,11 @@ export default function IslamicLoansPage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [search, setSearch] = useState('');
+  const [dueFrom, setDueFrom] = useState('');
+  const [dueTo, setDueTo] = useState('');
+  const [closedVisible, setClosedVisible] = useState(10);
+  const daysInCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+
 
   const [submitting, setSubmitting] = useState(false);
   const [defaultMethods, setDefaultMethods] = useState<PaymentMethod[]>([]);
@@ -513,15 +518,50 @@ export default function IslamicLoansPage() {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="নাম, ফোন, code বা product দিয়ে search করুন..."
-          className="pl-9"
-        />
+      <div className="flex flex-col md:flex-row gap-3 md:items-end">
+        <div className="relative max-w-md flex-1">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="নাম, ফোন, code বা product দিয়ে search করুন..."
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">এই মাসে কিস্তির তারিখ (from)</Label>
+            <Select value={dueFrom} onValueChange={setDueFrom}>
+              <SelectTrigger className="w-[110px]"><SelectValue placeholder="দিন" /></SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: daysInCurrentMonth }, (_, i) => String(i + 1)).map(d => (
+                  <SelectItem key={d} value={d}>{d} তারিখ</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">to</Label>
+            <Select value={dueTo} onValueChange={setDueTo}>
+              <SelectTrigger className="w-[110px]"><SelectValue placeholder="দিন" /></SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: daysInCurrentMonth }, (_, i) => String(i + 1)).map(d => (
+                  <SelectItem key={d} value={d}>{d} তারিখ</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(dueFrom || dueTo) && (
+            <Button variant="outline" size="sm" onClick={() => { setDueFrom(''); setDueTo(''); }}>Clear</Button>
+          )}
+        </div>
       </div>
+      {(dueFrom || dueTo) && (
+        <p className="text-xs text-muted-foreground -mt-3">
+          {format(new Date(), 'MMMM yyyy')} মাসের {dueFrom || 1} – {dueTo || daysInCurrentMonth} তারিখের মধ্যে যাদের কিস্তি পরিশোধের কথা।
+        </p>
+      )}
+
 
 
 
@@ -599,9 +639,18 @@ export default function IslamicLoansPage() {
           return name.includes(q) || code.includes(q) || product.includes(q) ||
             (qDigits.length >= 3 && phone.includes(qDigits));
         };
-        const filtered = loans.filter(matches);
+        const fromDay = dueFrom ? parseInt(dueFrom) : (dueTo ? 1 : 0);
+        const toDay = dueTo ? parseInt(dueTo) : (dueFrom ? daysInCurrentMonth : 0);
+        const dueDayMatches = (l: any) => {
+          if (!fromDay && !toDay) return true;
+          const base = l.issue_date ? new Date(`${l.issue_date}T00:00:00`) : new Date(l.created_at);
+          const day = Math.min(base.getDate(), daysInCurrentMonth);
+          return day >= fromDay && day <= toDay;
+        };
+        const filtered = loans.filter(l => matches(l) && dueDayMatches(l));
         const active = mineFirst(filtered.filter(l => l.status === 'active'));
         const closed = mineFirst(filtered.filter(l => l.status !== 'active'));
+        const closedShown = closed.slice(0, closedVisible);
 
         return (
           <Tabs defaultValue="active" className="w-full">
@@ -609,20 +658,68 @@ export default function IslamicLoansPage() {
               <TabsTrigger value="active">Active ({active.length})</TabsTrigger>
               <TabsTrigger value="closed">Closed ({closed.length})</TabsTrigger>
             </TabsList>
-            {([['active', active], ['closed', closed]] as const).map(([key, list]) => (
-              <TabsContent key={key} value={key} className="mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {list.length === 0 ? (
-                    <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
-                      <p className="text-sm text-muted-foreground">No {key} loans.</p>
-                    </div>
-                  ) : list.map(renderLoan)}
+            <TabsContent value="active" className="mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {active.length === 0 ? (
+                  <div className="col-span-full bg-card border border-border rounded-xl p-12 text-center">
+                    <p className="text-sm text-muted-foreground">No active loans.</p>
+                  </div>
+                ) : active.map(renderLoan)}
+              </div>
+            </TabsContent>
+            <TabsContent value="closed" className="mt-4">
+              {closed.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl p-12 text-center">
+                  <p className="text-sm text-muted-foreground">No closed loans.</p>
                 </div>
-              </TabsContent>
-            ))}
+              ) : (
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="divide-y divide-border">
+                    {closedShown.map((loan: any) => {
+                      const borrowerName = loan.borrower_name || loan.media_person?.full_name || 'N/A';
+                      const borrowerPhone = loan.borrower_phone || loan.media_person?.phone || '';
+                      const startDate = loan.issue_date ? new Date(`${loan.issue_date}T00:00:00`) : new Date(loan.created_at);
+                      const endDate = loan.closed_at ? new Date(loan.closed_at) : addMonths(startDate, Number(loan.tenure_months) || 0);
+                      return (
+                        <div
+                          key={loan.id}
+                          role="link"
+                          tabIndex={0}
+                          onClick={() => navigate(`/islamic-loans/${loan.id}`)}
+                          onKeyDown={e => { if (e.key === 'Enter') navigate(`/islamic-loans/${loan.id}`); }}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/60 transition-colors cursor-pointer"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{borrowerName}</p>
+                            <p className="text-[11px] font-mono text-muted-foreground truncate">{borrowerPhone}</p>
+                          </div>
+                          <div className="hidden sm:block text-right shrink-0">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Purchase</p>
+                            <p className="text-xs font-mono font-semibold tabular-nums text-foreground">{formatBDT(Number(loan.purchase_price))}</p>
+                          </div>
+                          <div className="hidden md:block text-right shrink-0 w-28">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Closed</p>
+                            <p className="text-xs font-medium text-foreground">{format(endDate, 'dd MMM yyyy')}</p>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{loan.status}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {closedVisible < closed.length && (
+                    <div className="p-3 border-t border-border text-center">
+                      <Button variant="outline" size="sm" onClick={() => setClosedVisible(v => v + 5)}>
+                        Show more ({closed.length - closedVisible} বাকি)
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         );
       })()}
+
     </div>
   );
 }
