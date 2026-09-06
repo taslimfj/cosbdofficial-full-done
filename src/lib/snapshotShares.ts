@@ -114,8 +114,7 @@ export async function persistExclusions(opts: {
   const ids = opts.excluded.map((e) => e.id);
   const reasons: Record<string, ExclusionReason> = {};
   opts.excluded.forEach((e) => { reasons[e.id] = e.reason; });
-  const table = opts.type === 'islamic_loan' ? 'islamic_loans' : 'projects';
-  await (supabase as any).from(table)
+  await (supabase as any).from('projects')
     .update({ excluded_member_ids: ids, exclusion_reasons: reasons })
     .eq('id', opts.sourceId);
 }
