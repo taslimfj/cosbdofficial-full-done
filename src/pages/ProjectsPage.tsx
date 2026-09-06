@@ -91,13 +91,14 @@ export default function ProjectsPage() {
     setSubmitting(true);
 
     const businessDate = form.issueDate ? new Date(`${form.issueDate}T00:00:00`) : new Date();
-    const yearStart = `${businessDate.getFullYear()}-01-01`;
-    const yearEnd = `${businessDate.getFullYear()}-12-31`;
+    const yr = businessDate.getFullYear();
+    const yearStart = `${yr}-01-01T00:00:00.000Z`;
+    const yearEnd = `${yr}-12-31T23:59:59.999Z`;
     const { count: yearCount } = await supabase
       .from('projects')
       .select('id', { count: 'exact', head: true })
-      .gte('issue_date', yearStart)
-      .lte('issue_date', yearEnd);
+      .or(`issue_date.gte.${yr}-01-01,created_at.gte.${yearStart}`)
+      .or(`issue_date.lte.${yr}-12-31,created_at.lte.${yearEnd}`);
     const code = buildEntityCode('PRJ', form.name.trim(), (yearCount || 0) + 1, businessDate);
     const isAdmin = role === 'admin';
     const { data: inserted, error } = await supabase.from('projects').insert({
