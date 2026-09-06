@@ -513,15 +513,50 @@ export default function IslamicLoansPage() {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="নাম, ফোন, code বা product দিয়ে search করুন..."
-          className="pl-9"
-        />
+      <div className="flex flex-col md:flex-row gap-3 md:items-end">
+        <div className="relative max-w-md flex-1">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="নাম, ফোন, code বা product দিয়ে search করুন..."
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">এই মাসে কিস্তির তারিখ (from)</Label>
+            <Select value={dueFrom} onValueChange={setDueFrom}>
+              <SelectTrigger className="w-[110px]"><SelectValue placeholder="দিন" /></SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: daysInCurrentMonth }, (_, i) => String(i + 1)).map(d => (
+                  <SelectItem key={d} value={d}>{d} তারিখ</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">to</Label>
+            <Select value={dueTo} onValueChange={setDueTo}>
+              <SelectTrigger className="w-[110px]"><SelectValue placeholder="দিন" /></SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: daysInCurrentMonth }, (_, i) => String(i + 1)).map(d => (
+                  <SelectItem key={d} value={d}>{d} তারিখ</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(dueFrom || dueTo) && (
+            <Button variant="outline" size="sm" onClick={() => { setDueFrom(''); setDueTo(''); }}>Clear</Button>
+          )}
+        </div>
       </div>
+      {(dueFrom || dueTo) && (
+        <p className="text-xs text-muted-foreground -mt-3">
+          {format(new Date(), 'MMMM yyyy')} মাসের {dueFrom || 1} – {dueTo || daysInCurrentMonth} তারিখের মধ্যে যাদের কিস্তি পরিশোধের কথা।
+        </p>
+      )}
+
 
 
 
