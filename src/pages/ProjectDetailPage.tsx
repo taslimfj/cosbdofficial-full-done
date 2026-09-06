@@ -403,9 +403,9 @@ export default function ProjectDetailPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold">{totals.loss > 0 ? 'Loss Distribution' : 'Profit Distribution'}</h2>
           <div className="flex gap-2 flex-wrap">
-            {isAdmin && !alreadyDistributed && snapshot.length > 0 && (
+            {isAdmin && !alreadyDistributed && (
               <Button size="sm" variant="outline" onClick={() => setShowShareEdit(true)}>
-                <Pencil className="w-4 h-4 mr-1" /> Edit Shares
+                <Pencil className="w-4 h-4 mr-1" /> {snapshot.length > 0 ? 'Edit Shares' : 'Add/Edit Shares'}
               </Button>
             )}
             {isAdmin && isClosed && !alreadyDistributed && (totals.profit > 0 || totals.loss > 0) && (
@@ -587,6 +587,8 @@ export default function ProjectDetailPage() {
         open={showShareEdit}
         onOpenChange={setShowShareEdit}
         table="project_member_shares"
+        sourceId={id!}
+        sourceColumn="project_id"
         rows={snapshot.map((s: any) => ({ id: s.id, member_id: s.member_id || null, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage), is_member_deleted: !!s.is_member_deleted }))}
         onSaved={load}
       />

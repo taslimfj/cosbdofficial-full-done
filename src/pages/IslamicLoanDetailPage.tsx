@@ -1022,9 +1022,9 @@ export default function IslamicLoanDetailPage() {
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="w-4 h-4" /> Member Shares & Profit</h2>
           <div className="flex gap-2 flex-wrap">
-            {isAdmin && !alreadyDistributed && snapshot.length > 0 && (
+            {isAdmin && !alreadyDistributed && (
               <Button size="sm" variant="outline" onClick={() => setShowShareEdit(true)}>
-                <Pencil className="w-4 h-4 mr-1" /> Edit Shares
+                <Pencil className="w-4 h-4 mr-1" /> {snapshot.length > 0 ? 'Edit Shares' : 'Add/Edit Shares'}
               </Button>
             )}
             {isAdmin && isClosed && !alreadyDistributed && profitTotals.net !== 0 && (
@@ -1100,6 +1100,8 @@ export default function IslamicLoanDetailPage() {
         open={showShareEdit}
         onOpenChange={setShowShareEdit}
         table="islamic_loan_member_shares"
+        sourceId={id!}
+        sourceColumn="loan_id"
         rows={snapshot.map((s: any) => ({ id: s.id, member_id: s.member_id || null, member_name: s.member_name || 'Unknown', share_percentage: Number(s.share_percentage), is_member_deleted: !!s.is_member_deleted }))}
         onSaved={load}
       />
