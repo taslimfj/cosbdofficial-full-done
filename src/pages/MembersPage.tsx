@@ -28,7 +28,7 @@ export default function MembersPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMember, setNewMember] = useState({ fullName: '', phone: '+880' });
   const [adding, setAdding] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [memberBalances, setMemberBalances] = useState<Map<string, number>>(new Map());
   const [memberStatuses, setMemberStatuses] = useState<Map<string, MissedStatus>>(new Map());
@@ -228,16 +228,17 @@ export default function MembersPage() {
                             )}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-medium text-foreground">{member.full_name || 'Unnamed'}</p>
                               {isAdmin && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">ADMIN</span>}
+                              {(member.is_manual_locked || status.missed >= 3) && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground">
+                                  🔒 লকড
+                                </span>
+                              )}
                               {status.missed > 0 && (
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                  status.level === 'warn' ? 'bg-yellow-200 text-yellow-900' :
-                                  status.level === 'alert' ? 'bg-pink-200 text-pink-900' :
-                                  'bg-red-200 text-red-900'
-                                }`}>
-                                  {status.missed}+ মাস বকেয়া
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-300">
+                                  {status.missed} মাস বকেয়া
                                 </span>
                               )}
                             </div>
