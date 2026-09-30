@@ -28,7 +28,16 @@ import DefaultSettingsPage from "@/pages/DefaultSettingsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "./pages/NotFound.tsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Data remains fresh for 5 minutes (prevents reload when navigating back)
+      gcTime: 1000 * 60 * 30,    // Keep cache in memory for 30 minutes
+      refetchOnWindowFocus: false, // Don't refetch every time user switches tabs
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

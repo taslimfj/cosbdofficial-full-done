@@ -432,7 +432,27 @@ export default function ProjectDetailPage() {
           </div>
         )}
         {visibleShareRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No member shares snapshot for this project.</p>
+          <div className="text-center py-6 space-y-3">
+            <p className="text-xs text-muted-foreground">No member shares snapshot for this project.</p>
+            {isAdmin && !alreadyDistributed && (
+              <Button size="sm" onClick={async () => {
+                try {
+                  setBusy(true);
+                  const { snapshotMemberShares, persistExclusions } = await import('@/lib/snapshotShares');
+                  const snap = await snapshotMemberShares({ type: 'project', sourceId: id!, excludeMemberIds: (project as any).excluded_member_ids || [] });
+                  await persistExclusions({ type: 'project', sourceId: id!, excluded: snap.excluded });
+                  toast.success('Snapshot shares generated successfully');
+                  load();
+                } catch (e: any) {
+                  toast.error(e?.message || 'Failed to generate snapshot');
+                } finally {
+                  setBusy(false);
+                }
+              }} disabled={busy}>
+                {busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Generate Shares Snapshot
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-1.5">
             {visibleShareRows.map(r => {
