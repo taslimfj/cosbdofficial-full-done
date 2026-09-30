@@ -49,7 +49,7 @@ export default function CashInHandPage() {
     const [fundRes, projRes, ilRes, ilPayRes, depRes, mlRes, mlPayRes, assetRes] = await Promise.all([
       supabase.from('fund_transactions').select('*'),
       supabase.from('project_transactions').select('*'),
-      supabase.from('islamic_loans').select('id, purchase_price, created_at, product_name, code'),
+      supabase.from('islamic_loans').select('id, purchase_price, loan_cost, created_at, product_name, code'),
       supabase.from('islamic_loan_payments').select('*'),
       supabase.from('deposits').select('*').eq('status', 'approved'),
       supabase.from('member_loans').select('*'),
@@ -96,11 +96,20 @@ export default function CashInHandPage() {
       });
     });
 
-    (ilRes.data || []).forEach((l: any) => merged.push({
-      id: `il-${l.id}`, created_at: l.created_at, source: 'Islamic Loan',
-      direction: 'out', amount: Number(l.purchase_price || 0),
-      reason: `Purchase — ${l.product_name || l.code || 'Loan'}`,
-    }));
+    (ilRes.data || []).forEach((l: any) => {
+      merged.push({
+        id: `il-${l.id}`, created_at: l.created_at, source: 'Islamic Loan',
+        direction: 'out', amount: Number(l.purchase_price || 0),
+        reason: `Purchase — ${l.product_name || l.code || 'Loan'}`,
+      });
+      if (Number(l.loan_cost || 0) > 0) {
+        merged.push({
+          id: `il-cost-${l.id}`, created_at: l.created_at, source: 'Islamic Loan',
+          direction: 'out', amount: Number(l.loan_cost),
+          reason: `Loan Cost (খরচ) — ${l.product_name || l.code || 'Loan'}`,
+        });
+      }
+    });
 
     (ilPayRes.data || []).forEach((p: any) => merged.push({
       id: `ilp-${p.id}`, created_at: p.created_at, source: 'Islamic Loan',
