@@ -169,6 +169,7 @@ export default function IslamicLoanDetailPage() {
         tenure_months: String(loan.tenure_months ?? '3'),
         profit_percentage: String(loan.profit_percentage ?? ''),
         discount_pct: String(loan.discount_pct ?? '0'),
+        loan_cost: String((loan as any).loan_cost ?? '0'),
         media_person_id: loan.media_person_id || '',
         secondary_media_person_id: (loan as any).secondary_media_person_id || '',
         media_person_profit_pct: String(loan.media_person_profit_pct ?? '10'),
@@ -185,20 +186,23 @@ export default function IslamicLoanDetailPage() {
     }
   }, [loan]);
 
-  // Profit / Loss = collected (paid) − purchase_price
-  //   Profit → Fund % + Media % + Admin % + Member Pool (snapshot %)
-  //   Loss   → Members bear it fully by snapshot % (Fund/Media/Admin unaffected)
+  // Profit / Loss = collected (paid) − purchase_price − loan_cost
+  //   Profit → Net Profit = Gross Profit − loan_cost. Fund/Media/Admin % on net profit + Member Pool
+  //   Loss   → Total Loss = (purchase_price + loan_cost) − collected. Members bear total loss by snapshot %
   const profitTotals = useMemo(() => {
-    if (!loan) return { total: 0, net: 0, isLoss: false, fund: 0, media: 0, admin: 0, memberPool: 0 };
+    if (!loan) return { total: 0, net: 0, isLoss: false, fund: 0, media: 0, admin: 0, memberPool: 0, loanCost: 0 };
     const collected = Number(loan.sell_price) - Number(loan.remaining_amount);
-    const net = round2(collected - Number(loan.purchase_price));
+    const loanCost = Number((loan as any).loan_cost || 0);
+    const grossProfit = collected - Number(loan.purchase_price);
+    const net = round2(grossProfit - loanCost);
+
     if (net >= 0) {
       const fund = round2(net * (Number(loan.fund_profit_pct) || 0) / 100);
       const media = round2(net * (Number(loan.media_person_profit_pct) || 0) / 100);
       const admin = round2(net * (Number((loan as any).admin_profit_pct) || 0) / 100);
-      return { total: net, net, isLoss: false, fund, media, admin, memberPool: round2(Math.max(0, net - fund - media - admin)) };
+      return { total: net, net, isLoss: false, fund, media, admin, memberPool: round2(Math.max(0, net - fund - media - admin)), loanCost };
     }
-    return { total: net, net, isLoss: true, fund: 0, media: 0, admin: 0, memberPool: net };
+    return { total: net, net, isLoss: true, fund: 0, media: 0, admin: 0, memberPool: net, loanCost };
   }, [loan]);
 
   // Snapshot share rows — frozen at loan creation (signed: negative on loss)
@@ -238,6 +242,7 @@ export default function IslamicLoanDetailPage() {
       tenure_months: parseInt(edit.tenure_months) || 3,
       profit_percentage: parseFloat(edit.profit_percentage) || 0,
       discount_pct: parseFloat(edit.discount_pct) || 0,
+      loan_cost: parseFloat((edit as any).loan_cost) || 0,
       media_person_id: edit.media_person_id || null,
       secondary_media_person_id: edit.secondary_media_person_id || null,
       media_person_profit_pct: parseFloat(edit.media_person_profit_pct) || 0,
@@ -1012,6 +1017,7 @@ export default function IslamicLoanDetailPage() {
           <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> End</span><span className="font-medium">{format(endDate, 'dd MMM yyyy')}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Media Person</span><span className="font-medium">{loan.media_person?.full_name || '—'} ({loan.media_person_profit_pct}%)</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Fund %</span><span className="font-medium">{loan.fund_profit_pct}%</span></div>
+          <div className="flex justify-between items-center"><span className="text-muted-foreground">Loan Cost (খরচ)</span><span className="font-medium font-mono text-destructive">{formatBDTDecimal(Number((loan as any).loan_cost || 0))}</span></div>
           {Number(loan.discount_pct) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="font-medium text-destructive">−{loan.discount_pct}%</span></div>}
           {loan.comments && <div className="pt-2"><p className="text-xs text-muted-foreground mb-1">Comments</p><p className="text-sm">{loan.comments}</p></div>}
         </div>
@@ -1234,6 +1240,11 @@ export default function IslamicLoanDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Purchase Price</Label><Input type="number" value={edit.purchase_price} onChange={e => setEdit({ ...edit, purchase_price: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Sell Price</Label><Input type="number" value={edit.sell_price} onChange={e => setEdit({ ...edit, sell_price: e.target.value })} /></div>
+              </div>
+              <div className="space-y-2">
+                <Label>Loan Cost / লোন খরচ (৳) <span className="text-xs text-muted-foreground">(admin only)</span></Label>
+                <Input type="number" min="0" value={(edit as any).loan_cost || '0'} onChange={e => setEdit({ ...edit, loan_cost: e.target.value } as any)} placeholder="0" />
+                <p className="text-[11px] text-muted-foreground">লোন প্রসেসিং খরচ। প্রফিট হলে মোট প্রফিট থেকে বিয়োগ হবে, লস হলে মোট লসের সাথে যোগ হবে।</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Monthly Installment</Label><Input type="number" value={edit.monthly_installment} onChange={e => setEdit({ ...edit, monthly_installment: e.target.value })} /></div>
