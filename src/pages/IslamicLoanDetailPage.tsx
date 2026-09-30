@@ -1241,10 +1241,10 @@ export default function IslamicLoanDetailPage() {
                 <div className="space-y-2"><Label>Purchase Price</Label><Input type="number" value={edit.purchase_price} onChange={e => setEdit({ ...edit, purchase_price: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Sell Price</Label><Input type="number" value={edit.sell_price} onChange={e => setEdit({ ...edit, sell_price: e.target.value })} /></div>
               </div>
-              <div className="space-y-2">
-                <Label>Loan Cost / লোন খরচ (৳) <span className="text-xs text-muted-foreground">(admin only)</span></Label>
-                <Input type="number" min="0" value={(edit as any).loan_cost || '0'} onChange={e => setEdit({ ...edit, loan_cost: e.target.value } as any)} placeholder="0" />
-                <p className="text-[11px] text-muted-foreground">লোন প্রসেসিং খরচ। প্রফিট হলে মোট প্রফিট থেকে বিয়োগ হবে, লস হলে মোট লসের সাথে যোগ হবে।</p>
+              <div className="space-y-2 border border-destructive/30 bg-destructive/5 rounded-lg p-3">
+                <Label className="text-destructive font-semibold">Loan Cost / লোন খরচ (৳) <span className="text-xs font-normal text-muted-foreground">(admin only)</span></Label>
+                <Input type="number" min="0" value={(edit as any).loan_cost || '0'} onChange={e => setEdit({ ...edit, loan_cost: e.target.value } as any)} placeholder="0" className="border-destructive/40 text-destructive font-mono font-semibold" />
+                <p className="text-[11px] text-destructive/80">লোন প্রসেসিং খরচ। প্রফিট হলে মোট প্রফিট থেকে বিয়োগ হবে, লস হলে মোট লসের সাথে যোগ হবে।</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Monthly Installment</Label><Input type="number" value={edit.monthly_installment} onChange={e => setEdit({ ...edit, monthly_installment: e.target.value })} /></div>

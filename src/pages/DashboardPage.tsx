@@ -105,7 +105,7 @@ export default function DashboardPage() {
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectIncome = projTxns.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectExpense = projTxns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const ilPurchases = ilLoans.reduce((s: number, l: any) => s + Number(l.purchase_price || 0), 0);
+    const ilPurchases = ilLoans.reduce((s: number, l: any) => s + Number(l.purchase_price || 0) + Number(l.loan_cost || 0), 0);
     const ilInstallments = ilPayments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
     const mlDisbursed = mLoans
       .filter((l: any) => l.status === 'approved' || l.status === 'repaid')
