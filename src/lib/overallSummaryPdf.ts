@@ -174,7 +174,9 @@ function renderMonthBlock(
     .filter((m: any) => !m.is_deleted && !m.is_customer)
     .sort((a: any, b: any) => (a.full_name || '').localeCompare(b.full_name || ''));
 
-  y = sectionTitle(doc, 'Members — Deposits, Withdrawals & Balance', y);
+  const totalCapital = Array.from(balanceByMember.values()).reduce((s, v) => s + v, 0);
+
+  y = sectionTitle(doc, 'Members — Capital & Deposits', y);
   if (activeMembers.length === 0) {
     doc.setFontSize(9); doc.setTextColor(120);
     doc.text('No active members.', 14, y + 3);
@@ -190,9 +192,12 @@ function renderMonthBlock(
         fmt(balanceByMember.get(m.id) || 0),
       ];
     });
+    // Append total row
+    rows.push(['TOTAL CAPITAL', '', '', fmt(totalCapital)]);
+
     autoTable(doc, {
       startY: y,
-      head: [['Member', 'Deposit', 'Withdraw', 'Total Balance']],
+      head: [['Member', 'Deposit (In)', 'Withdraw (Out)', 'Total Balance']],
       body: rows,
       ...tableStyle,
     });
@@ -200,15 +205,25 @@ function renderMonthBlock(
   }
 
 
+  // Cumulative Fund Balance up to end of period
+  let fundBalanceCumulative = 0;
+  for (const t of data.fundTxns) {
+    const _fe = eff(t); const dt = _fe ? new Date(_fe) : null;
+    if (!dt || dt > end) continue;
+    const amt = Number(t.amount || 0);
+    if (t.type === 'in' || t.type === 'income') fundBalanceCumulative += amt;
+    else if (t.type === 'out' || t.type === 'expense') fundBalanceCumulative -= amt;
+  }
+
   // Fund
   const monthFund = data.fundTxns.filter(t => inRange(eff(t), start, end));
   const fundIn = monthFund.filter(t => t.type === 'in' || t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
   const fundOut = monthFund.filter(t => t.type === 'out' || t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0);
-  y = sectionTitle(doc, 'Fund', y);
+  y = sectionTitle(doc, 'Fund Balance', y);
   autoTable(doc, {
     startY: y,
-    head: [['Fund In', 'Fund Out', 'Net']],
-    body: [[fmt(fundIn), fmt(fundOut), fmt(fundIn - fundOut)]],
+    head: [['Fund In (Period)', 'Fund Out (Period)', 'Net Period Change', 'Net Fund Balance (Total)']],
+    body: [[fmt(fundIn), fmt(fundOut), fmt(fundIn - fundOut), fmt(fundBalanceCumulative)]],
     ...tableStyle,
   });
   y = (doc as any).lastAutoTable.finalY + 5;
@@ -216,13 +231,19 @@ function renderMonthBlock(
   // Islamic Loans — created + installments
   const ilCreated = data.islamicLoans.filter(l => inRange(eff(l), start, end));
   const ilPays = data.islamicPayments.filter(p => inRange(eff(p), start, end));
+  const ilInTotal = ilPays.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const ilOutTotal = ilCreated.reduce((s, l) => s + Number(l.purchase_price || 0), 0);
+
   y = sectionTitle(doc, 'Islamic Loans', y);
-  if (ilCreated.length === 0 && ilPays.length === 0) {
-    doc.setFontSize(9); doc.setTextColor(120);
-    doc.text('No Islamic loan activity this period.', 14, y + 3);
-    doc.setTextColor(0);
-    y += 8;
-  } else {
+  autoTable(doc, {
+    startY: y,
+    head: [['Installments In (Period)', 'Purchases Out (Period)', 'Net Islamic Loans Change']],
+    body: [[fmt(ilInTotal), fmt(ilOutTotal), fmt(ilInTotal - ilOutTotal)]],
+    ...tableStyle,
+  });
+  y = (doc as any).lastAutoTable.finalY + 3;
+
+  if (ilCreated.length || ilPays.length) {
     if (ilCreated.length) {
       autoTable(doc, {
         startY: y,
@@ -240,20 +261,26 @@ function renderMonthBlock(
         ...tableStyle,
       });
       y = (doc as any).lastAutoTable.finalY + 5;
-    } else {
-      y += 2;
     }
+  } else {
+    y += 2;
   }
 
   // Projects
   const projTxns = data.projectTxns.filter(t => inRange(eff(t), start, end));
+  const prjInTotal = projTxns.filter(t => t.type === 'income' || t.type === 'in').reduce((s, t) => s + Number(t.amount || 0), 0);
+  const prjOutTotal = projTxns.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + Number(t.amount || 0), 0);
+
   y = sectionTitle(doc, 'Projects', y);
-  if (projTxns.length === 0) {
-    doc.setFontSize(9); doc.setTextColor(120);
-    doc.text('No project activity this period.', 14, y + 3);
-    doc.setTextColor(0);
-    y += 8;
-  } else {
+  autoTable(doc, {
+    startY: y,
+    head: [['Income In (Period)', 'Expense Out (Period)', 'Net Project Change']],
+    body: [[fmt(prjInTotal), fmt(prjOutTotal), fmt(prjInTotal - prjOutTotal)]],
+    ...tableStyle,
+  });
+  y = (doc as any).lastAutoTable.finalY + 3;
+
+  if (projTxns.length) {
     autoTable(doc, {
       startY: y,
       head: [['Date', 'Project', 'Type', 'Amount', 'Reason']],
@@ -267,18 +294,26 @@ function renderMonthBlock(
       ...tableStyle,
     });
     y = (doc as any).lastAutoTable.finalY + 5;
+  } else {
+    y += 2;
   }
 
   // Member Loans — new + repayments
   const mlNew = data.memberLoans.filter(l => inRange(eff(l), start, end));
   const mlPays = data.memberRepayments.filter(r => r.status === 'approved' && inRange(eff(r), start, end));
+  const mlInTotal = mlPays.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const mlOutTotal = mlNew.reduce((s, l) => s + Number(l.approved_amount || l.requested_amount || 0), 0);
+
   y = sectionTitle(doc, 'Member Loans', y);
-  if (mlNew.length === 0 && mlPays.length === 0) {
-    doc.setFontSize(9); doc.setTextColor(120);
-    doc.text('No member loan activity this period.', 14, y + 3);
-    doc.setTextColor(0);
-    y += 8;
-  } else {
+  autoTable(doc, {
+    startY: y,
+    head: [['Repayments In (Period)', 'Disbursed Out (Period)', 'Net Member Loans Change']],
+    body: [[fmt(mlInTotal), fmt(mlOutTotal), fmt(mlInTotal - mlOutTotal)]],
+    ...tableStyle,
+  });
+  y = (doc as any).lastAutoTable.finalY + 3;
+
+  if (mlNew.length || mlPays.length) {
     if (mlNew.length) {
       autoTable(doc, {
         startY: y,
@@ -305,9 +340,9 @@ function renderMonthBlock(
         ...tableStyle,
       });
       y = (doc as any).lastAutoTable.finalY + 5;
-    } else {
-      y += 2;
     }
+  } else {
+    y += 2;
   }
 
   return y + 4;
