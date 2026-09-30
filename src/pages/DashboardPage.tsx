@@ -46,7 +46,7 @@ export default function DashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    const [profilesRes, fundRes, loansRes, depsRes, distRes, projTxRes, ilRes, ilPayRes, mlRes, mlPayRes] = await Promise.all([
+    const [profilesRes, fundRes, loansRes, depsRes, distRes, projTxRes, ilRes, ilPayRes, mlRes, mlPayRes, assetRes] = await Promise.all([
       (supabase as any).from('member_directory').select('*'),
       supabase.from('fund_transactions').select('*'),
       (supabase as any).from('islamic_loans_public').select('*').eq('status', 'active'),
@@ -57,6 +57,7 @@ export default function DashboardPage() {
       supabase.from('islamic_loan_payments').select('amount'),
       supabase.from('member_loans').select('approved_amount, status'),
       supabase.from('member_loan_repayments').select('amount, status'),
+      supabase.from('assets').select('*').is('deleted_at', null),
     ]);
 
     const profiles = profilesRes.data || [];
@@ -97,11 +98,23 @@ export default function DashboardPage() {
     const depositsCash = deposits
       .filter((d: any) => d.status === 'approved')
       .reduce((s: number, d: any) => s + Number(d.amount || 0), 0); // signed: withdraw is negative
+    const assetTxnIds = new Set<string>();
+    ((assetRes as any)?.data || []).forEach((a: any) => {
+      if (a.purchase_txn_id) assetTxnIds.add(a.purchase_txn_id);
+      if (a.scrap_txn_id) assetTxnIds.add(a.scrap_txn_id);
+    });
+
     const fundManualIn = fundTxns
-      .filter((t: any) => (t.type === 'in' || t.type === 'income') && !isProfitInternal(t.reason))
+      .filter((t: any) => (t.type === 'in' || t.type === 'income') && !isProfitInternal(t.reason) && !assetTxnIds.has(t.id))
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const fundManualOut = fundTxns
-      .filter((t: any) => (t.type === 'out' || t.type === 'expense') && !isProfitInternal(t.reason))
+      .filter((t: any) => (t.type === 'out' || t.type === 'expense') && !isProfitInternal(t.reason) && !assetTxnIds.has(t.id))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const assetIn = fundTxns
+      .filter((t: any) => (t.type === 'in' || t.type === 'income') && assetTxnIds.has(t.id))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const assetOut = fundTxns
+      .filter((t: any) => (t.type === 'out' || t.type === 'expense') && assetTxnIds.has(t.id))
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectIncome = projTxns.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const projectExpense = projTxns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -119,7 +132,8 @@ export default function DashboardPage() {
       + (fundManualIn - fundManualOut)
       + (projectIncome - projectExpense)
       + (ilInstallments - ilPurchases)
-      + (mlRepaid - mlDisbursed);
+      + (mlRepaid - mlDisbursed)
+      + (assetIn - assetOut);
 
 
     setStats({
