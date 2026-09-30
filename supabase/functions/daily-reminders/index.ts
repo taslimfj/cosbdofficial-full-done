@@ -186,6 +186,47 @@ Deno.serve(async (req) => {
     }
 
 
+    // --- Task Reminders for Assigned Members ---
+    const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    const { data: ongoingTasks } = await sb.from('tasks')
+      .select('id, title, task_date, status')
+      .eq('status', 'ongoing')
+      .lte('task_date', todayStr);
+
+    for (const t of (ongoingTasks || [])) {
+      const { data: assignees } = await sb.from('task_assignees').select('member_id').eq('task_id', t.id);
+      const { data: completedResponses } = await sb.from('task_responses')
+        .select('member_id')
+        .eq('task_id', t.id)
+        .eq('status', 'completed');
+
+      const completedMemberIds = new Set((completedResponses || []).map((r: any) => r.member_id));
+
+      for (const a of (assignees || [])) {
+        if (completedMemberIds.has(a.member_id)) continue; // Task already completed by this member
+
+        const isStartDay = t.task_date === todayStr;
+        if (isStartDay) {
+          rows.push({
+            user_id: a.member_id,
+            title: '📋 নতুন টাস্ক এভেলেবেল',
+            message: `আপনার জন্য "${t.title}" টাস্কটি এখন এভেলেবেল। অনুগ্রহ করে দ্রুত সম্পন্ন করুন।`,
+            url: '/tasks',
+            tag: `task-start-${t.id}-${todayStr}`,
+          });
+        } else {
+          // Overdue task reminder (runs on cron executions, e.g. 3x daily)
+          rows.push({
+            user_id: a.member_id,
+            title: '⏰ টাস্ক পেন্ডিং স্মরণ করিয়ে দেওয়া',
+            message: `আপনার "${t.title}" টাস্কটি পেন্ডিং রয়েছে। অনুগ্রহ করে দ্রুত সম্পন্ন করুন।`,
+            url: '/tasks',
+            // No static tag so it can trigger on each daily reminder cron execution
+          });
+        }
+      }
+    }
+
     await insertNotifs(sb, rows);
     return new Response(JSON.stringify({ inserted: rows.length, dayOfMonth, daysUntilDue: lastDaysUntilDue }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
