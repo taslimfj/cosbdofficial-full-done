@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle } from 'lucide-react';
+import { ArrowLeft, Phone, MessageCircle, Loader2, Plus, Download, Trash2, MinusCircle, Lock, Unlock } from 'lucide-react';
 import { generateMemberPDF } from '@/lib/pdfGenerator';
 import { computeMissedInstallments, statusBannerClass } from '@/lib/memberStatus';
 import { DateField } from '@/components/DateField';
@@ -110,10 +110,38 @@ export default function MemberDetailPage() {
   const isOwnAccount = user?.id === id;
   const isAdmin = role === 'admin';
 
+  const handleToggleManualLock = async () => {
+    if (!member) return;
+    const newLockState = !member.is_manual_locked;
+    setSubmitting(true);
+    const { error } = await supabase.from('profiles').update({ is_manual_locked: newLockState } as any).eq('id', id!);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(newLockState ? 'Member account locked by Admin' : 'Member account unlocked');
+      loadData();
+    }
+  };
+
   const handleAddDeposit = async () => {
     const amount = parseFloat(depositForm.amount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
     if (!depositForm.transactionNumber.trim()) { toast.error('Enter transaction number'); return; }
+
+    if (!isAdmin) {
+      if (member?.is_manual_locked) {
+        toast.error('আপনার অ্যাকাউন্ট অ্যাডমিন কর্তৃক লক করা হয়েছে। রিকভারি করতে অ্যাডমিনের সাথে যোগাযোগ করুন।');
+        return;
+      }
+      if (installmentStatus.requiresAdminRecovery) {
+        toast.error('আপনার অ্যাকাউন্টটি সাময়িকভাবে বন্ধ করা হয়েছে। অ্যাকাউন্ট রিকভারি করতে অ্যাডমিনের সাথে যোগাযোগ করুন।');
+        return;
+      }
+      if (installmentStatus.fineAmount > 0) {
+        toast.warning(`আপনার বকেয়া জরিমানা ৳${installmentStatus.fineAmount}। জমা রিকুয়েস্ট পাঠানোর পূর্বে জরিমানার তথ্য উল্লেখ করুন।`);
+      }
+    }
 
     setSubmitting(true);
     const { error } = await supabase.from('deposits').insert({
@@ -263,16 +291,28 @@ export default function MemberDetailPage() {
             <Download className="w-4 h-4" /> PDF
           </Button>
           {role === 'admin' && user?.id !== id && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToggleAdmin}
-              disabled={togglingAdmin}
-              className={isTargetAdmin ? 'gap-2 text-destructive border-destructive/30' : 'gap-2 text-primary border-primary/30'}
-            >
-              {togglingAdmin && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
-            </Button>
+            <>
+              <Button
+                variant={member.is_manual_locked ? 'default' : 'destructive'}
+                size="sm"
+                onClick={handleToggleManualLock}
+                disabled={submitting}
+                className="gap-1.5"
+              >
+                {member.is_manual_locked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {member.is_manual_locked ? 'Unlock Account' : 'Lock Account'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleAdmin}
+                disabled={togglingAdmin}
+                className={isTargetAdmin ? 'gap-2 text-destructive border-destructive/30' : 'gap-2 text-primary border-primary/30'}
+              >
+                {togglingAdmin && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
+              </Button>
+            </>
           )}
           {(role === 'admin' || isOwnAccount) && (
             <>
