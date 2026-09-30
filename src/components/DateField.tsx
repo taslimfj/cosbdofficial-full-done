@@ -15,13 +15,15 @@ interface Props {
   disabled?: boolean;
   className?: string;
   id?: string;
+  /** Disallow past dates (for non-admin users) */
+  minDate?: Date;
 }
 
 /**
  * DateField — manually type as DD/MM/YYYY or pick from calendar.
  * Stores value as ISO yyyy-MM-dd.
  */
-export function DateField({ value, onChange, placeholder = 'DD/MM/YYYY', disabled, className, id }: Props) {
+export function DateField({ value, onChange, placeholder = 'DD/MM/YYYY', disabled, className, id, minDate }: Props) {
   const [text, setText] = React.useState<string>(() => isoToDisplay(value));
   const [open, setOpen] = React.useState(false);
 
@@ -32,7 +34,17 @@ export function DateField({ value, onChange, placeholder = 'DD/MM/YYYY', disable
 
   const commit = (raw: string) => {
     const iso = displayToIso(raw);
-    if (iso !== null) onChange(iso);
+    if (iso !== null) {
+      if (minDate) {
+        const d = parse(iso, 'yyyy-MM-dd', new Date());
+        const minClean = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+        if (d < minClean) {
+          onChange(format(minClean, 'yyyy-MM-dd'));
+          return;
+        }
+      }
+      onChange(iso);
+    }
     else if (raw.trim() === '') onChange('');
   };
 
@@ -71,6 +83,10 @@ export function DateField({ value, onChange, placeholder = 'DD/MM/YYYY', disable
           <Calendar
             mode="single"
             selected={selected && isValid(selected) ? selected : undefined}
+            disabled={minDate ? (d) => {
+              const minClean = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+              return d < minClean;
+            } : undefined}
             onSelect={(d) => {
               if (d) {
                 onChange(format(d, 'yyyy-MM-dd'));

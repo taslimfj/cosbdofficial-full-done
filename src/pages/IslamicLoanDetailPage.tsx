@@ -1340,7 +1340,7 @@ export default function IslamicLoanDetailPage() {
             </div>
             <div>
               <Label>Payment Date</Label>
-              <DateField value={paymentDate} onChange={setPaymentDate} />
+              <DateField value={paymentDate} onChange={setPaymentDate} minDate={role === 'admin' ? undefined : new Date()} />
             </div>
           </div>
           <DialogFooter>
@@ -1379,7 +1379,7 @@ export default function IslamicLoanDetailPage() {
               </div>
               <div>
                 <Label>Payment Date</Label>
-                <DateField value={paymentDate} onChange={setPaymentDate} />
+                <DateField value={paymentDate} onChange={setPaymentDate} minDate={role === 'admin' ? undefined : new Date()} />
               </div>
               <div><Label>Note (optional)</Label><Textarea value={requestNote} onChange={e => setRequestNote(e.target.value)} placeholder="অতিরিক্ত মন্তব্য" /></div>
             </div>
