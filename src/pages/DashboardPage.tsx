@@ -53,7 +53,7 @@ export default function DashboardPage() {
       supabase.from('deposits').select('member_id, amount, status'),
       supabase.from('profit_distributions').select('member_id, amount'),
       supabase.from('project_transactions').select('type, amount'),
-      supabase.from('islamic_loans').select('purchase_price'),
+      supabase.from('islamic_loans').select('purchase_price, loan_cost'),
       supabase.from('islamic_loan_payments').select('amount'),
       supabase.from('member_loans').select('approved_amount, status'),
       supabase.from('member_loan_repayments').select('amount, status'),
