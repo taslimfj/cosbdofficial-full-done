@@ -23,10 +23,15 @@ export async function snapshotMemberShares(opts: {
 }) {
   const manualExcluded = new Set((opts.excludeMemberIds || []).filter(Boolean));
 
-  const [{ data: membersDirectory }, { data: deposits }, { data: distributions }] = await Promise.all([
+  const [{ data: membersDirectory }, { data: profilesList }, { data: deposits }, { data: distributions }] = await Promise.all([
     (supabase as any)
       .from('member_directory')
       .select('id, full_name, deleted_name, total_deposited, created_at')
+      .eq('is_deleted', false)
+      .eq('is_customer', false),
+    supabase
+      .from('profiles')
+      .select('id, is_manual_locked')
       .eq('is_deleted', false)
       .eq('is_customer', false),
     supabase
@@ -65,6 +70,11 @@ export async function snapshotMemberShares(opts: {
     depositsByMember.set(d.member_id, arr);
   });
 
+  const manualLockById = new Map<string, boolean>();
+  (profilesList || []).forEach((p: any) => {
+    if (p.id) manualLockById.set(p.id, !!p.is_manual_locked);
+  });
+
   const excluded: ExcludedMemberInfo[] = [];
   const live: any[] = [];
 
@@ -76,13 +86,13 @@ export async function snapshotMemberShares(opts: {
       excluded.push({ id: m.id, name, reason: 'manual' });
       return;
     }
-    // Only check missed installments if deposits could be read (avoid false critical when RLS blocks deposits)
-    if (hasDepositsRead) {
-      const status = computeMissedInstallments(depositsByMember.get(m.id) || [], m.created_at);
-      if (status.level === 'critical') {
-        excluded.push({ id: m.id, name, reason: 'critical' });
-        return;
-      }
+    // Exclude if manually locked by admin OR 3+ missed installments (critical)
+    const isManualLocked = manualLockById.get(m.id) || false;
+    const isCriticalInstallment = hasDepositsRead && computeMissedInstallments(depositsByMember.get(m.id) || [], m.created_at).level === 'critical';
+
+    if (isManualLocked || isCriticalInstallment) {
+      excluded.push({ id: m.id, name, reason: 'critical' });
+      return;
     }
     live.push(m);
   });
