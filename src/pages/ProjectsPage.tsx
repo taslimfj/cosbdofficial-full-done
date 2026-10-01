@@ -79,7 +79,7 @@ export default function ProjectsPage() {
       byMember.set(d.member_id, arr);
     });
     return members
-      .filter((m: any) => computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
+      .filter((m: any) => m.is_manual_locked || computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
       .map((m: any) => m.id);
   }, [members, deposits]);
 
