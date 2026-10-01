@@ -6,7 +6,7 @@ export function MonthlyReminders() {
   useEffect(() => {
     const day = getDate(new Date());
     if (day === 1 || day === 2) {
-      toast.info('New month started', {
+      toast.error('New month started', {
         description: 'Please remember to pay your monthly installment.',
         duration: 8000,
       });
