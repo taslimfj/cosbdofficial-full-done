@@ -8,7 +8,13 @@ export function MonthlyReminders() {
     if (day === 1 || day === 2) {
       toast.error('New month started', {
         description: 'Please remember to pay your monthly installment.',
-        duration: 8000,
+        duration: 10000,
+        style: {
+          backgroundColor: '#ef4444',
+          color: '#ffffff',
+          borderColor: '#dc2626',
+        },
+        className: 'bg-red-500 text-white border-red-600 font-medium shadow-xl',
       });
     }
     if (day === 15) {
