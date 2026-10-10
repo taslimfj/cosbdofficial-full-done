@@ -1,7 +1,7 @@
-// Consecutive-missed-installment tracking for members.
+// Consecutive/unpaid missed-installment tracking for members.
 // Members must deposit once every calendar month. We count the number of
-// consecutive prior months (before the current month) with no approved
-// deposit. The current month is a grace period — never counted as missed.
+// prior months (from join date up to previous month) with no approved deposit.
+// The current month is a grace period, or if paid, covers an extra month.
 
 export type DepositLike = { month_year?: string | null; created_at?: string | null; status?: string | null };
 
@@ -17,6 +17,22 @@ function ymKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function ymKeyFromString(base: string): string | null {
+  if (!base) return null;
+  const clean = String(base).split('T')[0];
+  const parts = clean.split('-');
+  if (parts.length >= 2) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 1 && m <= 12) {
+      return `${y}-${String(m).padStart(2, '0')}`;
+    }
+  }
+  const dt = new Date(base);
+  if (isNaN(dt.getTime())) return null;
+  return ymKey(dt);
+}
+
 export function computeMissedInstallments(
   deposits: (DepositLike & { amount?: number | null })[],
   memberJoinedAt?: string | null,
@@ -29,28 +45,30 @@ export function computeMissedInstallments(
     if (d.amount !== undefined && d.amount !== null && Number(d.amount) <= 0) continue;
     const base = d.month_year || d.created_at;
     if (!base) continue;
-    const dt = new Date(base);
-    if (isNaN(dt.getTime())) continue;
-    paidMonths.add(ymKey(dt));
-  }
-
-  // If the member has paid THIS month, they are fully current — no warning.
-  const currentKey = ymKey(now);
-  if (paidMonths.has(currentKey)) {
-    return { missed: 0, level: 'normal', message: null, fineAmount: 0, requiresAdminRecovery: false };
+    const key = ymKeyFromString(base);
+    if (key) paidMonths.add(key);
   }
 
   const joined = memberJoinedAt ? new Date(memberJoinedAt) : null;
   const cursor = new Date(now.getFullYear(), now.getMonth() - 1, 1); // start at previous month
   let missed = 0;
+
+  // Count prior months from previous month back to join date that do not have paid deposits
   while (true) {
     if (joined && (cursor.getFullYear() < joined.getFullYear() ||
       (cursor.getFullYear() === joined.getFullYear() && cursor.getMonth() < joined.getMonth()))) break;
     const key = ymKey(cursor);
-    if (paidMonths.has(key)) break;
-    missed += 1;
+    if (!paidMonths.has(key)) {
+      missed += 1;
+    }
     if (missed >= 12) break; // safety cap
     cursor.setMonth(cursor.getMonth() - 1);
+  }
+
+  // If member has paid in the current month, subtract 1 missed month
+  const currentKey = ymKey(now);
+  if (paidMonths.has(currentKey)) {
+    missed = Math.max(0, missed - 1);
   }
 
   if (missed <= 0) return { missed: 0, level: 'normal', message: null, fineAmount: 0, requiresAdminRecovery: false };
