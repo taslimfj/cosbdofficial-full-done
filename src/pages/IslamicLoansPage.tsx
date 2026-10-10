@@ -150,7 +150,7 @@ export default function IslamicLoansPage() {
 
 
 
-  const criticalMemberIds = useMemo(() => {
+  const { criticalMemberIds, lockedLabels } = useMemo(() => {
     const byMember = new Map<string, any[]>();
     (deposits || []).forEach((d: any) => {
       if (!d.member_id) return;
@@ -158,9 +158,18 @@ export default function IslamicLoansPage() {
       arr.push(d);
       byMember.set(d.member_id, arr);
     });
-    return members
-      .filter((m: any) => m.is_manual_locked || computeMissedInstallments(byMember.get(m.id) || [], m.created_at).level === 'critical')
-      .map((m: any) => m.id);
+    const ids: string[] = [];
+    const labels: Record<string, string> = {};
+    members.forEach((m: any) => {
+      const isManual = !!m.is_manual_locked;
+      const missedStatus = computeMissedInstallments(byMember.get(m.id) || [], m.created_at);
+      const isCritical = missedStatus.level === 'critical';
+      if (isManual || isCritical) {
+        ids.push(m.id);
+        labels[m.id] = isManual ? '🔒 লকড — auto exclude' : '৩ মাস বকেয়া — auto exclude';
+      }
+    });
+    return { criticalMemberIds: ids, lockedLabels: labels };
   }, [members, deposits]);
 
   // Phone-based history lookup → discount credit + customer rating
@@ -500,7 +509,8 @@ export default function IslamicLoansPage() {
                     value={excludedMemberIds}
                     onChange={setExcludedMemberIds}
                     lockedIds={criticalMemberIds}
-                    lockedLabel="৩ মাস বকেয়া — auto exclude"
+                    lockedLabels={lockedLabels}
+                    lockedLabel="🔒 লকড / auto exclude"
                     placeholder="কাউকে exclude করতে চাইলে select করুন"
                   />
                   <p className="text-[11px] text-muted-foreground">এখানে যাদের select করা হবে তারা এই loan-এর profit/loss share পাবেন না। বাকি member-দের মধ্যে percentage পুনরায় হিসাব হবে। ৩ মাস consecutive বকেয়া member automatic exclude হবেন।</p>

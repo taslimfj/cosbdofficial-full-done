@@ -29,7 +29,7 @@ export function ExcludedMembersCard({ excludedIds, reasons, memberById }: Props)
             <div key={id} className="flex justify-between items-center text-sm px-3 py-2 rounded-lg bg-destructive/5">
               <span className="font-medium truncate">{name}</span>
               <span className={`text-[11px] px-2 py-0.5 rounded-full ${isCritical ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground'}`}>
-                {isCritical ? '৩ মাস বকেয়া — auto exclude' : 'Admin exclude'}
+                {isCritical ? '🔒 লকড / auto exclude' : 'Admin exclude'}
               </span>
             </div>
           );
