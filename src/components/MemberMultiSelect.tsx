@@ -12,9 +12,10 @@ interface Props {
   members: MemberOption[];
   value: string[];
   onChange: (ids: string[]) => void;
-  /** IDs that are auto-excluded and cannot be toggled off (e.g. 3-month overdue). */
+  /** IDs that are auto-excluded and cannot be toggled off (e.g. 3-month overdue or locked). */
   lockedIds?: string[];
   lockedLabel?: string;
+  lockedLabels?: Record<string, string>;
   placeholder?: string;
   emptyText?: string;
 }
@@ -25,6 +26,7 @@ export function MemberMultiSelect({
   onChange,
   lockedIds = [],
   lockedLabel = 'Auto excluded',
+  lockedLabels = {},
   placeholder = 'Select members…',
   emptyText = 'No members',
 }: Props) {
@@ -76,7 +78,7 @@ export function MemberMultiSelect({
                       <span className={cn('flex-1', isLocked && 'text-destructive font-medium')}>{m.name}</span>
                       {isLocked && (
                         <span className="ml-2 flex items-center gap-1 text-[10px] text-destructive">
-                          <Lock className="h-3 w-3" /> {lockedLabel}
+                          <Lock className="h-3 w-3" /> {lockedLabels[m.id] || lockedLabel}
                         </span>
                       )}
                     </CommandItem>
@@ -94,7 +96,7 @@ export function MemberMultiSelect({
             <Badge key={m.id} variant="destructive" className="gap-1">
               <Lock className="h-3 w-3" />
               {m.name}
-              <span className="text-[10px] opacity-90 ml-0.5">· {lockedLabel}</span>
+              <span className="text-[10px] opacity-90 ml-0.5">· {lockedLabels[m.id] || lockedLabel}</span>
             </Badge>
           ))}
           {manualMembers.map((m) => (
