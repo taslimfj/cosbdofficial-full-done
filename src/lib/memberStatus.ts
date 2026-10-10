@@ -1,7 +1,8 @@
-// Consecutive/unpaid missed-installment tracking for members.
+// Consecutive-missed-installment tracking for members.
 // Members must deposit once every calendar month. We count the number of
-// prior months (from join date up to previous month) with no approved deposit.
-// The current month is a grace period, or if paid, covers an extra month.
+// consecutive prior months (before the current month) with no approved deposit.
+// The current month is a grace period — if paid, the account is fully current (0 missed).
+// When a member resumes depositing, older history before the latest paid deposit is ignored.
 
 export type DepositLike = { month_year?: string | null; created_at?: string | null; status?: string | null };
 
@@ -49,26 +50,28 @@ export function computeMissedInstallments(
     if (key) paidMonths.add(key);
   }
 
+  // If the member has paid THIS month, they are fully current — account is fresh!
+  const currentKey = ymKey(now);
+  if (paidMonths.has(currentKey)) {
+    return { missed: 0, level: 'normal', message: null, fineAmount: 0, requiresAdminRecovery: false };
+  }
+
+  // Count CONSECUTIVE prior months backwards from previous month until we hit a paid deposit or join date
   const joined = memberJoinedAt ? new Date(memberJoinedAt) : null;
-  const cursor = new Date(now.getFullYear(), now.getMonth() - 1, 1); // start at previous month
+  const cursor = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   let missed = 0;
 
-  // Count prior months from previous month back to join date that do not have paid deposits
   while (true) {
     if (joined && (cursor.getFullYear() < joined.getFullYear() ||
       (cursor.getFullYear() === joined.getFullYear() && cursor.getMonth() < joined.getMonth()))) break;
     const key = ymKey(cursor);
-    if (!paidMonths.has(key)) {
-      missed += 1;
+    if (paidMonths.has(key)) {
+      // Hit a paid month — consecutive missed streak ends!
+      break;
     }
+    missed += 1;
     if (missed >= 12) break; // safety cap
     cursor.setMonth(cursor.getMonth() - 1);
-  }
-
-  // If member has paid in the current month, subtract 1 missed month
-  const currentKey = ymKey(now);
-  if (paidMonths.has(currentKey)) {
-    missed = Math.max(0, missed - 1);
   }
 
   if (missed <= 0) return { missed: 0, level: 'normal', message: null, fineAmount: 0, requiresAdminRecovery: false };
@@ -87,7 +90,7 @@ export function computeMissedInstallments(
     requiresAdminRecovery: false,
   };
 
-  // missed >= 3: Locked due to 3+ missed installments
+  // missed >= 3: Locked due to 3+ consecutive missed installments
   const overdueMonthsAfterLock = missed - 3; // 0 for 3 missed, 1 for 4 missed (+100), etc.
   const rawFine = overdueMonthsAfterLock > 0 ? overdueMonthsAfterLock * 100 : 0;
   const fineAmount = Math.min(500, rawFine);
